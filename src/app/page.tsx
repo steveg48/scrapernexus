@@ -74,8 +74,7 @@ export default function Home() {
             display_name: displayName,
             member_type: memberType
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-          emailConfirm: true
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
         }
       })
 
