@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react'
 
 interface Profile {
   id: string
-  user_id: string
-  full_name: string
+  // user_id: string   /* DOES NOT EXIST IN SCHEMA */
+  // full_name: string /* DOES NOT EXIST IN SCHEMA */
   display_name: string
   member_type: string
   role: string
@@ -55,7 +55,7 @@ export default function Dashboard() {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('id', user.id) // Refrence id in profile table
           .single()
         
         if (profileError && profileError.code !== 'PGRST116') {
@@ -66,11 +66,11 @@ export default function Dashboard() {
         if (!profile) {
           console.log('Creating new profile for user:', user.id)
           const newProfileData = {
-            user_id: user.id,
-            full_name: user.user_metadata?.full_name || '',
+            id: user.id,
+            // full_name: user.user_metadata?.full_name || '', /* DOES NOT EXIST IN SCHEMA */
             display_name: user.user_metadata?.display_name || '',
             member_type: user.user_metadata?.member_type || 'buyer',
-            role: 'user'
+            role: user.user_metadata?.member_type || 'buyer' // UPDATED TO SET A PERMTTED ROLE
           }
 
           const { error: insertError } = await supabase
@@ -85,7 +85,7 @@ export default function Dashboard() {
           const { data: newProfile, error: newProfileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('id', user.id) // Refrence id in profile table
             .single()
           
           if (newProfileError) {
@@ -157,7 +157,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center">
               {profile && (
-                <span className="mr-4">Welcome, {profile.display_name || profile.full_name}</span>
+                <span className="mr-4">Welcome, {profile.display_name /*|| profile.full_name*/}</span>
               )}
               <button
                 onClick={handleSignOut}
