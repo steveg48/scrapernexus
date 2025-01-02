@@ -1,3 +1,57 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-white text-gray-900;
+  }
+  h1 {
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  .btn-primary {
+    @apply bg-[#FF1493] text-white px-4 py-2 rounded-full hover:bg-[#FF1493]/90 transition-colors;
+  }
+  .btn-secondary {
+    @apply border border-gray-300 text-gray-700 px-4 py-2 rounded-full hover:border-gray-400 transition-colors;
+  }
+  .nav-link {
+    @apply text-gray-600 hover:text-gray-900 transition-colors;
+  }
+  .category-card {
+    @apply flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow;
+  }
+  .category-icon {
+    @apply w-12 h-12 rounded-full flex items-center justify-center mb-3;
+  }
+  
+  /* Dropdown styles */
+  .dropdown {
+    @apply relative inline-block;
+  }
+  
+  .dropdown-content {
+    @apply hidden absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50;
+  }
+  
+  .dropdown:hover .dropdown-content {
+    @apply block;
+  }
+  
+  .dropdown-item {
+    @apply block px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors;
+  }
+  
+  .dropdown-divider {
+    @apply my-2 border-t border-gray-200;
+  }
+}
