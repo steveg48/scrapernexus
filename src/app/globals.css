@@ -40,18 +40,52 @@
   }
   
   .dropdown-content {
-    @apply hidden absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50;
+    @apply invisible opacity-0 absolute z-50 mt-2 bg-white rounded-lg shadow-lg py-2 transition-all duration-200;
   }
   
   .dropdown:hover .dropdown-content {
-    @apply block;
+    @apply visible opacity-100;
   }
   
   .dropdown-item {
-    @apply block px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors;
+    @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors;
   }
   
   .dropdown-divider {
-    @apply my-2 border-t border-gray-200;
+    @apply my-2 border-t border-gray-100;
+  }
+
+  /* Search styles */
+  .search-input {
+    @apply pl-10 pr-24 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  .search-icon {
+    @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400;
+  }
+
+  .search-category {
+    @apply absolute inset-y-0 right-0 pr-3 flex items-center;
+  }
+
+  /* Auth form styles */
+  .auth-input {
+    @apply appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+  }
+  
+  .auth-button {
+    @apply w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .auth-link {
+    @apply text-indigo-600 hover:text-indigo-500 cursor-pointer;
+  }
+  
+  .auth-container {
+    @apply min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8;
+  }
+  
+  .auth-form-container {
+    @apply max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-lg;
   }
 }
