@@ -1,14 +1,24 @@
 'use client'
 
-import { Search, Bell, HelpCircle, User } from 'lucide-react'
+import { Search, Bell, HelpCircle, User, Users, FolderKanban, Briefcase } from 'lucide-react'
 import Link from 'next/link'
+import { useState } from 'react'
 
 const mockUser = {
   display_name: "John Doe",
   hasPendingOffers: true
 }
 
+const searchCategories = [
+  { id: 'talent', name: 'Talent', description: 'Find freelancers and agencies', icon: Users },
+  { id: 'projects', name: 'Projects', description: 'See projects from other pros', icon: FolderKanban },
+  { id: 'jobs', name: 'Jobs', description: 'View jobs posted by clients', icon: Briefcase }
+]
+
 export default function Navigation() {
+  const [selectedCategory, setSelectedCategory] = useState('talent')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
   return (
     <nav className="border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4">
@@ -46,7 +56,7 @@ export default function Navigation() {
 
           {/* Right side - Search, Help, Notifications, Profile */}
           <div className="flex items-center space-x-4">
-            {/* Search with Talent selector */}
+            {/* Search with category selector */}
             <div className="relative">
               <div className="flex items-center">
                 <div className="relative flex items-center">
@@ -56,16 +66,44 @@ export default function Navigation() {
                   <input
                     type="text"
                     placeholder="Search"
-                    className="w-[400px] pl-10 pr-24 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-[400px] pl-10 pr-24 py-2 border border-gray-300 rounded-l-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button className="flex items-center space-x-1 text-gray-600 hover:text-gray-900">
-                      <span className="text-sm">Talent</span>
-                      <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="absolute right-0 h-full px-4 flex items-center space-x-1 text-gray-600 hover:text-gray-900 border-l border-gray-300"
+                  >
+                    <span className="text-sm capitalize">{selectedCategory}</span>
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                      {searchCategories.map((category) => {
+                        const Icon = category.icon
+                        return (
+                          <button
+                            key={category.id}
+                            onClick={() => {
+                              setSelectedCategory(category.id)
+                              setIsDropdownOpen(false)
+                            }}
+                            className={`w-full px-4 py-2 flex items-center space-x-3 hover:bg-gray-50 ${
+                              selectedCategory === category.id ? 'bg-gray-50' : ''
+                            }`}
+                          >
+                            <Icon className="h-5 w-5 text-gray-500" />
+                            <div className="text-left">
+                              <div className="text-sm font-medium text-gray-900">{category.name}</div>
+                              <div className="text-xs text-gray-500">{category.description}</div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
