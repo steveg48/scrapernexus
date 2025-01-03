@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simple illustration of people working remotely -->
+  <circle cx="400" cy="300" r="250" fill="#E8F5E9"/>
+  <path d="M300,400 Q400,300 500,400" stroke="#4CAF50" stroke-width="4" fill="none"/>
+  <circle cx="300" cy="400" r="50" fill="#81C784"/>
+  <circle cx="500" cy="400" r="50" fill="#81C784"/>
+</svg>
