@@ -136,7 +136,7 @@ export default function PostJobSkills() {
                 {selectedSkills.map((skill) => (
                   <span
                     key={skill}
-                    className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-gray-500 text-white"
+                    className="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-custom-gray text-white"
                   >
                     {skill}
                     <button
@@ -198,13 +198,14 @@ export default function PostJobSkills() {
             </Link>
           </div>
           <button
+            onClick={() => router.push('/buyer/post-job/scope')}
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${
               selectedSkills.length > 0
                 ? 'bg-green-600 hover:bg-green-700 text-white' 
                 : 'bg-gray-100 text-gray-400'
             }`}
           >
-            Continue
+            Next: Scope
           </button>
         </div>
       </div>
