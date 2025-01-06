@@ -2,11 +2,12 @@
 
 interface ProfileImageProps {
   size?: 'sm' | 'md' | 'lg';
-  src?: string;
+  src?: string | null;
   isMenuIcon?: boolean;
+  className?: string;
 }
 
-export default function ProfileImage({ size = 'md', src, isMenuIcon = false }: ProfileImageProps) {
+export default function ProfileImage({ size = 'md', src, isMenuIcon = false, className = '' }: ProfileImageProps) {
   const sizeClasses = {
     sm: 'w-[32px] h-[32px]',
     md: 'w-12 h-12',
@@ -20,16 +21,16 @@ export default function ProfileImage({ size = 'md', src, isMenuIcon = false }: P
       <img
         src={src}
         alt="Profile"
-        className={`${sizeClasses[size]} rounded-full ${borderClasses} border-[#e0e6ef] object-cover`}
+        className={`${sizeClasses[size]} rounded-full ${borderClasses} border-[#e0e6ef] object-cover ${className}`}
       />
     );
   }
 
   return (
     <img 
-      src="/images/default-avatar.svg"
+      src="/default-profile.svg"
       alt="Profile"
-      className={`${sizeClasses[size]} rounded-full ${borderClasses} border-[#e0e6ef]`}
+      className={`${sizeClasses[size]} rounded-full ${borderClasses} border-[#e0e6ef] ${className}`}
     />
   );
 }

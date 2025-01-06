@@ -89,7 +89,7 @@ export default function Dashboard() {
               <div className="flex flex-col space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <img src="/profile-icon.svg" alt="Profile" className="w-12 h-12" />
+                    <ProfileImage size="md" />
                     <div>
                       <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
                       {job.freelancer && (

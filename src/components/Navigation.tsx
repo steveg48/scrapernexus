@@ -52,7 +52,7 @@ export default function Navigation() {
                 {hireDropdownOpen && (
                   <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                     <div className="py-1">
-                      <div className="px-4 py-2 text-xs font-bold text-black">Manage jobs and offers</div>
+                      <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Manage jobs and offers</div>
                       <Link href="/buyer/jobs" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         Job posts and proposals
                       </Link>
@@ -60,11 +60,11 @@ export default function Navigation() {
                         Pending offers
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
-                      <div className="px-4 py-2 text-xs font-bold text-black">Find freelancers</div>
+                      <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Find freelancers</div>
                       <Link href="/buyer/post-job" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         Post a job
                       </Link>
-                      <Link href="/buyer/search" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <Link href="/buyer/suggested" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         Search for talent
                       </Link>
                       <Link href="/buyer/hired" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -91,12 +91,12 @@ export default function Navigation() {
                 {manageDropdownOpen && (
                   <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                     <div className="py-1">
-                      <div className="px-4 py-2 text-xs font-bold text-black">Active and past work</div>
+                      <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Active and past work</div>
                       <Link href="/buyer/contracts" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         Your contracts
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
-                      <div className="px-4 py-2 text-xs font-bold text-black">Hourly contract activity</div>
+                      <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Hourly contract activity</div>
                       <Link href="/buyer/timesheets" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         Timesheets
                       </Link>
@@ -141,7 +141,7 @@ export default function Navigation() {
                 <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
               </button>
               <Link href="/profile" className="p-2">
-                <ProfileImage size="sm" src="/user-circle.svg" isMenuIcon />
+                <ProfileImage size="sm" />
               </Link>
             </div>
           </div>
