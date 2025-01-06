@@ -4,6 +4,7 @@ import { ArrowLeft, MoreHorizontal, MapPin, Crown, Clock, HelpCircle, ChevronRig
 import Link from 'next/link';
 import { useState } from 'react';
 import Navigation from '@/components/Navigation';
+import ProfileImage from '@/components/ProfileImage';
 
 interface FreelancerProfile {
   id: string;
@@ -80,13 +81,7 @@ export default function FreelancerProfile({ params }: { params: { id: string } }
             <div className="flex gap-4">
               {/* Avatar and Online Status */}
               <div className="relative">
-                <div className="w-16 h-16 rounded-full bg-[#f7f9fc] border border-[#e0e6ef] overflow-hidden">
-                  <img 
-                    src={profile.avatar_url} 
-                    alt={profile.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <ProfileImage size="lg" src={profile.avatar_url} />
                 <div className="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-[#14a800] border-2 border-white"></div>
               </div>
 

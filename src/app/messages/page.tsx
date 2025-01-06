@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Search, Plus, LayoutList, UserCircle2 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
+import ProfileImage from '@/components/ProfileImage';
 import Image from 'next/image';
 
 interface Message {
@@ -120,19 +121,7 @@ export default function MessagesPage() {
                       }`}
                     >
                       <div className="flex-shrink-0">
-                        {message.avatar ? (
-                          <img
-                            src={message.avatar}
-                            alt={message.sender}
-                            className="w-12 h-12 rounded-full border-2 border-profile-border"
-                          />
-                        ) : (
-                          <img 
-                            src="/images/default-avatar.svg"
-                            alt={message.sender}
-                            className="w-12 h-12 rounded-full border-2 border-profile-border"
-                          />
-                        )}
+                        <ProfileImage size="md" src={message.avatar} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline">
@@ -156,19 +145,7 @@ export default function MessagesPage() {
               {selectedMessage ? (
                 <div className="p-6">
                   <div className="flex items-center gap-3 mb-6">
-                    {selectedMessage.avatar ? (
-                      <img
-                        src={selectedMessage.avatar}
-                        alt={selectedMessage.sender}
-                        className="w-12 h-12 rounded-full border-2 border-profile-border"
-                      />
-                    ) : (
-                      <img 
-                        src="/images/default-avatar.svg"
-                        alt={selectedMessage.sender}
-                        className="w-12 h-12 rounded-full border-2 border-profile-border"
-                      />
-                    )}
+                    <ProfileImage size="md" src={selectedMessage.avatar} />
                     <div>
                       <h2 className="text-lg font-medium text-gray-900">
                         {selectedMessage.sender}

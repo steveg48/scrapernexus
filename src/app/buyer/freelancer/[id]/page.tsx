@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ArrowLeft, MapPin, Star, MoreHorizontal, Heart, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import Navigation from '@/components/Navigation'
+import ProfileImage from '@/components/ProfileImage'
 
 export default function FreelancerProfile() {
   const [isBookmarked, setIsBookmarked] = useState(false)
@@ -70,11 +71,7 @@ export default function FreelancerProfile() {
           {/* Left Column */}
           <div className="w-1/3">
             <div className="flex items-start gap-4">
-              <img 
-                src="/images/default-avatar.svg" 
-                alt={freelancer.name}
-                className="w-20 h-20 rounded-full border-2 border-gray-200"
-              />
+              <ProfileImage size="lg" src="/images/default-avatar.svg" />
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-medium">{freelancer.name}</h1>

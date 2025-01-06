@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Search, ThumbsUp, ThumbsDown, MessageCircle, Zap, SlidersHorizontal, ImageIcon } from 'lucide-react'
 import Navigation from '@/components/Navigation'
+import ProfileImage from '@/components/ProfileImage'
 import Link from 'next/link'
 
 interface Proposal {
@@ -158,11 +159,7 @@ export default function ProposalsPage() {
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
                     {/* Profile Avatar */}
-                    <img 
-                      src="/images/default-avatar.svg"
-                      alt={`${proposal.freelancer.name}'s profile`}
-                      className="w-12 h-12 rounded-full border-2 border-profile-border"
-                    />
+                    <ProfileImage size="md" src={proposal.freelancer.avatar} />
                     
                     {/* Freelancer Info */}
                     <div>
