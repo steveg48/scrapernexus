@@ -121,15 +121,17 @@ export default function MessagesPage() {
                     >
                       <div className="flex-shrink-0">
                         {message.avatar ? (
-                          <Image
+                          <img
                             src={message.avatar}
                             alt={message.sender}
-                            width={40}
-                            height={40}
-                            className="rounded-full"
+                            className="w-12 h-12 rounded-full border-2 border-profile-border"
                           />
                         ) : (
-                          <UserCircle2 className="h-10 w-10 text-gray-400" />
+                          <img 
+                            src="/images/default-avatar.svg"
+                            alt={message.sender}
+                            className="w-12 h-12 rounded-full border-2 border-profile-border"
+                          />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -154,7 +156,19 @@ export default function MessagesPage() {
               {selectedMessage ? (
                 <div className="p-6">
                   <div className="flex items-center gap-3 mb-6">
-                    <UserCircle2 className="h-10 w-10 text-gray-400" />
+                    {selectedMessage.avatar ? (
+                      <img
+                        src={selectedMessage.avatar}
+                        alt={selectedMessage.sender}
+                        className="w-12 h-12 rounded-full border-2 border-profile-border"
+                      />
+                    ) : (
+                      <img 
+                        src="/images/default-avatar.svg"
+                        alt={selectedMessage.sender}
+                        className="w-12 h-12 rounded-full border-2 border-profile-border"
+                      />
+                    )}
                     <div>
                       <h2 className="text-lg font-medium text-gray-900">
                         {selectedMessage.sender}

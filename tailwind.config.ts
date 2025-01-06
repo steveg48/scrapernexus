@@ -12,10 +12,9 @@ const config: Config = {
         'lg': '0.625rem', // 10px
       },
       colors: {
-        'custom-gray': '#919191',
         'custom-green': '#039625',
-        'profile-border': '#8e8e8e',
-        'skill-bg': '#a9effc',
+        'skill-bg': '#F2F7F2',
+        'profile-border': '#E0E0E0'
       },
       keyframes: {
         'fade-in': {

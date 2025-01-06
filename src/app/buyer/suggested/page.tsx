@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Heart, MapPin, Image as ImageIcon, Zap, Check } from 'lucide-react';
+import { Zap, Check } from 'lucide-react';
 import Navigation from '@/components/Navigation';
+import { useRouter } from 'next/navigation';
 
 interface Freelancer {
   id: number;
@@ -14,14 +14,25 @@ interface Freelancer {
   jobSuccess: string;
   skills: string[];
   boosted: boolean;
-  portfolioCount: number;
   earned?: string;
-  image?: string;
 }
 
 export default function SuggestedPage() {
-  const [invitesLeft] = useState(3);
+  const [likedFreelancers, setLikedFreelancers] = useState<number[]>([]);
   const router = useRouter();
+
+  const toggleLike = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); // Prevent card click when clicking heart
+    setLikedFreelancers(prev => 
+      prev.includes(id) 
+        ? prev.filter(fId => fId !== id)
+        : [...prev, id]
+    );
+  };
+
+  const navigateToProfile = (id: number) => {
+    router.push(`/freelancer/${id}`);
+  };
 
   const freelancers: Freelancer[] = [
     {
@@ -32,8 +43,7 @@ export default function SuggestedPage() {
       rate: '$50.00/hr',
       jobSuccess: '92%',
       skills: ['Web Design', 'Graphic Design'],
-      boosted: true,
-      portfolioCount: 20
+      boosted: true
     },
     {
       id: 2,
@@ -43,8 +53,7 @@ export default function SuggestedPage() {
       rate: '$35.00/hr',
       jobSuccess: '100%',
       skills: ['Graphic Design'],
-      boosted: true,
-      portfolioCount: 33
+      boosted: true
     },
     {
       id: 3,
@@ -55,112 +64,124 @@ export default function SuggestedPage() {
       jobSuccess: '81%',
       skills: ['Web Design', 'Graphic Design'],
       boosted: true,
-      portfolioCount: 15,
       earned: '$1K+'
     }
   ];
 
   return (
-    <div>
+    <div className="min-h-screen bg-white">
       <Navigation />
-      <div className="min-h-screen bg-white">
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-semibold text-gray-900">
-              Suggested Freelancers
-            </h1>
-          </div>
-          <p className="text-gray-600 mb-8">{invitesLeft} invites left</p>
+      
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        <h1 className="text-xl font-medium text-gray-900">Suggested Freelancers</h1>
+        <p className="text-sm text-gray-500 mt-1">3 invites left</p>
 
-          {/* Freelancer List */}
-          <div className="space-y-4">
-            {freelancers.map((freelancer) => (
-              <div
-                key={freelancer.id}
-                className="border border-gray-200 rounded-lg p-6 hover:border-gray-300"
-              >
-                <div className="flex items-start gap-6">
-                  <div className="flex gap-2 items-start">
-                    {/* Logo Image Placeholder */}
-                    <div className="w-32 h-32 bg-gray-100 rounded-lg flex flex-col items-center justify-center border-2 border-profile-border">
-                      <ImageIcon className="w-8 h-8 text-gray-400 mb-1" />
-                      <div className="text-xs text-gray-400">No logo</div>
+        <div className="space-y-4 mt-6">
+          {freelancers.map((freelancer) => (
+            <div 
+              key={freelancer.id} 
+              className="bg-white rounded-lg border border-[#e0e6ef] p-6 transition-colors duration-200 hover:bg-gray-50 cursor-pointer" 
+              onClick={() => navigateToProfile(freelancer.id)}
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4">
+                  {/* Logo Image */}
+                  <div className="w-[100px] h-[100px] bg-[#f7f9fc] rounded border border-[#e0e6ef] flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 16L8.586 11.414C8.96106 11.0391 9.46967 10.8284 10 10.8284C10.5303 10.8284 11.0389 11.0391 11.414 11.414L16 16M14 14L15.586 12.414C15.9611 12.0391 16.4697 11.8284 17 11.8284C17.5303 11.8284 18.0389 12.0391 18.414 12.414L20 14M14 8H14.01M6 20H18C18.5304 20 19.0391 19.7893 19.4142 19.4142C19.7893 19.0391 20 18.5304 20 18V6C20 5.46957 19.7893 4.96086 19.4142 4.58579C19.0391 4.21071 18.5304 4 18 4H6C5.46957 4 4.96086 4.21071 4.58579 4.58579C4.21071 4.96086 4 5.46957 4 6V18C4 18.5304 4.21071 19.0391 4.58579 19.4142C4.96086 19.7893 5.46957 20 6 20Z" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  {/* Profile Avatar */}
+                  <div className="w-12 h-12 rounded-full bg-[#f7f9fc] flex items-center justify-center -ml-2 mt-1 border border-[#e0e6ef]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-medium text-gray-900 hover:underline cursor-pointer">
+                          {freelancer.name}
+                        </h2>
+                        {freelancer.boosted && (
+                          <span className="text-[#0d6efd] text-xs flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5" />
+                            Boosted
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mt-1 line-clamp-2 hover:underline cursor-pointer">{freelancer.title}</p>
+                      <div className="text-gray-500 text-xs mt-1">
+                        {freelancer.location}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs mt-2">
+                        <span className="text-gray-900 font-semibold">{freelancer.rate}</span>
+                        <span className="text-[#0d6efd] flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" />
+                          {freelancer.jobSuccess} Job Success
+                        </span>
+                        {freelancer.earned && (
+                          <span className="text-gray-700">{freelancer.earned} earned</span>
+                        )}
+                      </div>
                     </div>
-                    {/* Profile Avatar */}
-                    <img 
-                      src="/images/default-avatar.svg"
-                      alt={`${freelancer.name}'s profile`}
-                      className="w-12 h-12 rounded-full border-2 border-profile-border"
-                    />
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button 
+                        className={`w-8 h-8 flex items-center justify-center rounded-full border border-[#14a800] transition-colors duration-200 hover:bg-gray-500 group ${likedFreelancers.includes(freelancer.id) ? 'bg-white' : ''}`}
+                        onClick={(e) => toggleLike(e, freelancer.id)}
+                      >
+                        <svg 
+                          width="16" 
+                          height="16" 
+                          viewBox="0 0 24 24" 
+                          fill={likedFreelancers.includes(freelancer.id) ? "#ff0000" : "none"} 
+                          className="transition-colors duration-200 group-hover:stroke-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path 
+                            d="M19.5 12.5719L12 19.9999L4.5 12.5719C4.0053 12.0905 3.61564 11.5119 3.35554 10.8726C3.09545 10.2332 2.97056 9.54688 2.98873 8.85687C3.00691 8.16685 3.16776 7.48812 3.46115 6.86333C3.75455 6.23854 4.17413 5.68126 4.69348 5.22721C5.21283 4.77316 5.82092 4.43073 6.47721 4.21994C7.13349 4.00914 7.82327 3.93483 8.50476 4.00168C9.18625 4.06853 9.84651 4.27503 10.4425 4.60973C11.0384 4.94443 11.5566 5.39897 11.9625 5.94589L12 5.99989L12.0375 5.94589C12.4434 5.39897 12.9616 4.94443 13.5575 4.60973C14.1535 4.27503 14.8137 4.06853 15.4952 4.00168C16.1767 3.93483 16.8665 4.00914 17.5228 4.21994C18.1791 4.43073 18.7872 4.77316 19.3065 5.22721C19.8259 5.68126 20.2455 6.23854 20.5389 6.86333C20.8322 7.48812 20.9931 8.16685 21.0113 8.85687C21.0294 9.54688 20.9046 10.2332 20.6445 10.8726C20.3844 11.5119 19.9947 12.0905 19.5 12.5719Z" 
+                            stroke={likedFreelancers.includes(freelancer.id) ? "#14a800" : "#94A3B8"} 
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                            className="group-hover:stroke-white"
+                          />
+                        </svg>
+                      </button>
+                      <button className="h-8 px-4 text-[#14a800] border border-[#14a800] rounded-[4px] text-sm hover:bg-[#14a800]/5">
+                        Hire
+                      </button>
+                      <button className="h-8 px-4 bg-[#14a800] text-white rounded-[4px] text-sm hover:bg-[#14a800]/90">
+                        Invite to Job
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Freelancer Info */}
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h2 className="text-lg font-medium text-gray-900">
-                            {freelancer.name}
-                          </h2>
-                          {freelancer.boosted && (
-                            <span className="text-blue-600 text-sm flex items-center gap-1">
-                              <Zap className="w-4 h-4" /> Boosted
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-900 mb-2">{freelancer.title}</p>
-                        <div className="flex items-center gap-1 text-gray-600 text-sm mb-2">
-                          {freelancer.location}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="font-bold">{freelancer.rate}</span>
-                          <span className="text-blue-600 flex items-center gap-1">
-                            <Check className="w-3 h-3 bg-blue-600 text-white rounded-full stroke-[3]" />
-                            {freelancer.jobSuccess} Job Success
-                          </span>
-                          {freelancer.earned && (
-                            <span>{freelancer.earned} earned</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button className="p-2 text-custom-green hover:text-custom-green/90 rounded-full border border-custom-green">
-                          <Heart className="h-5 w-5" />
-                        </button>
-                        <button className="px-4 py-2 text-custom-green border border-custom-green rounded-lg hover:bg-custom-green/5 whitespace-nowrap">
-                          Hire
-                        </button>
-                        <button className="px-4 py-2 bg-custom-green text-white rounded-lg hover:bg-custom-green/90 whitespace-nowrap">
-                          Invite to Job
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Skills */}
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600 mb-2">
-                        Here are their top {freelancer.skills.length} relevant skills to your job
-                      </p>
-                      <div className="flex gap-2">
-                        {freelancer.skills.map((skill, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 bg-skill-bg rounded-full text-gray-600 text-sm"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-1.5">
+                      Here are their top {freelancer.skills.length} relevant skills to your job
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {freelancer.skills.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-[#a9effc] rounded-full text-gray-700 text-xs"
+                        >
+                          {skill}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

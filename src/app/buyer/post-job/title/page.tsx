@@ -63,6 +63,20 @@ export default function PostJobTitle() {
                 placeholder="Enter your job post title"
                 minLength={6}
               />
+              <div className="mt-2 space-y-2">
+                {title.length > 100 && (
+                  <div className="text-red-500 text-sm flex items-center gap-2">
+                    <span>⚠</span>
+                    Must be less than 100 characters
+                  </div>
+                )}
+                {title.split(' ').some(word => word.length > 50) && (
+                  <div className="text-red-500 text-sm flex items-center gap-2">
+                    <span>⚠</span>
+                    Please limit the length of the words to less than 50 characters each
+                  </div>
+                )}
+              </div>
               <p className="mt-2 text-sm text-gray-500">Minimum 6 characters</p>
             </div>
 

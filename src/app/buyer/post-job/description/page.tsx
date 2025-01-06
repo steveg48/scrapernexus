@@ -79,7 +79,15 @@ export default function JobDescriptionPage() {
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full h-64 p-4 border border-gray-200 rounded-lg focus:ring-custom-green focus:border-custom-green resize-none"
                   />
-                  <div className="text-right text-sm text-gray-500">
+                  <div className="flex justify-between items-center text-sm mt-2">
+                    {description.length > 0 && description.length < 50 && (
+                      <div className="flex items-start gap-2 bg-[#fff8e5] text-[#6b4e02] p-3 rounded-md w-full">
+                        <span className="text-[#f1a817]">⚠</span>
+                        Your description looks a little short. Add details like your project milestones and a bit about your team.
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right text-sm text-gray-500 mt-2">
                     {50000 - description.length} characters left
                   </div>
                 </div>
