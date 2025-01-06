@@ -14,6 +14,8 @@ const config: Config = {
       colors: {
         'custom-gray': '#919191',
         'custom-green': '#039625',
+        'profile-border': '#8e8e8e',
+        'skill-bg': '#a9effc',
       },
       keyframes: {
         'fade-in': {
