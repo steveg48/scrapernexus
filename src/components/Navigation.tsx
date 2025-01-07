@@ -77,11 +77,19 @@ export default function Navigation() {
             <div className="ml-8 flex items-center space-x-6">
               <div className="relative">
                 <button 
-                  className="flex items-center text-[16px] text-gray-600 hover:text-gray-900"
+                  className={`flex items-center text-[16px] ${
+                    (pathname.includes('/post-job') || pathname.includes('/suggested'))
+                      ? 'text-selected-green' 
+                      : 'text-gray-600 hover:text-hover-green'
+                  }`}
                   onClick={handleHireClick}
                 >
                   <span>Hire talent</span>
-                  <ChevronDown className="ml-1 h-4 w-4" />
+                  <ChevronDown className={`ml-1 h-4 w-4 ${
+                    (pathname.includes('/post-job') || pathname.includes('/suggested'))
+                      ? 'text-selected-green'
+                      : 'text-gray-600 hover:text-hover-green'
+                  }`} />
                 </button>
                 {hireDropdownOpen && (
                   <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
@@ -116,11 +124,19 @@ export default function Navigation() {
               </div>
               <div className="relative">
                 <button 
-                  className="flex items-center text-[16px] text-gray-600 hover:text-gray-900"
+                  className={`flex items-center text-[16px] ${
+                    (pathname.includes('/jobs') || pathname.includes('/offers') || pathname.includes('/contracts'))
+                      ? 'text-selected-green' 
+                      : 'text-gray-600 hover:text-hover-green'
+                  }`}
                   onClick={handleManageClick}
                 >
                   <span>Manage work</span>
-                  <ChevronDown className="ml-1 h-4 w-4" />
+                  <ChevronDown className={`ml-1 h-4 w-4 ${
+                    (pathname.includes('/jobs') || pathname.includes('/offers') || pathname.includes('/contracts'))
+                      ? 'text-selected-green'
+                      : 'text-gray-600 hover:text-hover-green'
+                  }`} />
                 </button>
                 {manageDropdownOpen && (
                   <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
@@ -140,7 +156,7 @@ export default function Navigation() {
               </div>
               <div className="relative">
                 <Link href="/messages" className="relative">
-                  <button className="flex items-center text-[16px] text-gray-600 hover:text-gray-900">
+                  <button className="flex items-center text-[16px] text-gray-600 hover:text-[#039625]">
                     <span>Messages</span>
                     <div className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500">
                       <span className="text-sm font-medium text-white">1</span>

@@ -13,6 +13,8 @@ const config: Config = {
       },
       colors: {
         'custom-green': '#039625',
+        'selected-green': '#206b31',
+        'hover-green': '#039625',
         'skill-bg': '#F2F7F2',
         'profile-border': '#E0E0E0'
       },

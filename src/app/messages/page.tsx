@@ -91,7 +91,7 @@ Alex`
           <div className="w-80 border-r border-gray-200">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-xl font-medium">Messages</h1>
+                <h1 className="text-xl font-medium hover:text-[#039625] cursor-pointer">Messages</h1>
                 <div className="flex items-center gap-2">
                   <button className="p-2 hover:bg-gray-100 rounded-full">
                     <Plus className="w-5 h-5" />
@@ -114,28 +114,27 @@ Alex`
             </div>
             
             {/* Messages List */}
-            <div className="space-y-1">
+            <div className="space-y-0">
               {messages.map((message) => (
                 <button
                   key={message.id}
                   onClick={() => setSelectedChat(message.id)}
-                  className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 ${
+                  className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 border-b border-gray-100 group ${
                     selectedChat === message.id ? 'bg-gray-50' : ''
                   }`}
                 >
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <ProfileImage size="mlg" />
-                    <div className="absolute top-[3px] right-[3px] w-3.5 h-3.5 rounded-full bg-[#14a800] border-[2.5px] border-white"></div>
+                    {message.user.status === 'Available' && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#14a800] border-2 border-white"></div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900">{message.user.name}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-gray-900 group-hover:text-[#039625]">{message.user.name}</span>
                       <span className="text-xs text-gray-500">{message.date}</span>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{message.lastMessage}</p>
-                    {message.responseTime && (
-                      <p className="text-xs text-gray-500 mt-1">{message.responseTime}</p>
-                    )}
+                    <p className="text-sm text-gray-600 truncate group-hover:text-[#039625]">{message.lastMessage}</p>
                   </div>
                 </button>
               ))}
@@ -151,24 +150,27 @@ Alex`
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <ProfileImage size="mlg" />
-                      <div className="absolute top-[3px] right-[3px] w-3.5 h-3.5 rounded-full bg-[#14a800] border-[2.5px] border-white"></div>
+                      <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#14a800] border-2 border-white"></div>
                     </div>
                     <div>
                       <h2 className="font-medium">Atef Bahri</h2>
-                      <p className="text-sm text-gray-500">Available • 2h response time</p>
+                      <p className="text-sm text-gray-500">Available</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {selectedChatMessages.map((msg) => (
                     <div key={msg.id} className="flex flex-col">
                       <div className="flex items-center gap-2 mb-2">
+                        <div className="relative">
+                          <ProfileImage size="sm" />
+                        </div>
                         <span className="font-medium">{msg.sender}</span>
                         <span className="text-sm text-gray-500">{msg.time}</span>
                       </div>
-                      <div className="whitespace-pre-wrap text-gray-800">{msg.content}</div>
+                      <div className="pl-10 whitespace-pre-wrap text-gray-800">{msg.content}</div>
                     </div>
                   ))}
                 </div>
@@ -178,11 +180,10 @@ Alex`
                   <div className="relative">
                     <textarea
                       placeholder="Send a message..."
-                      rows={4}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 h-[160px] bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-200 resize-none"
                     />
                     <button 
-                      className="absolute bottom-3 right-3 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
+                      className="absolute right-3 bottom-3 p-2 text-gray-400 hover:text-[#039625] rounded-full hover:border-2 hover:border-[#039625] transition-all"
                     >
                       <svg 
                         xmlns="http://www.w3.org/2000/svg" 
@@ -192,7 +193,7 @@ Alex`
                         strokeWidth="2" 
                         strokeLinecap="round" 
                         strokeLinejoin="round" 
-                        className="w-5 h-5"
+                        className="w-5 h-5 rotate-45"
                       >
                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
                       </svg>
