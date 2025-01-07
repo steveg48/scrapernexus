@@ -43,7 +43,7 @@ export default function FreelancerProfile({ params }: { params: { id: string } }
     hoursPerWeek: "Less than 30 hrs/week",
     responseTime: "< 24 hrs response time",
     languages: [{ language: "English", proficiency: "Fluent" }],
-    avatar_url: "/images/default-avatar.svg",
+    avatar_url: "/default-profile.svg",
     hourlyRate: "$25",
   };
 
@@ -63,7 +63,7 @@ export default function FreelancerProfile({ params }: { params: { id: string } }
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-8">
-              <Link href="/freelancer" className="text-gray-600 hover:text-gray-900">
+              <Link href="/buyer/dashboard" className="text-gray-600 hover:text-gray-900">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <nav className="flex gap-8">
@@ -77,16 +77,16 @@ export default function FreelancerProfile({ params }: { params: { id: string } }
       <div className="max-w-5xl mx-auto px-4">
         <div className="bg-white">
           {/* Profile Header */}
-          <div className="p-6 flex items-start justify-between border-b border-[#e0e6ef]">
-            <div className="flex gap-4">
+          <div className="p-8 flex items-start justify-between border-b border-[#e0e6ef]">
+            <div className="flex gap-6">
               {/* Avatar and Online Status */}
               <div className="relative">
                 <ProfileImage size="lg" src={profile.avatar_url} />
-                <div className="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-[#14a800] border-2 border-white"></div>
+                <div className="absolute top-[4px] right-[4px] w-4 h-4 rounded-full bg-[#14a800] border-[3px] border-white"></div>
               </div>
 
               {/* Name and Location */}
-              <div>
+              <div className="mt-2">
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-medium text-gray-900">{profile.name}</h1>
                   <div className="group relative inline-flex">

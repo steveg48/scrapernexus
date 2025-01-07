@@ -102,8 +102,9 @@ export default function HiredTalentPage() {
                         </svg>
                       </div>
                       {/* Profile Avatar */}
-                      <div className="-ml-2 mt-1">
-                        <ProfileImage size="md" src={freelancer.avatar} />
+                      <div className="relative">
+                        <ProfileImage size="mlg" src={freelancer.avatar} />
+                        <div className="absolute top-[3px] right-[3px] w-3.5 h-3.5 rounded-full bg-[#14a800] border-[2.5px] border-white"></div>
                       </div>
                     </div>
                     <div>

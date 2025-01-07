@@ -1,7 +1,7 @@
 'use client';
 
 interface ProfileImageProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'mlg' | 'lg';
   src?: string | null;
   isMenuIcon?: boolean;
   className?: string;
@@ -11,6 +11,7 @@ export default function ProfileImage({ size = 'md', src, isMenuIcon = false, cla
   const sizeClasses = {
     sm: 'w-[32px] h-[32px]',
     md: 'w-12 h-12',
+    mlg: 'w-16 h-16',
     lg: 'w-20 h-20'
   };
 

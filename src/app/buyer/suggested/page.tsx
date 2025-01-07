@@ -93,8 +93,9 @@ export default function SuggestedPage() {
                     </svg>
                   </div>
                   {/* Profile Avatar */}
-                  <div className="-ml-2 mt-1">
-                    <ProfileImage size="md" />
+                  <div className="-ml-2 mt-1 relative">
+                    <ProfileImage size="mlg" />
+                    <div className="absolute top-[3px] right-[3px] w-3.5 h-3.5 rounded-full bg-[#14a800] border-[2.5px] border-white"></div>
                   </div>
                 </div>
 
