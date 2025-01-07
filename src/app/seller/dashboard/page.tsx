@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, ChevronRight, Crown, Award, UserCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
-import { useState, useEffect } from 'react';
+import NotificationPopup from '@/components/NotificationPopup';
 
 const carouselItems = [
   {
@@ -33,6 +33,8 @@ const carouselItems = [
 
 export default function SellerDashboard() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -42,12 +44,31 @@ export default function SellerDashboard() {
     return () => clearInterval(timer);
   }, []);
 
+  const handleShowNotification = () => {
+    console.log('Opening notification popup');
+    setShowNotificationPopup(true);
+  };
+
+  const handleCloseNotification = () => {
+    console.log('Closing notification popup');
+    setShowNotificationPopup(false);
+  };
+
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <NotificationPopup 
+        isOpen={showNotificationPopup}
+        onClose={() => setShowNotificationPopup(false)}
+        onSubscribe={() => {
+          setShowNotificationPopup(false);
+          setIsSubscribed(true);
+        }}
+      />
+      
       <Navigation />
       
       {/* Carousel Banner */}
@@ -114,17 +135,28 @@ export default function SellerDashboard() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Jobs you might like</h2>
               
-              {/* Job Alert Banner */}
-              <div className="bg-[#f2f7ff] p-4 rounded-lg mb-4 flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <Bell className="h-5 w-5 text-[#3c8dd5]" />
-                  <span className="text-gray-700">Be the 1st to apply with instant job alerts</span>
+              {isSubscribed ? (
+                <div className="bg-[#e3f2dd] p-4 rounded-lg mb-4 flex items-center gap-3">
+                  <svg className="w-5 h-5 text-[#14a800]" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-gray-700">You have 30 days of job alerts. Watch your notifications and email for the latest updates.</span>
                 </div>
-                <button className="bg-[#14a800] text-white px-4 py-2 rounded-full hover:bg-[#14a800]/90">
-                  Get alerts
-                </button>
-              </div>
-
+              ) : (
+                <div className="bg-[#f2f7ff] p-4 rounded-lg mb-4 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Bell className="h-5 w-5 text-[#3c8dd5]" />
+                    <span className="text-gray-700">Be the 1st to apply with instant job alerts</span>
+                  </div>
+                  <button
+                    onClick={() => setShowNotificationPopup(true)}
+                    className="bg-[#14a800] text-white px-4 py-2 rounded-full hover:bg-[#14a800]/90 flex items-center gap-2"
+                  >
+                    <Bell className="h-5 w-5" />
+                    <span>Get alerts</span>
+                  </button>
+                </div>
+              )}
               {/* Job Tabs */}
               <div className="border-b border-gray-200 mb-4">
                 <div className="flex gap-6">
@@ -203,17 +235,13 @@ export default function SellerDashboard() {
                   <div className="h-2 bg-[#14a800] rounded-full" style={{ width: '70%' }}></div>
                 </div>
               </div>
-              <Link href="/profile/complete" className="text-[#14a800] hover:underline text-sm">
+              <Link href="/profile" className="text-[#14a800] hover:underline text-sm">
                 Complete your profile
               </Link>
             </div>
 
             {/* Additional Sections */}
             <div className="space-y-4">
-              <button className="w-full flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300">
-                <span className="font-medium">Promote with ads</span>
-                <ChevronDown className="h-5 w-5" />
-              </button>
               <button className="w-full flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300">
                 <div>
                   <span className="font-medium">Availability badge</span>

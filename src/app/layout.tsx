@@ -6,8 +6,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Windsurf - Find Web Scraping Experts',
-  description: 'Connect with top web scraping experts for your projects',
-  icons: false
+  description: 'Connect with top web scraping experts for your projects'
 }
 
 export default function RootLayout({

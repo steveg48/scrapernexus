@@ -76,12 +76,12 @@ export default function Navigation() {
 
             {/* Nav Links */}
             <div className="ml-8 flex items-center space-x-6">
-              {pathname.includes('/buyer') ? (
+              {pathname?.includes('/buyer') ? (
                 <>
                   <div className="relative">
                     <button 
                       className={`dropdown-button flex items-center text-[16px] ${
-                        (pathname.includes('/post-job') || pathname.includes('/suggested'))
+                        (pathname?.includes('/post-job') || pathname?.includes('/suggested'))
                           ? 'text-selected-green' 
                           : 'text-gray-600 hover:text-hover-green'
                       }`}
@@ -127,7 +127,7 @@ export default function Navigation() {
                   <div className="relative">
                     <button 
                       className={`dropdown-button flex items-center text-[16px] ${
-                        (pathname.includes('/jobs') || pathname.includes('/offers') || pathname.includes('/contracts'))
+                        (pathname?.includes('/jobs') || pathname?.includes('/offers') || pathname?.includes('/contracts'))
                           ? 'text-selected-green' 
                           : 'text-gray-600 hover:text-hover-green'
                       }`}
@@ -161,7 +161,7 @@ export default function Navigation() {
                   <div className="relative">
                     <button 
                       className={`dropdown-button flex items-center text-[16px] ${
-                        pathname.includes('/find-work')
+                        pathname?.includes('/find-work')
                           ? 'text-[#14a800]' 
                           : 'text-gray-600 hover:text-[#14a800]'
                       }`}
@@ -195,7 +195,7 @@ export default function Navigation() {
                   <div className="relative">
                     <button 
                       className={`dropdown-button flex items-center text-[16px] ${
-                        pathname.includes('/deliver-work')
+                        pathname?.includes('/deliver-work')
                           ? 'text-[#14a800]' 
                           : 'text-gray-600 hover:text-[#14a800]'
                       }`}
@@ -226,7 +226,7 @@ export default function Navigation() {
                   <div className="relative">
                     <button 
                       className={`dropdown-button flex items-center text-[16px] ${
-                        pathname.includes('/manage-finances')
+                        pathname?.includes('/manage-finances')
                           ? 'text-[#14a800]' 
                           : 'text-gray-600 hover:text-[#14a800]'
                       }`}
