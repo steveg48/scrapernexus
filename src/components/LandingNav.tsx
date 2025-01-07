@@ -10,7 +10,7 @@ export default function LandingNav() {
           {/* Left side - Logo and Nav Links */}
           <div className="flex items-center">
             {/* Logo */}
-            <Link href="/" className="flex-shrink-0 flex items-center">
+            <Link href="/buyer/dashboard" className="flex-shrink-0 flex items-center">
               <span className="text-2xl font-bold text-blue-600">ScrapeNexus</span>
             </Link>
 
