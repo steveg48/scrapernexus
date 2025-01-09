@@ -1,122 +1,136 @@
 'use client';
 
-import { useState } from 'react';
-import { MapPin, Globe, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MapPin, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function LocationPage() {
-  const storedLocation = jobPostingStore.getField<'us' | 'worldwide' | null>('location');
-  const [selectedLocation, setSelectedLocation] = useState<'us' | 'worldwide' | null>(storedLocation || null);
   const router = useRouter();
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+
+  useEffect(() => {
+    const storedLocation = jobPostingStore.getField<string>('project_location');
+    if (storedLocation) {
+      setSelectedLocation(storedLocation);
+    }
+  }, []);
 
   const handleNext = () => {
     if (selectedLocation) {
-      jobPostingStore.saveField('location', {
-        type: selectedLocation,
-        locations: []
-      });
-      router.push('/buyer/post-job/description')
+      jobPostingStore.saveField('project_location', selectedLocation);
+      router.push('/buyer/post-job/description');
     }
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-white">
       <Navigation />
-      <div className="min-h-screen bg-white">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Progress indicator */}
-          <div className="mb-8">
-            <p className="text-sm text-gray-600">4/6 Job post</p>
+      
+      {/* Progress bar */}
+      <div className="border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center py-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-500 text-sm">4/6</span>
+              <span className="text-gray-900">Job post</span>
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Main content */}
-          <div className="space-y-6">
-            <h1 className="text-4xl font-semibold text-gray-900">
-              Select your preferred<br />talent location.
+      {/* Main content */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Left column */}
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+              Select your preferred talent location.
             </h1>
-            
-            <p className="text-gray-600">
-              This increases proposals from talent in a specific region, but<br />
+            <p className="text-base text-gray-600">
+              This increases proposals from talent in a specific region, but
               still opens your job post to all candidates.
             </p>
+          </div>
 
+          {/* Right column */}
+          <div className="space-y-6">
             {/* Location options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            <div className="space-y-4">
               {/* U.S. only option */}
               <button
-                onClick={() => setSelectedLocation('us')}
-                className={`p-6 rounded-xl border ${
-                  selectedLocation === 'us'
-                    ? 'border-custom-green ring-1 ring-custom-green'
+                onClick={() => setSelectedLocation('US only')}
+                className={`w-full p-4 rounded-lg border ${
+                  selectedLocation === 'US only'
+                    ? 'border-green-600 ring-1 ring-green-600'
                     : 'border-gray-200 hover:border-gray-300'
                 } text-left relative group transition-all`}
               >
-                <div className="absolute right-4 top-4">
-                  <div className={`w-6 h-6 rounded-full border flex items-center justify-center ${
-                    selectedLocation === 'us'
-                      ? 'border-custom-green'
-                      : 'border-gray-300'
-                  }`}>
-                    {selectedLocation === 'us' && (
-                      <div className="w-4 h-4 bg-custom-green rounded-full" />
-                    )}
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-gray-700" />
+                  <div>
+                    <h3 className="font-medium text-gray-900">U.S. only</h3>
+                    <p className="text-sm text-gray-500">Only talent in United States can submit proposals</p>
+                  </div>
+                  <div className="ml-auto">
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                      selectedLocation === 'US only'
+                        ? 'border-green-600'
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedLocation === 'US only' && (
+                        <div className="w-3 h-3 bg-green-600 rounded-full" />
+                      )}
+                    </div>
                   </div>
                 </div>
-                
-                <MapPin className="h-6 w-6 text-gray-900 mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">U.S. only</h2>
-                <p className="text-gray-600">Only talent in United States can submit proposals</p>
               </button>
 
               {/* Worldwide option */}
               <button
-                onClick={() => setSelectedLocation('worldwide')}
-                className={`p-6 rounded-xl border ${
-                  selectedLocation === 'worldwide'
-                    ? 'border-custom-green ring-1 ring-custom-green'
+                onClick={() => setSelectedLocation('Worldwide')}
+                className={`w-full p-4 rounded-lg border ${
+                  selectedLocation === 'Worldwide'
+                    ? 'border-green-600 ring-1 ring-green-600'
                     : 'border-gray-200 hover:border-gray-300'
                 } text-left relative group transition-all`}
               >
-                <div className="absolute right-4 top-4">
-                  <div className={`w-6 h-6 rounded-full border flex items-center justify-center ${
-                    selectedLocation === 'worldwide'
-                      ? 'border-custom-green'
-                      : 'border-gray-300'
-                  }`}>
-                    {selectedLocation === 'worldwide' && (
-                      <div className="w-4 h-4 bg-custom-green rounded-full" />
-                    )}
+                <div className="flex items-center gap-3">
+                  <Globe className="h-5 w-5 text-gray-700" />
+                  <div>
+                    <h3 className="font-medium text-gray-900">Worldwide</h3>
+                    <p className="text-sm text-gray-500">Talent in any location can submit proposals</p>
+                  </div>
+                  <div className="ml-auto">
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                      selectedLocation === 'Worldwide'
+                        ? 'border-green-600'
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedLocation === 'Worldwide' && (
+                        <div className="w-3 h-3 bg-green-600 rounded-full" />
+                      )}
+                    </div>
                   </div>
                 </div>
-                
-                <Globe className="h-6 w-6 text-gray-900 mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Worldwide</h2>
-                <p className="text-gray-600">Talent in any location can submit proposals</p>
               </button>
             </div>
-          </div>
 
-          {/* Navigation buttons */}
-          <div className="mt-8 flex justify-between items-center">
-            <button
-              onClick={() => window.history.back()}
-              className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-            <button
-              onClick={handleNext}
-              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                selectedLocation
-                  ? 'bg-custom-green hover:bg-custom-green/90 text-white cursor-pointer'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              Next: Review
-            </button>
+            {/* Continue button */}
+            <div className="pt-4">
+              <button
+                onClick={handleNext}
+                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                  selectedLocation
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+                disabled={!selectedLocation}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       </div>

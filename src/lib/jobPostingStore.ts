@@ -7,6 +7,7 @@ interface JobPostingData {
     type: string;
     amount: number;
   };
+  project_location?: 'US only' | 'Worldwide';
   location?: {
     type: string;
     locations?: string[];
