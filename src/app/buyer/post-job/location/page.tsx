@@ -2,25 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { MapPin, Globe } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function LocationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const fromReview = searchParams?.get('from') === 'review';
 
   useEffect(() => {
-    const storedLocation = jobPostingStore.getField<string>('project_location');
-    if (storedLocation) {
-      setSelectedLocation(storedLocation);
+    if (typeof window !== 'undefined') {
+      const storedLocation = jobPostingStore.getField<string>('project_location');
+      if (storedLocation) {
+        setSelectedLocation(storedLocation);
+      }
     }
   }, []);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selectedLocation) {
-      jobPostingStore.saveField('project_location', selectedLocation);
-      router.push('/buyer/post-job/description');
+      try {
+        jobPostingStore.saveField('project_location', selectedLocation);
+        const nextPath = fromReview ? '/buyer/post-job/review' : '/buyer/post-job/description';
+        await router.push(nextPath);
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
     }
   };
 
@@ -116,22 +125,39 @@ export default function LocationPage() {
                 </div>
               </button>
             </div>
-
-            {/* Continue button */}
-            <div className="pt-4">
-              <button
-                onClick={handleNext}
-                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  selectedLocation
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-                disabled={!selectedLocation}
-              >
-                Continue
-              </button>
-            </div>
           </div>
+        </div>
+        
+        {/* Navigation buttons */}
+        <div className="flex justify-between items-center mt-8">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center text-gray-600 hover:text-gray-900"
+          >
+            <svg
+              className="w-4 h-4 mr-2"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          <button
+            onClick={handleNext}
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+              selectedLocation
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            disabled={!selectedLocation}
+          >
+            Continue
+          </button>
         </div>
       </div>
     </div>

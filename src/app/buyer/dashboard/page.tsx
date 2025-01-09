@@ -4,7 +4,6 @@ import { MoreHorizontal, MessageSquare, Users, Mail, Check } from 'lucide-react'
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import ProfileImage from '@/components/ProfileImage';
-import { FileText, CheckCircle, MoreVertical } from 'lucide-react';
 
 interface Job {
   id: number;

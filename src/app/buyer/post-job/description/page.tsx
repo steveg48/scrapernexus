@@ -57,14 +57,6 @@ export default function JobDescriptionPage() {
                   </li>
                 </ul>
               </div>
-
-              <button
-                onClick={() => router.back()}
-                className="flex items-center text-gray-600 hover:text-gray-900 gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </button>
             </div>
 
             {/* Right Column */}
@@ -116,7 +108,14 @@ export default function JobDescriptionPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center">
+                  <button
+                    onClick={() => router.back()}
+                    className="flex items-center text-gray-600 hover:text-gray-900 gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </button>
                   <button
                     onClick={handleNext}
                     disabled={!description.trim()}

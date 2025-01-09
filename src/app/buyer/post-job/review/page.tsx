@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import Navigation from '@/components/Navigation';
@@ -8,16 +8,35 @@ import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function ReviewPage() {
   const [isScreeningExpanded, setIsScreeningExpanded] = useState(false);
+  const [jobDetails, setJobDetails] = useState({
+    title: 'No title specified',
+    description: 'No description provided',
+    skills: [],
+    scope: 'Not specified',
+    location: 'Worldwide',
+    budget: 'Not specified'
+  });
   const router = useRouter();
 
-  const storedData = jobPostingStore.getAllData();
-  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedData = jobPostingStore.getAllData();
+      setJobDetails({
+        title: storedData.title || 'No title specified',
+        description: storedData.description || 'No description provided',
+        skills: (storedData.skills || []).map(skill => skill.skill_name),
+        scope: formatScope(storedData.scope),
+        location: storedData.location === 'us' ? 'United States only' : 'Worldwide',
+        budget: formatBudget(storedData.budget)
+      });
+    }
+  }, []);
+
   const handleFinalize = () => {
     router.push('/buyer/post-job/feature');
   };
 
-  const formatBudget = () => {
-    const budget = storedData.budget;
+  const formatBudget = (budget: any) => {
     if (!budget) return 'Not specified';
     
     if (budget.type === 'fixed') {
@@ -28,19 +47,9 @@ export default function ReviewPage() {
     return 'Not specified';
   };
 
-  const formatScope = () => {
-    const scope = storedData.scope;
+  const formatScope = (scope: any) => {
     if (!scope) return 'Not specified';
     return `${scope.scope}, ${scope.duration}`;
-  };
-
-  const jobDetails = {
-    title: storedData.title || 'No title specified',
-    description: storedData.description || 'No description provided',
-    skills: (storedData.skills || []).map(skill => skill.skill_name),
-    scope: formatScope(),
-    location: storedData.location === 'us' ? 'United States only' : 'Worldwide',
-    budget: formatBudget()
   };
 
   const handleEditSection = (section: string) => {
@@ -54,7 +63,7 @@ export default function ReviewPage() {
     };
     
     if (routes[section]) {
-      router.push(routes[section]);
+      router.push(`${routes[section]}?from=review`);
     }
   };
 
@@ -69,7 +78,7 @@ export default function ReviewPage() {
               onClick={handleFinalize}
               className="px-6 py-2 bg-custom-green hover:bg-custom-green/90 text-white rounded-lg font-medium"
             >
-              Next: Finalize job post
+              NEXT: FINALIZE JOB POST
             </button>
           </div>
 
@@ -196,14 +205,20 @@ export default function ReviewPage() {
             </div>
           </div>
 
-          {/* Back Button */}
-          <div className="mt-8">
+          {/* Back and Next Buttons */}
+          <div className="mt-8 flex justify-between items-center">
             <button
               onClick={() => router.back()}
               className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
+            </button>
+            <button
+              onClick={handleFinalize}
+              className="px-6 py-2 bg-custom-green hover:bg-custom-green/90 text-white rounded-lg font-medium"
+            >
+              Next: Finalize job post
             </button>
           </div>
         </div>

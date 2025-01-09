@@ -16,9 +16,13 @@ interface JobPostingData {
 
 const STORAGE_KEY = 'job_posting_draft';
 
+const isClient = typeof window !== 'undefined';
+
 export const jobPostingStore = {
   // Save data for a specific field
   saveField: (field: keyof JobPostingData, value: any) => {
+    if (!isClient) return;
+    
     try {
       const currentData = jobPostingStore.getAllData();
       const newData = {
@@ -33,6 +37,8 @@ export const jobPostingStore = {
 
   // Get data for a specific field
   getField: <T>(field: keyof JobPostingData): T | undefined => {
+    if (!isClient) return undefined;
+    
     try {
       const data = jobPostingStore.getAllData();
       return data[field] as T;
@@ -44,6 +50,8 @@ export const jobPostingStore = {
 
   // Get all stored data
   getAllData: (): JobPostingData => {
+    if (!isClient) return {};
+    
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       return data ? JSON.parse(data) : {};
@@ -55,6 +63,8 @@ export const jobPostingStore = {
 
   // Clear all stored data
   clearData: () => {
+    if (!isClient) return;
+    
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
