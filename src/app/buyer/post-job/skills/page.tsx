@@ -276,12 +276,12 @@ export default function PostJobSkills() {
               <span>← Back</span>
             </Link>
           </div>
-          <button
-            onClick={() => router.push('/buyer/post-job/scope')}
+          <Link
+            href="/buyer/post-job/scope"
             className="ml-4 px-6 py-2 bg-custom-green text-white rounded-lg hover:bg-custom-green/90"
           >
             Next
-          </button>
+          </Link>
         </div>
       </div>
     </div>
