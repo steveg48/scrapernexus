@@ -4,19 +4,36 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Tag, ArrowLeft } from 'lucide-react';
 import Navigation from '@/components/Navigation';
+import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function BudgetPage() {
-  const [budgetType, setBudgetType] = useState<'hourly' | 'fixed' | null>(null);
-  const [fromRate, setFromRate] = useState<string>('15.00');
-  const [toRate, setToRate] = useState<string>('35.00');
-  const [fixedRate, setFixedRate] = useState<string>('0');
+  const storedBudget = jobPostingStore.getField<{
+    type: 'hourly' | 'fixed' | null;
+    fromRate?: string;
+    toRate?: string;
+    fixedRate?: string;
+  }>('budget');
+
+  const [budgetType, setBudgetType] = useState<'hourly' | 'fixed' | null>(storedBudget?.type || null);
+  const [fromRate, setFromRate] = useState<string>(storedBudget?.fromRate || '15.00');
+  const [toRate, setToRate] = useState<string>(storedBudget?.toRate || '35.00');
+  const [fixedRate, setFixedRate] = useState<string>(storedBudget?.fixedRate || '0');
   const router = useRouter();
 
   const handleNext = () => {
     if (budgetType === 'hourly' && fromRate && toRate) {
-      router.push('/buyer/post-job/description');
+      jobPostingStore.saveField('budget', {
+        type: budgetType,
+        fromRate,
+        toRate
+      });
+      router.push('/buyer/post-job/skills');
     } else if (budgetType === 'fixed' && fixedRate) {
-      router.push('/buyer/post-job/description');
+      jobPostingStore.saveField('budget', {
+        type: budgetType,
+        fixedRate
+      });
+      router.push('/buyer/post-job/skills');
     }
   };
 

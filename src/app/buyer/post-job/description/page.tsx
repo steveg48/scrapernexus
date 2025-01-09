@@ -4,13 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Paperclip } from 'lucide-react';
 import Navigation from '@/components/Navigation';
+import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function JobDescriptionPage() {
   const router = useRouter();
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(jobPostingStore.getField<string>('description') || '');
 
   const handleNext = () => {
     if (description.trim()) {
+      jobPostingStore.saveField('description', description.trim());
       router.push('/buyer/post-job/review');
     }
   };

@@ -70,11 +70,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center pb-6 border-b border-gray-200">
           <h1 className="text-[32px] font-normal text-gray-900">Hi, Steven</h1>
           <Link 
-            href="/buyer/post-job"
+            href="/buyer/post-job/title"
             className="inline-flex items-center px-6 py-2.5 bg-[#14a800] hover:bg-[#14a800]/90 text-white rounded-md text-base font-medium"
           >
             <span className="mr-1">+</span> Post a job

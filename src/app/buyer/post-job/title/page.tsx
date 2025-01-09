@@ -5,9 +5,10 @@ import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { jobPostingStore } from '@/lib/jobPostingStore'
 
 export default function PostJobTitle() {
-  const [title, setTitle] = useState('')
+  const [title, setTitle] = useState(jobPostingStore.getField<string>('title') || '')
   const router = useRouter()
   const mockUser = {
     display_name: "John Doe",
@@ -20,6 +21,11 @@ export default function PostJobTitle() {
     "Develop a Web Scraping Script for Social Media Analytics (Python Preferred)",
     "Extract Real Estate Listings Data from Multiple Property Websites"
   ]
+
+  const handleNext = () => {
+    jobPostingStore.saveField('title', title);
+    router.push('/buyer/post-job/scope')
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -101,7 +107,7 @@ export default function PostJobTitle() {
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
                 disabled={title.length < 6}
-                onClick={() => router.push('/buyer/post-job/skills')}
+                onClick={handleNext}
               >
                 Continue
               </button>

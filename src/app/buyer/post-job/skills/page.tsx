@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { jobPostingStore } from '@/lib/jobPostingStore';
 
 // Debug: Log environment variables
 console.log('SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
@@ -29,7 +30,8 @@ interface Category {
 }
 
 export default function PostJobSkills() {
-  const [selectedSkills, setSelectedSkills] = useState<Skill[]>([])
+  const storedSkills = jobPostingStore.getField<Skill[]>('skills') || [];
+  const [selectedSkills, setSelectedSkills] = useState<Skill[]>(storedSkills)
   const [categories, setCategories] = useState<Category[]>([])
   const [expanded, setExpanded] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -154,6 +156,15 @@ export default function PostJobSkills() {
     )
   }
 
+  const handleNext = () => {
+    if (selectedSkills.length > 0) {
+      jobPostingStore.saveField('skills', selectedSkills);
+      router.push('/buyer/post-job/location')
+    } else {
+      console.log('Error: No skills selected')
+    }
+  };
+
   const renderSelectedSkills = () => {
     return selectedSkills.map((skill) => (
       <div 
@@ -270,18 +281,23 @@ export default function PostJobSkills() {
           </div>
         </div>
 
-        <div className="flex items-center">
-          <div className="flex-1">
-            <Link href="/buyer/post-job/title" className="inline-flex items-center text-gray-600 hover:text-gray-900">
-              <span>← Back</span>
-            </Link>
-          </div>
-          <Link
-            href="/buyer/post-job/scope"
-            className="ml-4 px-6 py-2 bg-custom-green text-white rounded-lg hover:bg-custom-green/90"
-          >
-            Next
+        <div className="flex items-center justify-between">
+          <Link href="/buyer/post-job/title" className="inline-flex items-center text-gray-600 hover:text-gray-900">
+            <span>← Back</span>
           </Link>
+          <div className="w-40">
+            <button
+              onClick={handleNext}
+              className={`whitespace-nowrap px-6 py-2.5 rounded-lg font-medium ${
+                selectedSkills.length > 0
+                  ? 'bg-[#14a800] hover:bg-[#14a800]/90 text-white'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+              disabled={selectedSkills.length === 0}
+            >
+              Next: Location
+            </button>
+          </div>
         </div>
       </div>
     </div>

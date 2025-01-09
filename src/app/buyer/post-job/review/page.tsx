@@ -4,24 +4,58 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import Navigation from '@/components/Navigation';
+import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function ReviewPage() {
   const [isScreeningExpanded, setIsScreeningExpanded] = useState(false);
   const router = useRouter();
 
+  const storedData = jobPostingStore.getAllData();
+  
   const handleFinalize = () => {
-    // Navigate to feature selection page instead of dashboard
     router.push('/buyer/post-job/feature');
   };
 
+  const formatBudget = () => {
+    const budget = storedData.budget;
+    if (!budget) return 'Not specified';
+    
+    if (budget.type === 'fixed') {
+      return `$${parseFloat(budget.fixedRate).toFixed(2)} fixed price`;
+    } else if (budget.type === 'hourly') {
+      return `$${budget.fromRate} - $${budget.toRate} per hour`;
+    }
+    return 'Not specified';
+  };
+
+  const formatScope = () => {
+    const scope = storedData.scope;
+    if (!scope) return 'Not specified';
+    return `${scope.scope}, ${scope.duration}`;
+  };
+
   const jobDetails = {
-    title: 'o8uiyt;p89y 9 [0u y9y 9piy9pi8y i89y',
-    description: 'ju-uj-9u 9-u w4e-utg -93wjua4t g9-wq23u4t g9-j23awqu 4tg9-w4uaet g-u90 -w42e -9ut2gw43u-90w4rg3 aug3u a-we4r',
-    category: 'Graphic Design',
-    skills: ['Social Media Imagery', 'Graphic Design'],
-    scope: 'Medium, 3 to 6 months, Intermediate level, Contract-to-hire opportunity',
-    location: 'Worldwide',
-    budget: '$6,000.00'
+    title: storedData.title || 'No title specified',
+    description: storedData.description || 'No description provided',
+    skills: (storedData.skills || []).map(skill => skill.skill_name),
+    scope: formatScope(),
+    location: storedData.location === 'us' ? 'United States only' : 'Worldwide',
+    budget: formatBudget()
+  };
+
+  const handleEditSection = (section: string) => {
+    const routes: { [key: string]: string } = {
+      title: '/buyer/post-job/title',
+      description: '/buyer/post-job/description',
+      skills: '/buyer/post-job/skills',
+      scope: '/buyer/post-job/scope',
+      location: '/buyer/post-job/location',
+      budget: '/buyer/post-job/budget'
+    };
+    
+    if (routes[section]) {
+      router.push(routes[section]);
+    }
   };
 
   return (
@@ -46,7 +80,10 @@ export default function ReviewPage() {
               <div>
                 <h2 className="text-xl font-medium text-gray-900">{jobDetails.title}</h2>
               </div>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
+              <button 
+                onClick={() => handleEditSection('title')} 
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -56,7 +93,10 @@ export default function ReviewPage() {
               <div>
                 <p className="text-gray-600">{jobDetails.description}</p>
               </div>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
+              <button 
+                onClick={() => handleEditSection('description')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -65,7 +105,7 @@ export default function ReviewPage() {
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Category</h3>
-                <p className="text-gray-600">{jobDetails.category}</p>
+                <p className="text-gray-600">Graphic Design</p>
               </div>
               <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
                 <Pencil className="h-3.5 w-3.5" />
@@ -87,7 +127,10 @@ export default function ReviewPage() {
                   ))}
                 </div>
               </div>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
+              <button 
+                onClick={() => handleEditSection('skills')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -98,7 +141,10 @@ export default function ReviewPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Scope</h3>
                 <p className="text-gray-600">{jobDetails.scope}</p>
               </div>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
+              <button 
+                onClick={() => handleEditSection('scope')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -109,7 +155,10 @@ export default function ReviewPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Location preferences</h3>
                 <p className="text-gray-600">{jobDetails.location}</p>
               </div>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
+              <button 
+                onClick={() => handleEditSection('location')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -120,7 +169,10 @@ export default function ReviewPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Budget</h3>
                 <p className="text-gray-600">{jobDetails.budget}</p>
               </div>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
+              <button 
+                onClick={() => handleEditSection('budget')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>

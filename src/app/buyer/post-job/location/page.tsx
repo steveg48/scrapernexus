@@ -4,14 +4,20 @@ import { useState } from 'react';
 import { MapPin, Globe, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
+import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function LocationPage() {
-  const [selectedLocation, setSelectedLocation] = useState<'us' | 'worldwide' | null>(null);
+  const storedLocation = jobPostingStore.getField<'us' | 'worldwide' | null>('location');
+  const [selectedLocation, setSelectedLocation] = useState<'us' | 'worldwide' | null>(storedLocation || null);
   const router = useRouter();
 
   const handleNext = () => {
     if (selectedLocation) {
-      router.push('/buyer/post-job/budget');
+      jobPostingStore.saveField('location', {
+        type: selectedLocation,
+        locations: []
+      });
+      router.push('/buyer/post-job/description')
     }
   };
 
@@ -109,7 +115,7 @@ export default function LocationPage() {
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             >
-              Next: Budget
+              Next: Review
             </button>
           </div>
         </div>

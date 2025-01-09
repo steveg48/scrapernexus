@@ -5,15 +5,23 @@ import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Pencil } from 'lucide-react'
+import { jobPostingStore } from '@/lib/jobPostingStore'
 
 export default function PostJobScope() {
-  const [selectedScope, setSelectedScope] = useState<string>('')
-  const [selectedDuration, setSelectedDuration] = useState<string>('')
+  const storedScope = jobPostingStore.getField<{scope: string, duration: string}>('scope');
+  const [selectedScope, setSelectedScope] = useState<string>(storedScope?.scope || '')
+  const [selectedDuration, setSelectedDuration] = useState<string>(storedScope?.duration || '')
   const router = useRouter()
 
   const handleNext = () => {
     if (selectedScope && selectedDuration) {
-      router.push('/buyer/post-job/location')
+      jobPostingStore.saveField('scope', {
+        scope: selectedScope,
+        duration: selectedDuration
+      });
+      router.push('/buyer/post-job/budget')
+    } else {
+      console.log('Please select a scope and duration to proceed to the budget page.')
     }
   }
 
@@ -186,7 +194,7 @@ export default function PostJobScope() {
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Next: Location
+            Next: Budget
           </button>
         </div>
       </div>

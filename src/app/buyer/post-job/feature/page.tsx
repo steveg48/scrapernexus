@@ -5,22 +5,25 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Award, Check } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Image from 'next/image';
+import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function FeaturePage() {
   const router = useRouter();
 
   const handlePostStandard = () => {
     // Submit job posting as standard
+    jobPostingStore.clearData(); // Clear stored data after successful submission
     router.push('/buyer/post-job/success');
   };
 
   const handlePostFeatured = () => {
     // Submit job posting as featured
+    jobPostingStore.clearData(); // Clear stored data after successful submission
     router.push('/buyer/post-job/success');
   };
 
   const handleSaveDraft = () => {
-    // TODO: Save as draft
+    // The data is already saved in localStorage, so we can just redirect
     router.push('/buyer/dashboard');
   };
 
