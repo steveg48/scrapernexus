@@ -2,7 +2,10 @@ interface JobPostingData {
   title?: string;
   description?: string;
   skills?: string[];
-  scope?: string;
+  scope?: {
+    scope: string;
+    duration: string;
+  };
   budget?: {
     type: string;
     amount: number;

@@ -2,16 +2,16 @@
 
 import { useState } from 'react'
 import Navigation from '@/components/Navigation'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Pencil } from 'lucide-react'
 import { jobPostingStore } from '@/lib/jobPostingStore'
+import Link from 'next/link'
 
 export default function PostJobScope() {
+  const router = useRouter()
   const storedScope = jobPostingStore.getField<{scope: string, duration: string}>('scope');
   const [selectedScope, setSelectedScope] = useState<string>(storedScope?.scope || '')
   const [selectedDuration, setSelectedDuration] = useState<string>(storedScope?.duration || '')
-  const router = useRouter()
 
   const handleNext = () => {
     if (selectedScope && selectedDuration) {
@@ -104,20 +104,6 @@ export default function PostJobScope() {
                         <span className="ml-3 text-base text-gray-900">3 to 6 months</span>
                       </div>
                     </label>
-
-                    <label className="block">
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          name="duration"
-                          value="more-than-6"
-                          checked={selectedDuration === 'more-than-6'}
-                          onChange={(e) => setSelectedDuration(e.target.value)}
-                          className="h-4 w-4 text-blue-600"
-                        />
-                        <span className="ml-3 text-base text-gray-900">More than 6 months</span>
-                      </div>
-                    </label>
                   </div>
                 </div>
               </div>
@@ -176,26 +162,17 @@ export default function PostJobScope() {
                 </label>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Navigation buttons */}
-        <div className="flex items-center">
-          <div className="flex-1">
-            <Link href="/buyer/post-job/skills" className="inline-flex items-center text-gray-600 hover:text-gray-900">
-              <span>← Back</span>
-            </Link>
+            {/* Next button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleNext}
+                className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-custom-green hover:bg-custom-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-green"
+              >
+                Next: Budget
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleNext}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              selectedScope && selectedDuration
-                ? 'bg-custom-green hover:bg-custom-green/90 text-white cursor-pointer'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            Next: Budget
-          </button>
         </div>
       </div>
     </div>

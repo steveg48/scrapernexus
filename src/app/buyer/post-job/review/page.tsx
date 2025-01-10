@@ -238,14 +238,23 @@ export default function ReviewPage() {
   };
 
   const formatBudget = (budget: any) => {
-    if (!budget || (!budget.fixedRate && !budget.fromRate)) return '$0 (Fixed Price)';
+    if (!budget || (!budget.fixedRate && !budget.fromRate)) return '$0.00 (Fixed Price)';
+    
+    const formatNumber = (num: string | number) => {
+      return parseFloat(num.toString()).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    };
     
     if (budget.type === 'fixed') {
-      return budget.fixedRate ? `$${parseFloat(budget.fixedRate).toFixed(2)} (Fixed Price)` : '$0 (Fixed Price)';
+      return budget.fixedRate ? `$${formatNumber(budget.fixedRate)} (Fixed Price)` : '$0.00 (Fixed Price)';
     } else if (budget.type === 'hourly') {
-      return budget.fromRate && budget.toRate ? `$${budget.fromRate} - $${budget.toRate} (Per Hour)` : '$0 (Per Hour)';
+      return budget.fromRate && budget.toRate 
+        ? `$${formatNumber(budget.fromRate)} - $${formatNumber(budget.toRate)} (Per Hour)` 
+        : '$0.00 (Per Hour)';
     }
-    return '$0 (Fixed Price)';
+    return '$0.00 (Fixed Price)';
   };
 
   const formatScope = (scope: any) => {
@@ -304,7 +313,7 @@ export default function ReviewPage() {
             {/* Title Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Title</h3>
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Title</h3>
                 {editingField === 'title' ? (
                   <div className="space-y-4">
                     <input
@@ -344,7 +353,7 @@ export default function ReviewPage() {
             {/* Description Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Description</h3>
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Description</h3>
                 {editingField === 'description' ? (
                   <div className="space-y-4">
                     <textarea
@@ -384,12 +393,12 @@ export default function ReviewPage() {
             {/* Skills Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div>
-                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Skills</h3>
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Skills</h3>
                 <div className="flex flex-wrap gap-2">
                   {jobDetails.skills.map((skill) => (
                     <span
                       key={skill.skill_id}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-[#a9effc] text-gray-800"
                     >
                       {skill.skill_name}
                     </span>
@@ -407,7 +416,7 @@ export default function ReviewPage() {
             {/* Scope Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Scope</h3>
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Scope</h3>
                 <p className="text-gray-600">{formatScope(jobDetails.scope)}</p>
               </div>
               <button 
@@ -421,7 +430,7 @@ export default function ReviewPage() {
             {/* Location Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Location preferences</h3>
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Location preferences</h3>
                 {editingField === 'location' ? (
                   <div className="space-y-4">
                     <select
@@ -463,7 +472,7 @@ export default function ReviewPage() {
             {/* Budget Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Budget</h3>
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Budget</h3>
                 {editingField === 'budget' ? (
                   <div className="space-y-4">
                     <select
@@ -554,7 +563,7 @@ export default function ReviewPage() {
             {/* Project Type Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Project Type</h3>
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Project Type</h3>
                 <p className="text-gray-600">Post as standard for free</p>
               </div>
             </div>
