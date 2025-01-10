@@ -44,7 +44,12 @@ export default function ReviewPage() {
     description: '',
     scope: '',
     location: '',
-    budget: ''
+    budget: {
+      type: 'fixed',
+      fixedRate: '',
+      fromRate: '',
+      toRate: ''
+    }
   });
 
   useEffect(() => {
@@ -112,20 +117,62 @@ export default function ReviewPage() {
       return;
     }
     
-    setTempValues(prev => ({
-      ...prev,
-      [field]: jobDetails[field as keyof typeof jobDetails]
-    }));
+    if (field === 'budget') {
+      const currentBudget = jobPostingStore.getField('budget');
+      setTempValues(prev => ({
+        ...prev,
+        budget: currentBudget || { type: 'fixed', fixedRate: '' }
+      }));
+    } else {
+      setTempValues(prev => ({
+        ...prev,
+        [field]: jobDetails[field as keyof typeof jobDetails]
+      }));
+    }
+    
     setEditingField(field);
   };
 
   const handleSave = (field: string) => {
     const value = tempValues[field as keyof typeof tempValues];
-    jobPostingStore.saveField(field, value);
-    setJobDetails(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    
+    // Special handling for budget
+    if (field === 'budget') {
+      const budgetValue = value as {
+        type: string;
+        fixedRate?: string;
+        fromRate?: string;
+        toRate?: string;
+      };
+
+      if (budgetValue.type === 'fixed') {
+        jobPostingStore.saveField('budget', {
+          type: 'fixed',
+          fixedRate: budgetValue.fixedRate
+        });
+      } else {
+        jobPostingStore.saveField('budget', {
+          type: 'hourly',
+          fromRate: budgetValue.fromRate,
+          toRate: budgetValue.toRate
+        });
+      }
+    } else {
+      jobPostingStore.saveField(field, value);
+    }
+
+    if (field === 'budget') {
+      setJobDetails(prev => ({
+        ...prev,
+        [field]: formatBudget(value)
+      }));
+    } else {
+      setJobDetails(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+    
     setEditingField(null);
   };
 
@@ -253,17 +300,6 @@ export default function ReviewPage() {
               </button>
             </div>
 
-            {/* Category Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Category</h3>
-                <p className="text-gray-600">Graphic Design</p>
-              </div>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full">
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
             {/* Skills Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div>
@@ -289,12 +325,25 @@ export default function ReviewPage() {
 
             {/* Scope Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Scope</h3>
-                <p className="text-gray-600">{jobDetails.scope}</p>
+              <div className="flex-grow">
+                {editingField === 'scope' ? (
+                  <input
+                    type="text"
+                    value={tempValues.scope}
+                    onChange={(e) => setTempValues({ ...tempValues, scope: e.target.value })}
+                    onBlur={() => handleSave('scope')}
+                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                    autoFocus
+                  />
+                ) : (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Scope</h3>
+                    <p className="text-gray-600">{jobDetails.scope}</p>
+                  </div>
+                )}
               </div>
               <button 
-                onClick={() => handleEditSection('scope')}
+                onClick={() => handleStartEdit('scope')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -303,12 +352,27 @@ export default function ReviewPage() {
 
             {/* Location Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Location preferences</h3>
-                <p className="text-gray-600">{jobDetails.location}</p>
+              <div className="flex-grow">
+                {editingField === 'location' ? (
+                  <select
+                    value={tempValues.location}
+                    onChange={(e) => setTempValues({ ...tempValues, location: e.target.value })}
+                    onBlur={() => handleSave('location')}
+                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                    autoFocus
+                  >
+                    <option value="worldwide">Worldwide</option>
+                    <option value="us">United States only</option>
+                  </select>
+                ) : (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Location preferences</h3>
+                    <p className="text-gray-600">{jobDetails.location}</p>
+                  </div>
+                )}
               </div>
               <button 
-                onClick={() => handleEditSection('location')}
+                onClick={() => handleStartEdit('location')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -317,12 +381,91 @@ export default function ReviewPage() {
 
             {/* Budget Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Budget</h3>
-                <p className="text-gray-600">{jobDetails.budget}</p>
+              <div className="flex-grow">
+                {editingField === 'budget' ? (
+                  <div className="space-y-4">
+                    <select
+                      value={tempValues.budget?.type || 'fixed'}
+                      onChange={(e) => setTempValues({ 
+                        ...tempValues, 
+                        budget: { 
+                          ...tempValues.budget,
+                          type: e.target.value 
+                        } 
+                      })}
+                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                    >
+                      <option value="fixed">Fixed price</option>
+                      <option value="hourly">Hourly rate</option>
+                    </select>
+                    {tempValues.budget?.type === 'fixed' ? (
+                      <input
+                        type="number"
+                        value={tempValues.budget.fixedRate || ''}
+                        onChange={(e) => setTempValues({
+                          ...tempValues,
+                          budget: {
+                            ...tempValues.budget,
+                            fixedRate: e.target.value
+                          }
+                        })}
+                        placeholder="Enter fixed price"
+                        className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                      />
+                    ) : (
+                      <div className="flex gap-4">
+                        <input
+                          type="number"
+                          value={tempValues.budget?.fromRate || ''}
+                          onChange={(e) => setTempValues({
+                            ...tempValues,
+                            budget: {
+                              ...tempValues.budget,
+                              fromRate: e.target.value
+                            }
+                          })}
+                          placeholder="From rate"
+                          className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                        />
+                        <input
+                          type="number"
+                          value={tempValues.budget?.toRate || ''}
+                          onChange={(e) => setTempValues({
+                            ...tempValues,
+                            budget: {
+                              ...tempValues.budget,
+                              toRate: e.target.value
+                            }
+                          })}
+                          placeholder="To rate"
+                          className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                        />
+                      </div>
+                    )}
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleSave('budget')}
+                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Budget</h3>
+                    <p className="text-gray-600">{jobDetails.budget}</p>
+                  </div>
+                )}
               </div>
               <button 
-                onClick={() => handleEditSection('budget')}
+                onClick={() => handleStartEdit('budget')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
                 <Pencil className="h-3.5 w-3.5" />
