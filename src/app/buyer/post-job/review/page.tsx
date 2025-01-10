@@ -22,9 +22,8 @@ interface Category {
 }
 
 export default function ReviewPage() {
-  const [isScreeningExpanded, setIsScreeningExpanded] = useState(false);
-  const [editingField, setEditingField] = useState<string | null>(null);
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
+  const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,23 +33,33 @@ export default function ReviewPage() {
     title: 'No title specified',
     description: 'No description provided',
     skills: [] as Skill[],
-    scope: 'Not specified',
+    scope: {
+      scope: '',
+      duration: ''
+    },
     location: 'Worldwide',
-    budget: 'Not specified'
+    budget: '$0',
+    project_type: 'standard'
   });
 
   const [tempValues, setTempValues] = useState({
     title: '',
     description: '',
-    scope: '',
+    scope: {
+      scope: '',
+      duration: ''
+    },
     location: '',
     budget: {
       type: 'fixed',
-      fixedRate: '',
-      fromRate: '',
-      toRate: ''
-    }
+      fixedRate: '0',
+      fromRate: '0',
+      toRate: '0'
+    },
+    project_type: 'standard'
   });
+
+  const [editingField, setEditingField] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -59,9 +68,10 @@ export default function ReviewPage() {
         title: storedData.title || 'No title specified',
         description: storedData.description || 'No description provided',
         skills: Array.isArray(storedData.skills) ? storedData.skills : [],
-        scope: formatScope(storedData.scope),
-        location: storedData.location === 'us' ? 'United States only' : 'Worldwide',
-        budget: formatBudget(storedData.budget)
+        scope: storedData.scope || { scope: '', duration: '' },
+        location: storedData.location === 'us' ? 'U.S. Only' : 'Worldwide',
+        budget: formatBudget(storedData.budget) || '$0',
+        project_type: storedData.project_type || 'standard'
       });
     }
   }, []);
@@ -121,7 +131,18 @@ export default function ReviewPage() {
       const currentBudget = jobPostingStore.getField('budget');
       setTempValues(prev => ({
         ...prev,
-        budget: currentBudget || { type: 'fixed', fixedRate: '' }
+        budget: currentBudget || { 
+          type: 'fixed', 
+          fixedRate: '0',
+          fromRate: '0',
+          toRate: '0'
+        }
+      }));
+    } else if (field === 'scope') {
+      const currentScope = jobPostingStore.getField('scope');
+      setTempValues(prev => ({
+        ...prev,
+        scope: currentScope || { scope: '', duration: '' }
       }));
     } else {
       setTempValues(prev => ({
@@ -157,6 +178,16 @@ export default function ReviewPage() {
           toRate: budgetValue.toRate
         });
       }
+    } else if (field === 'scope') {
+      const scopeValue = value as {
+        scope: string;
+        duration: string;
+      };
+      jobPostingStore.saveField('scope', scopeValue);
+      setJobDetails(prev => ({
+        ...prev,
+        scope: scopeValue
+      }));
     } else {
       jobPostingStore.saveField(field, value);
     }
@@ -164,8 +195,10 @@ export default function ReviewPage() {
     if (field === 'budget') {
       setJobDetails(prev => ({
         ...prev,
-        [field]: formatBudget(value)
+        budget: formatBudget(value)
       }));
+    } else if (field === 'scope') {
+      // Already handled above
     } else {
       setJobDetails(prev => ({
         ...prev,
@@ -205,19 +238,35 @@ export default function ReviewPage() {
   };
 
   const formatBudget = (budget: any) => {
-    if (!budget) return 'Not specified';
+    if (!budget || (!budget.fixedRate && !budget.fromRate)) return '$0 (Fixed Price)';
     
     if (budget.type === 'fixed') {
-      return `$${parseFloat(budget.fixedRate).toFixed(2)} fixed price`;
+      return budget.fixedRate ? `$${parseFloat(budget.fixedRate).toFixed(2)} (Fixed Price)` : '$0 (Fixed Price)';
     } else if (budget.type === 'hourly') {
-      return `$${budget.fromRate} - $${budget.toRate} per hour`;
+      return budget.fromRate && budget.toRate ? `$${budget.fromRate} - $${budget.toRate} (Per Hour)` : '$0 (Per Hour)';
     }
-    return 'Not specified';
+    return '$0 (Fixed Price)';
   };
 
   const formatScope = (scope: any) => {
-    if (!scope) return 'Not specified';
-    return `${scope.scope}, ${scope.duration}`;
+    if (!scope || !scope.scope || !scope.duration) return 'Not specified';
+    
+    let duration;
+    switch (scope.duration) {
+      case '1-to-3':
+        duration = '1 to 3 months';
+        break;
+      case '3-to-6':
+        duration = '3 to 6 months';
+        break;
+      case 'more-than-6':
+        duration = 'More than 6 months';
+        break;
+      default:
+        duration = scope.duration;
+    }
+    
+    return `${scope.scope}, ${duration}`;
   };
 
   const handleEditSection = (section: string) => {
@@ -255,17 +304,33 @@ export default function ReviewPage() {
             {/* Title Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
+                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Title</h3>
                 {editingField === 'title' ? (
-                  <input
-                    type="text"
-                    value={tempValues.title}
-                    onChange={(e) => setTempValues({ ...tempValues, title: e.target.value })}
-                    onBlur={() => handleSave('title')}
-                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                    autoFocus
-                  />
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={tempValues.title}
+                      onChange={(e) => setTempValues({ ...tempValues, title: e.target.value })}
+                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                      autoFocus
+                    />
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleSave('title')}
+                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <h2 className="text-xl font-medium text-gray-900">{jobDetails.title}</h2>
+                  <p className="text-gray-600">{jobDetails.title}</p>
                 )}
               </div>
               <button 
@@ -279,15 +344,31 @@ export default function ReviewPage() {
             {/* Description Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
+                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Description</h3>
                 {editingField === 'description' ? (
-                  <textarea
-                    value={tempValues.description}
-                    onChange={(e) => setTempValues({ ...tempValues, description: e.target.value })}
-                    onBlur={() => handleSave('description')}
-                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                    rows={6}
-                    autoFocus
-                  />
+                  <div className="space-y-4">
+                    <textarea
+                      value={tempValues.description}
+                      onChange={(e) => setTempValues({ ...tempValues, description: e.target.value })}
+                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                      rows={6}
+                      autoFocus
+                    />
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleSave('description')}
+                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <p className="text-gray-600 whitespace-pre-wrap">{jobDetails.description}</p>
                 )}
@@ -303,7 +384,7 @@ export default function ReviewPage() {
             {/* Skills Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Skills</h3>
+                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Skills</h3>
                 <div className="flex flex-wrap gap-2">
                   {jobDetails.skills.map((skill) => (
                     <span
@@ -326,24 +407,11 @@ export default function ReviewPage() {
             {/* Scope Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
-                {editingField === 'scope' ? (
-                  <input
-                    type="text"
-                    value={tempValues.scope}
-                    onChange={(e) => setTempValues({ ...tempValues, scope: e.target.value })}
-                    onBlur={() => handleSave('scope')}
-                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                    autoFocus
-                  />
-                ) : (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Scope</h3>
-                    <p className="text-gray-600">{jobDetails.scope}</p>
-                  </div>
-                )}
+                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Scope</h3>
+                <p className="text-gray-600">{formatScope(jobDetails.scope)}</p>
               </div>
               <button 
-                onClick={() => handleStartEdit('scope')}
+                onClick={() => setIsScopeModalOpen(true)}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -353,22 +421,35 @@ export default function ReviewPage() {
             {/* Location Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
+                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Location preferences</h3>
                 {editingField === 'location' ? (
-                  <select
-                    value={tempValues.location}
-                    onChange={(e) => setTempValues({ ...tempValues, location: e.target.value })}
-                    onBlur={() => handleSave('location')}
-                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                    autoFocus
-                  >
-                    <option value="worldwide">Worldwide</option>
-                    <option value="us">United States only</option>
-                  </select>
-                ) : (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Location preferences</h3>
-                    <p className="text-gray-600">{jobDetails.location}</p>
+                  <div className="space-y-4">
+                    <select
+                      value={tempValues.location}
+                      onChange={(e) => setTempValues({ ...tempValues, location: e.target.value })}
+                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                      autoFocus
+                    >
+                      <option value="worldwide">Worldwide</option>
+                      <option value="us">U.S. Only</option>
+                    </select>
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => setEditingField(null)}
+                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleSave('location')}
+                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
+                      >
+                        Save
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <p className="text-gray-600">{jobDetails.location}</p>
                 )}
               </div>
               <button 
@@ -382,6 +463,7 @@ export default function ReviewPage() {
             {/* Budget Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
+                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Budget</h3>
                 {editingField === 'budget' ? (
                   <div className="space-y-4">
                     <select
@@ -458,10 +540,7 @@ export default function ReviewPage() {
                     </div>
                   </div>
                 ) : (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Budget</h3>
-                    <p className="text-gray-600">{jobDetails.budget}</p>
-                  </div>
+                  <p className="text-gray-600">{jobDetails.budget}</p>
                 )}
               </div>
               <button 
@@ -472,22 +551,14 @@ export default function ReviewPage() {
               </button>
             </div>
 
-            {/* Screening Questions Section */}
-            <div>
-              <button
-                onClick={() => setIsScreeningExpanded(!isScreeningExpanded)}
-                className="w-full flex justify-between items-center py-4"
-              >
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Screening questions</h3>
-                </div>
-                {isScreeningExpanded ? (
-                  <ChevronUp className="h-5 w-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
+            {/* Project Type Section */}
+            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
+              <div className="flex-grow">
+                <h3 className="text-base font-bold text-[#8FDAFF] mb-2">Project Type</h3>
+                <p className="text-gray-600">Post as standard for free</p>
+              </div>
             </div>
+
           </div>
 
           {/* Back and Next Buttons */}
@@ -616,6 +687,182 @@ export default function ReviewPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Scope Modal */}
+      {isScopeModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Select Scope</h2>
+                <button
+                  onClick={() => setIsScopeModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Scope Options */}
+              <div className="space-y-4 mb-6">
+                <label className="block">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="scope"
+                      value="Large"
+                      checked={tempValues.scope.scope === 'Large'}
+                      onChange={(e) => setTempValues({
+                        ...tempValues,
+                        scope: {
+                          ...tempValues.scope,
+                          scope: e.target.value
+                        }
+                      })}
+                      className="h-4 w-4 text-custom-green"
+                    />
+                    <span className="ml-3 text-base font-medium text-gray-900">Large</span>
+                  </div>
+                  <p className="mt-1 ml-7 text-gray-600">
+                    Longer term or complex initiatives (ex. develop and execute a brand strategy (i.e., graphics, positioning))
+                  </p>
+                </label>
+
+                <label className="block">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="scope"
+                      value="Medium"
+                      checked={tempValues.scope.scope === 'Medium'}
+                      onChange={(e) => setTempValues({
+                        ...tempValues,
+                        scope: {
+                          ...tempValues.scope,
+                          scope: e.target.value
+                        }
+                      })}
+                      className="h-4 w-4 text-custom-green"
+                    />
+                    <span className="ml-3 text-base font-medium text-gray-900">Medium</span>
+                  </div>
+                  <p className="mt-1 ml-7 text-gray-600">
+                    Well-defined projects (ex. design business rebrand package (i.e., logos, icons))
+                  </p>
+                </label>
+
+                <label className="block">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="scope"
+                      value="Small"
+                      checked={tempValues.scope.scope === 'Small'}
+                      onChange={(e) => setTempValues({
+                        ...tempValues,
+                        scope: {
+                          ...tempValues.scope,
+                          scope: e.target.value
+                        }
+                      })}
+                      className="h-4 w-4 text-custom-green"
+                    />
+                    <span className="ml-3 text-base font-medium text-gray-900">Small</span>
+                  </div>
+                  <p className="mt-1 ml-7 text-gray-600">
+                    Quick and straightforward tasks (ex. create logo for a new product)
+                  </p>
+                </label>
+              </div>
+
+              {/* Duration Section */}
+              <div className="mb-6">
+                <h3 className="text-base font-medium text-gray-900 mb-4">How long will your work take?</h3>
+                <div className="space-y-4">
+                  <label className="block">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        name="duration"
+                        value="1-to-3"
+                        checked={tempValues.scope.duration === '1-to-3'}
+                        onChange={(e) => setTempValues({
+                          ...tempValues,
+                          scope: {
+                            ...tempValues.scope,
+                            duration: e.target.value
+                          }
+                        })}
+                        className="h-4 w-4 text-custom-green"
+                      />
+                      <span className="ml-3 text-base text-gray-900">1 to 3 months</span>
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        name="duration"
+                        value="3-to-6"
+                        checked={tempValues.scope.duration === '3-to-6'}
+                        onChange={(e) => setTempValues({
+                          ...tempValues,
+                          scope: {
+                            ...tempValues.scope,
+                            duration: e.target.value
+                          }
+                        })}
+                        className="h-4 w-4 text-custom-green"
+                      />
+                      <span className="ml-3 text-base text-gray-900">3 to 6 months</span>
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        name="duration"
+                        value="more-than-6"
+                        checked={tempValues.scope.duration === 'more-than-6'}
+                        onChange={(e) => setTempValues({
+                          ...tempValues,
+                          scope: {
+                            ...tempValues.scope,
+                            duration: e.target.value
+                          }
+                        })}
+                        className="h-4 w-4 text-custom-green"
+                      />
+                      <span className="ml-3 text-base text-gray-900">More than 6 months</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setIsScopeModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleSave('scope');
+                    setIsScopeModalOpen(false);
+                  }}
+                  className="px-4 py-2 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
