@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Paperclip } from 'lucide-react';
 import Navigation from '@/components/Navigation';
@@ -8,7 +8,14 @@ import { jobPostingStore } from '@/lib/jobPostingStore';
 
 export default function JobDescriptionPage() {
   const router = useRouter();
-  const [description, setDescription] = useState(jobPostingStore.getField<string>('description') || '');
+  const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    const savedDescription = jobPostingStore.getField<string>('description');
+    if (savedDescription) {
+      setDescription(savedDescription);
+    }
+  }, []);
 
   const handleNext = () => {
     if (description.trim()) {
@@ -27,7 +34,7 @@ export default function JobDescriptionPage() {
             6/6 • Job post
           </div>
 
-          <div className="grid grid-cols-2 gap-12">
+          <div className="grid grid-cols-2 gap-12 relative">
             {/* Left Column */}
             <div>
               <h1 className="text-4xl font-semibold text-gray-900 mb-6">
@@ -107,25 +114,26 @@ export default function JobDescriptionPage() {
                     Max file size: 100MB
                   </div>
                 </div>
-
-                <div className="flex justify-between items-center">
-                  <button
-                    onClick={() => router.back()}
-                    className="flex items-center text-gray-600 hover:text-gray-900 gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    disabled={!description.trim()}
-                    className="px-6 py-3 bg-custom-green text-white rounded-lg hover:bg-custom-green/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
               </div>
             </div>
+          </div>
+
+          {/* Navigation buttons row */}
+          <div className="flex justify-between items-center mt-8 max-w-6xl mx-auto px-4">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center text-gray-600 hover:text-gray-900 gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+            <button
+              onClick={handleNext}
+              disabled={!description.trim()}
+              className="px-6 py-3 bg-custom-green text-white rounded-lg hover:bg-custom-green/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>

@@ -21,10 +21,11 @@ export default function ReviewPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedData = jobPostingStore.getAllData();
+      console.log('Stored data:', storedData); // Add debug logging
       setJobDetails({
         title: storedData.title || 'No title specified',
         description: storedData.description || 'No description provided',
-        skills: (storedData.skills || []).map(skill => skill.skill_name),
+        skills: Array.isArray(storedData.skills) ? storedData.skills.map((skill: any) => skill.skill_name || skill) : [],
         scope: formatScope(storedData.scope),
         location: storedData.location === 'us' ? 'United States only' : 'Worldwide',
         budget: formatBudget(storedData.budget)
