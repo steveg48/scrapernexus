@@ -2,36 +2,156 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Pencil, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { jobPostingStore } from '@/lib/jobPostingStore';
+import Modal from '@/components/Modal';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
+interface Skill {
+  skill_id: number;
+  skill_name: string;
+  category_id: number;
+  category_name: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  skills: Skill[];
+}
 
 export default function ReviewPage() {
   const [isScreeningExpanded, setIsScreeningExpanded] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [expanded, setExpanded] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClientComponentClient();
+  
   const [jobDetails, setJobDetails] = useState({
     title: 'No title specified',
     description: 'No description provided',
-    skills: [],
+    skills: [] as Skill[],
     scope: 'Not specified',
     location: 'Worldwide',
     budget: 'Not specified'
   });
-  const router = useRouter();
+
+  const [tempValues, setTempValues] = useState({
+    title: '',
+    description: '',
+    scope: '',
+    location: '',
+    budget: ''
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedData = jobPostingStore.getAllData();
-      console.log('Stored data:', storedData); // Add debug logging
       setJobDetails({
         title: storedData.title || 'No title specified',
         description: storedData.description || 'No description provided',
-        skills: Array.isArray(storedData.skills) ? storedData.skills.map((skill: any) => skill.skill_name || skill) : [],
+        skills: Array.isArray(storedData.skills) ? storedData.skills : [],
         scope: formatScope(storedData.scope),
         location: storedData.location === 'us' ? 'United States only' : 'Worldwide',
         budget: formatBudget(storedData.budget)
       });
     }
   }, []);
+
+  const fetchSkills = async () => {
+    try {
+      setIsLoading(true);
+      const { data: skillsData, error } = await supabase
+        .from('skills_view')
+        .select('*');
+
+      if (error) throw error;
+
+      if (skillsData) {
+        const categoryList = skillsData.reduce((acc: Category[], skill) => {
+          const existingCategory = acc.find(cat => cat.name === skill.category_name);
+
+          if (existingCategory) {
+            existingCategory.skills.push({
+              skill_id: skill.skill_id,
+              skill_name: skill.skill_name,
+              category_id: skill.category_id,
+              category_name: skill.category_name
+            });
+          } else {
+            acc.push({
+              id: skill.category_id,
+              name: skill.category_name,
+              skills: [{
+                skill_id: skill.skill_id,
+                skill_name: skill.skill_name,
+                category_id: skill.category_id,
+                category_name: skill.category_name
+              }]
+            });
+          }
+          return acc;
+        }, []);
+
+        setCategories(categoryList);
+      }
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStartEdit = (field: string) => {
+    if (field === 'skills') {
+      setIsSkillsModalOpen(true);
+      fetchSkills();
+      return;
+    }
+    
+    setTempValues(prev => ({
+      ...prev,
+      [field]: jobDetails[field as keyof typeof jobDetails]
+    }));
+    setEditingField(field);
+  };
+
+  const handleSave = (field: string) => {
+    const value = tempValues[field as keyof typeof tempValues];
+    jobPostingStore.saveField(field, value);
+    setJobDetails(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setEditingField(null);
+  };
+
+  const toggleCategory = (categoryName: string) => {
+    setExpanded(prev =>
+      prev.includes(categoryName)
+        ? prev.filter(name => name !== categoryName)
+        : [...prev, categoryName]
+    );
+  };
+
+  const toggleSkill = (skill: Skill) => {
+    setJobDetails(prev => ({
+      ...prev,
+      skills: prev.skills.some(s => s.skill_id === skill.skill_id)
+        ? prev.skills.filter(s => s.skill_id !== skill.skill_id)
+        : [...prev.skills, skill]
+    }));
+  };
+
+  const handleSaveSkills = () => {
+    jobPostingStore.saveField('skills', jobDetails.skills);
+    setIsSkillsModalOpen(false);
+  };
+
+  const router = useRouter();
 
   const handleFinalize = () => {
     router.push('/buyer/post-job/feature');
@@ -87,11 +207,22 @@ export default function ReviewPage() {
           <div className="space-y-8">
             {/* Title Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div>
-                <h2 className="text-xl font-medium text-gray-900">{jobDetails.title}</h2>
+              <div className="flex-grow">
+                {editingField === 'title' ? (
+                  <input
+                    type="text"
+                    value={tempValues.title}
+                    onChange={(e) => setTempValues({ ...tempValues, title: e.target.value })}
+                    onBlur={() => handleSave('title')}
+                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                    autoFocus
+                  />
+                ) : (
+                  <h2 className="text-xl font-medium text-gray-900">{jobDetails.title}</h2>
+                )}
               </div>
               <button 
-                onClick={() => handleEditSection('title')} 
+                onClick={() => handleStartEdit('title')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -100,11 +231,22 @@ export default function ReviewPage() {
 
             {/* Description Section */}
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div>
-                <p className="text-gray-600">{jobDetails.description}</p>
+              <div className="flex-grow">
+                {editingField === 'description' ? (
+                  <textarea
+                    value={tempValues.description}
+                    onChange={(e) => setTempValues({ ...tempValues, description: e.target.value })}
+                    onBlur={() => handleSave('description')}
+                    className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
+                    rows={6}
+                    autoFocus
+                  />
+                ) : (
+                  <p className="text-gray-600 whitespace-pre-wrap">{jobDetails.description}</p>
+                )}
               </div>
-              <button 
-                onClick={() => handleEditSection('description')}
+              <button
+                onClick={() => handleStartEdit('description')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -126,19 +268,19 @@ export default function ReviewPage() {
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Skills</h3>
-                <div className="flex gap-2">
-                  {jobDetails.skills.map((skill, index) => (
+                <div className="flex flex-wrap gap-2">
+                  {jobDetails.skills.map((skill) => (
                     <span
-                      key={index}
-                      className="px-4 py-1 bg-gray-100 rounded-full text-gray-700 text-sm"
+                      key={skill.skill_id}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800"
                     >
-                      {skill}
+                      {skill.skill_name}
                     </span>
                   ))}
                 </div>
               </div>
-              <button 
-                onClick={() => handleEditSection('skills')}
+              <button
+                onClick={() => handleStartEdit('skills')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -223,6 +365,114 @@ export default function ReviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Skills Modal */}
+      <Modal
+        isOpen={isSkillsModalOpen}
+        onClose={() => setIsSkillsModalOpen(false)}
+        title="What are the main skills required for your project?"
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 gap-8">
+            <div>
+              <p className="text-sm text-gray-500 mb-6">
+                For the best results, add 3-5 skills
+              </p>
+
+              <div className="space-y-6">
+                <div className="border rounded-lg p-4">
+                  <h2 className="text-base font-medium text-gray-900 mb-3">
+                    Selected skills ({jobDetails.skills.length}/10)
+                  </h2>
+                  <div className="flex flex-wrap gap-2 min-h-[40px]">
+                    {jobDetails.skills && jobDetails.skills.length > 0 ? (
+                      jobDetails.skills.map((skill) => (
+                        <div 
+                          key={`selected-${skill.skill_id}`}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                        >
+                          {skill.skill_name}
+                          <button
+                            onClick={() => toggleSkill(skill)}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm">No skills selected yet</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-0 divide-y divide-gray-200">
+                  {isLoading ? (
+                    <div className="text-center py-4">Loading skills...</div>
+                  ) : (
+                    categories.map((category) => (
+                      <div key={category.id}>
+                        <button
+                          type="button"
+                          onClick={() => toggleCategory(category.name)}
+                          className="w-full px-4 py-3 flex justify-between items-center hover:bg-gray-50"
+                        >
+                          <span className="font-medium text-gray-900">{category.name}</span>
+                          {expanded.includes(category.name) ? (
+                            <ChevronUp className="h-5 w-5 text-gray-500" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-gray-500" />
+                          )}
+                        </button>
+                        
+                        {expanded.includes(category.name) && (
+                          <div className="px-4 py-3 bg-white">
+                            <div className="flex flex-wrap gap-2">
+                              {category.skills
+                                .filter(skill => !jobDetails.skills.find(s => s.skill_id === skill.skill_id))
+                                .map((skill) => (
+                                  <button
+                                    key={skill.skill_id}
+                                    type="button"
+                                    onClick={() => toggleSkill(skill)}
+                                    className="inline-flex items-center px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-700 hover:border-gray-400"
+                                  >
+                                    {skill.skill_name}
+                                    <Plus className="ml-1 h-4 w-4" />
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-6 mt-8 border-t">
+            <button
+              onClick={() => setIsSkillsModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveSkills}
+              className={`px-6 py-2.5 rounded-lg font-medium ${
+                jobDetails.skills.length > 0
+                  ? 'bg-[#14a800] hover:bg-[#14a800]/90 text-white'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+              disabled={jobDetails.skills.length === 0}
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
