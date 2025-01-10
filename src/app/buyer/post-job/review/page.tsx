@@ -78,7 +78,7 @@ export default function ReviewPage() {
               onClick={handleFinalize}
               className="px-6 py-2 bg-custom-green hover:bg-custom-green/90 text-white rounded-lg font-medium"
             >
-              NEXT: FINALIZE JOB POST
+              Next: Finalize Job Post
             </button>
           </div>
 
@@ -193,8 +193,7 @@ export default function ReviewPage() {
                 className="w-full flex justify-between items-center py-4"
               >
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Screening questions (optional)</h3>
-                  <p className="text-gray-600">Narrow down your candidates</p>
+                  <h3 className="text-lg font-medium text-gray-900">Screening questions</h3>
                 </div>
                 {isScreeningExpanded ? (
                   <ChevronUp className="h-5 w-5 text-gray-400" />
@@ -218,7 +217,7 @@ export default function ReviewPage() {
               onClick={handleFinalize}
               className="px-6 py-2 bg-custom-green hover:bg-custom-green/90 text-white rounded-lg font-medium"
             >
-              Next: Finalize job post
+              Next: Finalize Job Post
             </button>
           </div>
         </div>
