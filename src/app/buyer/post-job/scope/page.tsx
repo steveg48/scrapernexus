@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navigation from '@/components/Navigation'
 import { useRouter } from 'next/navigation'
 import { Pencil } from 'lucide-react'
@@ -9,9 +9,16 @@ import Link from 'next/link'
 
 export default function PostJobScope() {
   const router = useRouter()
-  const storedScope = jobPostingStore.getField<{scope: string, duration: string}>('scope');
-  const [selectedScope, setSelectedScope] = useState<string>(storedScope?.scope || '')
-  const [selectedDuration, setSelectedDuration] = useState<string>(storedScope?.duration || '')
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedScope, setSelectedScope] = useState<string>('')
+  const [selectedDuration, setSelectedDuration] = useState<string>('')
+
+  useEffect(() => {
+    const storedData = jobPostingStore.getField<{scope: string, duration: string}>('scope');
+    setSelectedScope(storedData?.scope || '');
+    setSelectedDuration(storedData?.duration || '');
+    setIsLoading(false);
+  }, []);
 
   const handleNext = () => {
     if (selectedScope && selectedDuration) {
@@ -23,6 +30,17 @@ export default function PostJobScope() {
     } else {
       console.log('Please select a scope and duration to proceed to the budget page.')
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <Navigation />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -68,9 +86,9 @@ export default function PostJobScope() {
                   </button>
                 </div>
                 <p className="mt-1 text-gray-600">
-                  {selectedScope === 'Medium' && 'Well-defined projects (ex. design business rebrand package (i.e., logos, icons))'}
-                  {selectedScope === 'Large' && 'Longer term or complex initiatives (ex. develop and execute a brand strategy (i.e., graphics, positioning))'}
-                  {selectedScope === 'Small' && 'Quick and straightforward tasks (ex. create logo for a new product)'}
+                  {selectedScope === 'medium' && 'Well-defined projects (ex. design business rebrand package (i.e., logos, icons))'}
+                  {selectedScope === 'large' && 'Longer term or complex initiatives (ex. develop and execute a brand strategy (i.e., graphics, positioning))'}
+                  {selectedScope === 'small' && 'Quick and straightforward tasks (ex. create logo for a new product)'}
                 </p>
 
                 {/* Duration section */}
@@ -82,8 +100,8 @@ export default function PostJobScope() {
                         <input
                           type="radio"
                           name="duration"
-                          value="one-time"
-                          checked={selectedDuration === 'one-time'}
+                          value="one_time"
+                          checked={selectedDuration === 'one_time'}
                           onChange={(e) => setSelectedDuration(e.target.value)}
                           className="h-4 w-4 text-blue-600"
                         />
@@ -129,8 +147,8 @@ export default function PostJobScope() {
                     <input
                       type="radio"
                       name="scope"
-                      value="Large"
-                      checked={selectedScope === 'Large'}
+                      value="large"
+                      checked={selectedScope === 'large'}
                       onChange={(e) => setSelectedScope(e.target.value)}
                       className="h-4 w-4 text-blue-600"
                     />
@@ -146,8 +164,8 @@ export default function PostJobScope() {
                     <input
                       type="radio"
                       name="scope"
-                      value="Medium"
-                      checked={selectedScope === 'Medium'}
+                      value="medium"
+                      checked={selectedScope === 'medium'}
                       onChange={(e) => setSelectedScope(e.target.value)}
                       className="h-4 w-4 text-blue-600"
                     />
@@ -163,8 +181,8 @@ export default function PostJobScope() {
                     <input
                       type="radio"
                       name="scope"
-                      value="Small"
-                      checked={selectedScope === 'Small'}
+                      value="small"
+                      checked={selectedScope === 'small'}
                       onChange={(e) => setSelectedScope(e.target.value)}
                       className="h-4 w-4 text-blue-600"
                     />

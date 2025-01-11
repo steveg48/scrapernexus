@@ -33,27 +33,43 @@ export default function FeaturePage() {
         throw new Error('Missing required project information');
       }
 
+      // Map duration to frequency enum
+      const frequencyMap = {
+        'one-time': 'one-time',
+        'weekly': 'weekly',
+        'monthly': 'monthly',
+        'yearly': 'yearly'
+      };
+
+      // Debug logging
+      console.log('Stored duration:', storedData.scope?.duration);
+      console.log('Mapped frequency:', frequencyMap[storedData.scope?.duration as keyof typeof frequencyMap]);
+
       // Prepare project data
       const projectData = {
-        buyer_id: session.user.id,  // Using the user's UUID from the session
+        buyer_id: session.user.id,
         title: storedData.title,
         description: storedData.description,
-        frequency: storedData.scope?.duration,
+        frequency: frequencyMap[storedData.scope?.duration as keyof typeof frequencyMap] || 'one-time',
         budget_min: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.fromRate.replace(/,/g, '')) : null,
         budget_max: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.toRate.replace(/,/g, '')) : null,
         budget_fixed_price: storedData.budget?.type === 'fixed' ? parseFloat(storedData.budget.fixedRate.replace(/,/g, '')) : null,
         project_budget_type: storedData.budget?.type || 'fixed',
         project_location: storedData.project_location || 'remote',
-        project_scope: storedData.scope?.scope || 'medium',
+        project_scope: storedData.scope?.scope?.toLowerCase() || 'medium',
         project_type: projectType,
         skill_ids: storedData.skills?.map(skill => skill.skill_id) || []
       };
+
+      // Debug logging
+      console.log('Project data being sent:', projectData);
 
       // Make API call
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(projectData)
       });

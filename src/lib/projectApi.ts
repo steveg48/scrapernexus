@@ -1,8 +1,10 @@
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
 interface ProjectPostingData {
     buyer_id: string;  // Changed from number to string for UUID compatibility
     title: string;
     description: string;
-    frequency: string;
+    frequency: 'one-time' | 'weekly' | 'monthly' | 'yearly';
     budget_min: number | null;
     budget_max: number | null;
     budget_fixed_price: number | null;
@@ -14,29 +16,53 @@ interface ProjectPostingData {
 }
 
 /**
- * Inserts a new project with associated skills using the Supabase RPC endpoint
+ * Inserts a new project with associated skills using Supabase
  * @param projectData The project data including skills
- * @returns Promise<number> The ID of the created project
+ * @returns Promise<string> The ID of the created project
  * @throws Error if the API call fails
  */
-export async function insertProjectWithSkills(projectData: ProjectPostingData): Promise<number> {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error('Supabase configuration is missing');
-    }
+export async function insertProjectWithSkills(projectData: ProjectPostingData): Promise<string> {
+    const supabase = createClientComponentClient();
 
     try {
-        const response = await fetch(`${supabaseUrl}/rest/v1/rpc/insert_project_with_skills`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': supabaseAnonKey,
-                'Authorization': `Bearer ${supabaseAnonKey}`,
-                'Prefer': 'return=minimal'  // This tells Supabase to return just the result
-            },
-            body: JSON.stringify({
+        // Debug logging before insert
+        console.log('Attempting to insert project with data:', {
+            project_name: projectData.title,
+            project_description: projectData.description,
+            status: 'active',
+            project_owner_id: projectData.buyer_id
+        });
+
+        // First, create the base project
+        const { data: baseProject, error: baseProjectError } = await supabase
+            .from('projects')
+            .insert({
+                project_name: projectData.title,
+                project_description: projectData.description,
+                status: 'active',
+                project_owner_id: projectData.buyer_id
+            })
+            .select()
+            .single();
+
+        if (baseProjectError) {
+            console.error('Error creating base project:', baseProjectError);
+            // Log the full error object for debugging
+            console.error('Full error object:', JSON.stringify(baseProjectError, null, 2));
+            throw new Error(`Failed to create base project: ${baseProjectError.message}`);
+        }
+
+        if (!baseProject) {
+            throw new Error('Failed to create base project: No project data returned');
+        }
+
+        console.log('Successfully created base project:', baseProject);
+
+        // Then, create the project posting
+        const { data: project, error: projectError } = await supabase
+            .from('project_postings')
+            .insert({
+                project_postings_id: baseProject.project_id,
                 buyer_id: projectData.buyer_id,
                 title: projectData.title,
                 description: projectData.description,
@@ -47,26 +73,43 @@ export async function insertProjectWithSkills(projectData: ProjectPostingData): 
                 project_budget_type: projectData.project_budget_type,
                 project_location: projectData.project_location,
                 project_scope: projectData.project_scope,
-                project_type: projectData.project_type,
-                skill_ids: projectData.skill_ids
+                project_type: projectData.project_type
             })
-        });
+            .select()
+            .single();
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            throw new Error(
-                `Failed to create project. Status: ${response.status}. ${
-                    errorData ? `Error: ${JSON.stringify(errorData)}` : ''
-                }`
-            );
+        if (projectError) {
+            console.error('Error creating project posting:', projectError);
+            throw new Error(`Failed to create project posting: ${projectError.message}`);
         }
 
-        // The response will be the project_id as per the Supabase function
-        const project_id = await response.json();
-        return project_id;
+        if (!project) {
+            throw new Error('Failed to create project posting: No project data returned');
+        }
+
+        console.log('Successfully created project posting:', project);
+
+        // Then, insert the project skills
+        if (projectData.skill_ids.length > 0) {
+            const projectSkills = projectData.skill_ids.map(skill_id => ({
+                project_id: baseProject.project_id,
+                skill_id
+            }));
+
+            const { error: skillsError } = await supabase
+                .from('project_skills')
+                .insert(projectSkills);
+
+            if (skillsError) {
+                console.error('Error inserting project skills:', skillsError);
+                throw new Error(`Failed to add skills to project: ${skillsError.message}`);
+            }
+        }
+
+        return baseProject.project_id;
 
     } catch (error) {
-        console.error('Error inserting project:', error);
+        console.error('Error in insertProjectWithSkills:', error);
         throw error;
     }
 }
@@ -97,6 +140,12 @@ export function validateProjectData(data: ProjectPostingData): void {
 
     if (!Array.isArray(data.skill_ids) || data.skill_ids.length === 0) {
         throw new Error('At least one skill must be specified');
+    }
+
+    // Validate frequency enum
+    const validFrequencies = ['one-time', 'weekly', 'monthly', 'yearly'];
+    if (!validFrequencies.includes(data.frequency)) {
+        throw new Error('Invalid frequency value');
     }
 
     if (data.project_budget_type === 'fixed' && !data.budget_fixed_price) {

@@ -17,61 +17,63 @@ interface JobPostingData {
   };
 }
 
-const STORAGE_KEY = 'job_posting_draft';
+class JobPostingStore {
+  private data: { [key: string]: any } = {};
+  private isClient: boolean;
 
-const isClient = typeof window !== 'undefined';
+  constructor() {
+    this.isClient = typeof window !== 'undefined';
+    this.initializeFromStorage();
+  }
 
-export const jobPostingStore = {
-  // Save data for a specific field
-  saveField: (field: keyof JobPostingData, value: any) => {
-    if (!isClient) return;
-    
-    try {
-      const currentData = jobPostingStore.getAllData();
-      const newData = {
-        ...currentData,
-        [field]: value,
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
-    } catch (error) {
-      console.error('Error saving job posting data:', error);
-    }
-  },
-
-  // Get data for a specific field
-  getField: <T>(field: keyof JobPostingData): T | undefined => {
-    if (!isClient) return undefined;
-    
-    try {
-      const data = jobPostingStore.getAllData();
-      return data[field] as T;
-    } catch (error) {
-      console.error('Error getting job posting field:', error);
-      return undefined;
-    }
-  },
-
-  // Get all stored data
-  getAllData: (): JobPostingData => {
-    if (!isClient) return {};
-    
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : {};
-    } catch (error) {
-      console.error('Error getting all job posting data:', error);
-      return {};
-    }
-  },
-
-  // Clear all stored data
-  clearData: () => {
-    if (!isClient) return;
-    
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      console.error('Error clearing job posting data:', error);
+  private initializeFromStorage() {
+    if (this.isClient) {
+      try {
+        const stored = localStorage.getItem('job_posting_draft');
+        if (stored) {
+          this.data = JSON.parse(stored);
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+        // Fallback to memory-only storage
+        this.data = {};
+      }
     }
   }
-};
+
+  private persistToStorage() {
+    if (this.isClient) {
+      try {
+        localStorage.setItem('job_posting_draft', JSON.stringify(this.data));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
+    }
+  }
+
+  saveField<T>(key: keyof JobPostingData, value: T): void {
+    this.data[key] = value;
+    this.persistToStorage();
+  }
+
+  getField<T>(key: keyof JobPostingData): T | undefined {
+    return this.data[key] as T;
+  }
+
+  getAllData(): JobPostingData {
+    return { ...this.data };
+  }
+
+  clearData(): void {
+    this.data = {};
+    if (this.isClient) {
+      try {
+        localStorage.removeItem('job_posting_draft');
+      } catch (error) {
+        console.error('Error clearing localStorage:', error);
+      }
+    }
+  }
+}
+
+export const jobPostingStore = new JobPostingStore();
