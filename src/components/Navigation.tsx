@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import ProfileImage from '@/components/ProfileImage';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 
 interface Notification {
@@ -21,7 +21,7 @@ export default function Navigation() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient();
 
   const notifications = [
     {
@@ -335,40 +335,40 @@ export default function Navigation() {
               {/* Notifications Dropdown */}
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="flex flex-col">
-                    <div className="p-4 border-b border-gray-200">
-                      <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
-                    </div>
-                    
-                    <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-50 max-h-[360px] p-4">
-                      <div className="space-y-4">
-                        {notifications.map((notification) => (
-                          <div key={notification.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg relative group">
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-900">{notification.message}</p>
-                              <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                            </div>
-                            <button 
-                              onClick={() => dismissNotification(notification.id)}
-                              className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 p-1 hover:bg-gray-200 rounded-full"
-                            >
-                              <X className="w-4 h-4 text-gray-500" />
-                            </button>
+                <div className="flex flex-col">
+                  <div className="p-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
+                  </div>
+                  
+                  <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-50 max-h-[360px] p-4">
+                    <div className="space-y-4">
+                      {notifications.map((notification) => (
+                        <div key={notification.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg relative group">
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-900">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="p-3 border-t border-gray-200 text-center">
-                      <Link 
-                        href="/notifications"
-                        className="text-[#14a800] hover:text-[#14a800]/90 text-sm font-medium"
-                      >
-                        See all alerts
-                      </Link>
+                          <button 
+                            onClick={() => dismissNotification(notification.id)}
+                            className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 p-1 hover:bg-gray-200 rounded-full"
+                          >
+                            <X className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
+
+                  <div className="p-3 border-t border-gray-200 text-center">
+                    <Link 
+                      href="/notifications"
+                      className="text-[#14a800] hover:text-[#14a800]/90 text-sm font-medium"
+                    >
+                      See all alerts
+                    </Link>
+                  </div>
                 </div>
+              </div>
               )}
             </div>
 

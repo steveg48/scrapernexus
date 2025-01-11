@@ -1,8 +1,9 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+'use client'
+
+import { useEffect, useState } from 'react';
 import { File } from 'lucide-react';
 import ProfileImage from '@/components/ProfileImage';
-import ReviewButton from '@/components/ReviewButton';
+import Pagination from '@/components/Pagination';
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -19,43 +20,65 @@ const formatDate = (dateString: string) => {
   return `${month} ${day}${suffix}, ${year} at ${hour12}:${minuteStr} ${period}`;
 };
 
-export default async function JobsList() {
-  try {
-    const cookieStore = cookies();
-    const supabase = createServerComponentClient({ cookies: () => cookieStore });
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      throw userError;
+interface Job {
+  id: string;
+  title: string;
+  created_at: string;
+  status: string;
+}
+
+export default function JobsList() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchJobs() {
+      try {
+        const response = await fetch('/api/jobs');
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch jobs');
+        }
+        
+        setJobs(data.jobs);
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+        setError('Failed to load jobs');
+      } finally {
+        setLoading(false);
+      }
     }
 
-    if (!user) {
-      return null;
-    }
+    fetchJobs();
+  }, []);
 
-    const { data: projectPostings, error: projectsError } = await supabase
-      .from('project_postings')
-      .select('project_id, title, created_at')
-      .eq('buyer_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (projectsError) {
-      throw projectsError;
-    }
+  if (loading) {
+    return <div>Loading jobs...</div>;
+  }
 
-    if (!projectPostings?.length) {
-      return (
-        <div className="text-center py-8 text-gray-500">
-          No job postings yet. Click "Post a job" to create your first job posting.
-        </div>
-      );
-    }
-
+  if (error) {
     return (
+      <div className="text-red-500">
+        Error loading jobs. Please try refreshing the page.
+      </div>
+    );
+  }
+
+  if (jobs.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        No job postings yet. Click "Post a job" to create your first job posting.
+      </div>
+    );
+  }
+
+  return (
+    <div>
       <div className="space-y-4">
-        {projectPostings.map((job) => (
-          <div key={job.project_id} className="bg-white border border-gray-200 p-6">
+        {jobs.map((job) => (
+          <div key={job.id} className="bg-white border border-gray-200 p-6">
             <div className="flex flex-col space-y-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -65,10 +88,6 @@ export default async function JobsList() {
                   <div>
                     <h3 className="text-lg font-medium">{job.title || 'Untitled'}</h3>
                   </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <ReviewButton jobId={job.project_id} />
                 </div>
               </div>
 
@@ -84,13 +103,7 @@ export default async function JobsList() {
           </div>
         ))}
       </div>
-    );
-  } catch (error) {
-    console.error('Error in JobsList:', error);
-    return (
-      <div className="text-center py-8 text-red-500">
-        An error occurred while loading your job postings. Please try refreshing the page.
-      </div>
-    );
-  }
+      <Pagination totalItems={13} />
+    </div>
+  );
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 // Helper function to add delay between retries
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     try {
         // Create a Supabase client with cookies
         const cookieStore = cookies();
-        const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+        const supabase = createServerClient({ cookies: () => cookieStore });
         
         // Get the current session with retry
         const { data: { session }, error: sessionError } = await retryOperation(
@@ -117,7 +117,7 @@ export async function GET(request: Request) {
     try {
         // Create a Supabase client with cookies
         const cookieStore = cookies();
-        const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+        const supabase = createServerClient({ cookies: () => cookieStore });
         
         // Get the current session with retry
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();

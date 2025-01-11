@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, MoreHorizontal } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
+import Pagination from '@/components/Pagination';
 
 interface Job {
   id: string;
@@ -44,7 +45,10 @@ export default function JobsPage() {
     drafts: true
   });
   const [jobs, setJobs] = useState<Job[]>([]);
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -217,6 +221,7 @@ export default function JobsPage() {
               </div>
             ))}
           </div>
+          <Pagination totalItems={13} />
         </div>
       </div>
     </div>
