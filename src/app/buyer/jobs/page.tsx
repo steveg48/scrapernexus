@@ -209,8 +209,8 @@ export default function JobsPage() {
                         View proposals
                       </Link>
                     )}
-                    <button className="p-2 hover:bg-gray-100 rounded-full">
-                      <MoreHorizontal className="h-5 w-5 text-gray-600" />
+                    <button className="p-1.5 hover:bg-gray-100 rounded-full border border-[#039625]">
+                      <MoreHorizontal className="h-4 w-4 text-gray-600" />
                     </button>
                   </div>
                 </div>

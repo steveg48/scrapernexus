@@ -2,12 +2,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Temporarily disable auth check
-  return NextResponse.next()
-  
-  /* Re-enable this later
-  // Only run middleware on dashboard routes
-  if (!request.nextUrl.pathname.startsWith('/dashboard')) {
+  // Check if the route should be protected
+  if (!request.nextUrl.pathname.startsWith('/dashboard') && 
+      !request.nextUrl.pathname.startsWith('/buyer')) {
     return NextResponse.next()
   }
 
@@ -46,13 +43,12 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/auth', request.url))
   }
 
   return response
-  */
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*']
+  matcher: ['/dashboard/:path*', '/buyer/:path*']
 }

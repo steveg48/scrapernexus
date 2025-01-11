@@ -32,7 +32,8 @@ async function retryOperation<T>(
 export async function POST(request: Request) {
     try {
         // Create a Supabase client with cookies
-        const supabase = createRouteHandlerClient({ cookies });
+        const cookieStore = cookies();
+        const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
         
         // Get the current session with retry
         const { data: { session }, error: sessionError } = await retryOperation(
@@ -109,5 +110,69 @@ export async function POST(request: Request) {
         }, {
             status: error instanceof Error && error.message.includes('Not authenticated') ? 401 : 400
         });
+    }
+}
+
+export async function GET(request: Request) {
+    try {
+        // Create a Supabase client with cookies
+        const cookieStore = cookies();
+        const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+        
+        // Get the current session with retry
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
+        // Fetch project postings for the user
+        const { data: projectPostings, error: projectsError } = await supabase
+            .from('project_postings')
+            .select(`
+                id,
+                title,
+                created_at,
+                buyer_id,
+                is_draft,
+                project_status
+            `)
+            .eq('buyer_id', session.user.id)
+            .order('created_at', { ascending: false });
+
+        if (projectsError) {
+            console.error('Error fetching projects:', projectsError);
+            return NextResponse.json(
+                { error: `Failed to fetch projects: ${projectsError.message}` },
+                { status: 500 }
+            );
+        }
+
+        // Transform the data to match our frontend needs
+        const formattedProjects = projectPostings.map(posting => ({
+            id: posting.id,
+            title: posting.title || 'Untitled',
+            createdAt: posting.created_at,
+            createdBy: 'You',
+            status: posting.project_status || 'open',
+            stats: {
+                proposals: 0,
+                newProposals: 0,
+                messaged: 0,
+                hired: 0
+            }
+        }));
+
+        return NextResponse.json({ 
+            success: true, 
+            projects: formattedProjects 
+        });
+
+    } catch (error) {
+        console.error('Error in GET /api/projects:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
     }
 }

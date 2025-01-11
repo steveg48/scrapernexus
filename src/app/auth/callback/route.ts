@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next') ?? '/dashboard'
 
   if (!code) {
     console.error('No code provided')
@@ -45,15 +46,10 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/?error=No+session+created', requestUrl.origin))
     }
 
-    // Get the user's member type from their metadata
-    const memberType = data.session.user.user_metadata.member_type
-
-    // Redirect based on member type
-    const redirectPath = memberType === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard'
-    return NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
-
+    // Redirect to the next page
+    return NextResponse.redirect(new URL(next, requestUrl.origin))
   } catch (error: any) {
-    console.error('Auth error:', error)
+    console.error('Callback error:', error)
     return NextResponse.redirect(
       new URL(`/?error=${encodeURIComponent(error.message)}`, requestUrl.origin)
     )

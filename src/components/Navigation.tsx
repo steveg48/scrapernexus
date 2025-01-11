@@ -1,10 +1,12 @@
 'use client';
 
-import { Search, Bell, CloudDownload, ChevronDown, MessageSquare, X } from 'lucide-react';
+import { Search, Bell, CloudDownload, ChevronDown, MessageSquare, X, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import ProfileImage from '@/components/ProfileImage';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useRouter } from 'next/navigation';
 
 interface Notification {
   id: number;
@@ -17,7 +19,11 @@ export default function Navigation() {
   const pathname = usePathname();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+
+  const notifications = [
     {
       id: 1,
       message: 'A payment of $686.18 has been applied to your financial account.',
@@ -36,7 +42,7 @@ export default function Navigation() {
       time: '7:15 AM',
       isRead: false
     }
-  ]);
+  ];
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -46,6 +52,11 @@ export default function Navigation() {
 
   const dismissNotification = (id: number) => {
     setNotifications(notifications.filter(n => n.id !== id));
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
   };
 
   // Close dropdowns when clicking outside
@@ -307,7 +318,10 @@ export default function Navigation() {
             {/* Notifications */}
             <div className="relative">
               <button 
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowProfileMenu(false);
+                }}
                 className="relative p-2 hover:bg-gray-100 rounded-full"
               >
                 <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-[#14a800]' : 'text-gray-600'}`} />
@@ -321,12 +335,12 @@ export default function Navigation() {
               {/* Notifications Dropdown */}
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="flex flex-col max-h-[480px]">
+                  <div className="flex flex-col">
                     <div className="p-4 border-b border-gray-200">
                       <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
                     </div>
                     
-                    <div className="overflow-y-auto max-h-[360px] p-4">
+                    <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-50 max-h-[360px] p-4">
                       <div className="space-y-4">
                         {notifications.map((notification) => (
                           <div key={notification.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg relative group">
@@ -359,9 +373,39 @@ export default function Navigation() {
             </div>
 
             {/* Profile */}
-            <Link href="/profile" className="p-2">
-              <ProfileImage size="sm" />
-            </Link>
+            <div className="relative">
+              <div 
+                onMouseEnter={() => {
+                  setShowProfileMenu(true);
+                  setShowNotifications(false);
+                }}
+                onMouseLeave={() => setShowProfileMenu(false)}
+                className="p-2 cursor-pointer"
+              >
+                <ProfileImage size="sm" />
+                
+                {/* Profile Menu */}
+                {showProfileMenu && (
+                  <div className="absolute -right-36 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1">
+                      <Link 
+                        href="/profile" 
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Profile
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
