@@ -20,18 +20,45 @@ export default function BudgetPage() {
   const [fixedRate, setFixedRate] = useState<string>(storedBudget?.fixedRate || '0');
   const router = useRouter();
 
+  const formatNumber = (value: string) => {
+    // Remove any non-digit characters except decimal point
+    const cleanValue = value.replace(/[^\d.]/g, '');
+    // Parse the number and format with commas
+    const number = parseFloat(cleanValue);
+    if (isNaN(number)) return '0';
+    return number.toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 0
+    });
+  };
+
+  const handleFixedRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatNumber(e.target.value);
+    setFixedRate(formattedValue);
+  };
+
+  const handleFromRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatNumber(e.target.value);
+    setFromRate(formattedValue);
+  };
+
+  const handleToRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatNumber(e.target.value);
+    setToRate(formattedValue);
+  };
+
   const handleNext = () => {
     if (budgetType === 'hourly' && fromRate && toRate) {
       jobPostingStore.saveField('budget', {
         type: budgetType,
-        fromRate,
-        toRate
+        fromRate: fromRate.replace(/,/g, ''),
+        toRate: toRate.replace(/,/g, '')
       });
       router.push('/buyer/post-job/skills');
     } else if (budgetType === 'fixed' && fixedRate) {
       jobPostingStore.saveField('budget', {
         type: budgetType,
-        fixedRate
+        fixedRate: fixedRate.replace(/,/g, '')
       });
       router.push('/buyer/post-job/skills');
     }
@@ -136,7 +163,7 @@ export default function BudgetPage() {
                       <input
                         type="text"
                         value={fromRate}
-                        onChange={(e) => setFromRate(e.target.value)}
+                        onChange={handleFromRateChange}
                         className="block w-full pl-7 pr-12 py-2 rounded-md border-gray-200 focus:ring-custom-green focus:border-custom-green text-right"
                       />
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -156,7 +183,7 @@ export default function BudgetPage() {
                       <input
                         type="text"
                         value={toRate}
-                        onChange={(e) => setToRate(e.target.value)}
+                        onChange={handleToRateChange}
                         className="block w-full pl-7 pr-12 py-2 rounded-md border-gray-200 focus:ring-custom-green focus:border-custom-green text-right"
                       />
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -198,7 +225,7 @@ export default function BudgetPage() {
                     <input
                       type="text"
                       value={fixedRate}
-                      onChange={(e) => setFixedRate(e.target.value)}
+                      onChange={handleFixedRateChange}
                       className="block w-full pl-7 pr-4 py-2 rounded-md border-gray-200 focus:ring-custom-green focus:border-custom-green text-right"
                       placeholder="0"
                     />

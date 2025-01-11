@@ -4,6 +4,8 @@ import { MoreHorizontal, MessageSquare, Users, Mail, Check } from 'lucide-react'
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import ProfileImage from '@/components/ProfileImage';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useEffect, useState } from 'react';
 
 interface Job {
   id: number;
@@ -26,6 +28,20 @@ interface Job {
 }
 
 export default function Dashboard() {
+  const [firstName, setFirstName] = useState<string>('');
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.full_name) {
+        // Get first name from full name
+        setFirstName(user.user_metadata.full_name.split(' ')[0]);
+      }
+    };
+    getUser();
+  }, []);
+
   const jobs: Job[] = [
     {
       id: 1,
@@ -72,7 +88,7 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center pb-6 border-b border-gray-200">
-          <h1 className="text-[32px] font-normal text-gray-900">Hi, Steven</h1>
+          <h1 className="text-[32px] font-normal text-gray-900">Hi, {firstName || 'there'}</h1>
           <Link 
             href="/buyer/post-job/title"
             className="inline-flex items-center px-6 py-2.5 bg-[#14a800] hover:bg-[#14a800]/90 text-white rounded-md text-base font-medium"

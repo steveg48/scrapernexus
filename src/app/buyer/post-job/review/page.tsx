@@ -262,14 +262,14 @@ export default function ReviewPage() {
     
     let duration;
     switch (scope.duration) {
-      case '1-to-3':
-        duration = '1 to 3 months';
+      case 'one-time':
+        duration = 'One-time';
         break;
-      case '3-to-6':
-        duration = '3 to 6 months';
+      case 'weekly':
+        duration = 'Weekly';
         break;
-      case 'more-than-6':
-        duration = 'More than 6 months';
+      case 'monthly':
+        duration = 'Monthly';
         break;
       default:
         duration = scope.duration;
@@ -793,8 +793,8 @@ export default function ReviewPage() {
                       <input
                         type="radio"
                         name="duration"
-                        value="1-to-3"
-                        checked={tempValues.scope.duration === '1-to-3'}
+                        value="one-time"
+                        checked={tempValues.scope.duration === 'one-time'}
                         onChange={(e) => setTempValues({
                           ...tempValues,
                           scope: {
@@ -804,7 +804,7 @@ export default function ReviewPage() {
                         })}
                         className="h-4 w-4 text-custom-green"
                       />
-                      <span className="ml-3 text-base text-gray-900">1 to 3 months</span>
+                      <span className="ml-3 text-base text-gray-900">One-time</span>
                     </div>
                   </label>
 
@@ -813,8 +813,8 @@ export default function ReviewPage() {
                       <input
                         type="radio"
                         name="duration"
-                        value="3-to-6"
-                        checked={tempValues.scope.duration === '3-to-6'}
+                        value="weekly"
+                        checked={tempValues.scope.duration === 'weekly'}
                         onChange={(e) => setTempValues({
                           ...tempValues,
                           scope: {
@@ -824,7 +824,7 @@ export default function ReviewPage() {
                         })}
                         className="h-4 w-4 text-custom-green"
                       />
-                      <span className="ml-3 text-base text-gray-900">3 to 6 months</span>
+                      <span className="ml-3 text-base text-gray-900">Weekly</span>
                     </div>
                   </label>
 
@@ -833,8 +833,8 @@ export default function ReviewPage() {
                       <input
                         type="radio"
                         name="duration"
-                        value="more-than-6"
-                        checked={tempValues.scope.duration === 'more-than-6'}
+                        value="monthly"
+                        checked={tempValues.scope.duration === 'monthly'}
                         onChange={(e) => setTempValues({
                           ...tempValues,
                           scope: {
@@ -844,7 +844,7 @@ export default function ReviewPage() {
                         })}
                         className="h-4 w-4 text-custom-green"
                       />
-                      <span className="ml-3 text-base text-gray-900">More than 6 months</span>
+                      <span className="ml-3 text-base text-gray-900">Monthly</span>
                     </div>
                   </label>
                 </div>

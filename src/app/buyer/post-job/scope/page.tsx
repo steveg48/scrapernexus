@@ -75,19 +75,19 @@ export default function PostJobScope() {
 
                 {/* Duration section */}
                 <div className="mt-8">
-                  <h2 className="text-base font-medium text-gray-900 mb-4">How long will your work take?</h2>
+                  <h2 className="text-base font-medium text-gray-900 mb-4">How frequently will you need to scrape data?</h2>
                   <div className="space-y-4">
                     <label className="block">
                       <div className="flex items-center">
                         <input
                           type="radio"
                           name="duration"
-                          value="1-to-3"
-                          checked={selectedDuration === '1-to-3'}
+                          value="one-time"
+                          checked={selectedDuration === 'one-time'}
                           onChange={(e) => setSelectedDuration(e.target.value)}
                           className="h-4 w-4 text-blue-600"
                         />
-                        <span className="ml-3 text-base text-gray-900">1 to 3 months</span>
+                        <span className="ml-3 text-base text-gray-900">One-time</span>
                       </div>
                     </label>
 
@@ -96,12 +96,26 @@ export default function PostJobScope() {
                         <input
                           type="radio"
                           name="duration"
-                          value="3-to-6"
-                          checked={selectedDuration === '3-to-6'}
+                          value="weekly"
+                          checked={selectedDuration === 'weekly'}
                           onChange={(e) => setSelectedDuration(e.target.value)}
                           className="h-4 w-4 text-blue-600"
                         />
-                        <span className="ml-3 text-base text-gray-900">3 to 6 months</span>
+                        <span className="ml-3 text-base text-gray-900">Weekly</span>
+                      </div>
+                    </label>
+
+                    <label className="block">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          name="duration"
+                          value="monthly"
+                          checked={selectedDuration === 'monthly'}
+                          onChange={(e) => setSelectedDuration(e.target.value)}
+                          className="h-4 w-4 text-blue-600"
+                        />
+                        <span className="ml-3 text-base text-gray-900">Monthly</span>
                       </div>
                     </label>
                   </div>

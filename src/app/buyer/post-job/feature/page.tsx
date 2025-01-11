@@ -1,26 +1,85 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Award, Check } from 'lucide-react';
 import Navigation from '@/components/Navigation';
-import Image from 'next/image';
 import { jobPostingStore } from '@/lib/jobPostingStore';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function FeaturePage() {
   const router = useRouter();
+  const [isPosting, setIsPosting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const supabase = createClientComponentClient();
 
-  const handlePostStandard = () => {
-    // Submit job posting as standard
-    jobPostingStore.clearData(); // Clear stored data after successful submission
-    router.push('/buyer/post-job/success');
+  const handlePost = async (projectType: 'standard' | 'featured') => {
+    setIsPosting(true);
+    setError(null);
+
+    try {
+      // Get the current user session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('Please sign in to post a project');
+      }
+
+      // Get all stored data
+      const storedData = jobPostingStore.getAllData();
+      
+      // Validate required fields
+      if (!storedData.title || !storedData.description || !storedData.scope || !storedData.skills) {
+        throw new Error('Missing required project information');
+      }
+
+      // Prepare project data
+      const projectData = {
+        buyer_id: session.user.id,  // Using the user's UUID from the session
+        title: storedData.title,
+        description: storedData.description,
+        frequency: storedData.scope?.duration,
+        budget_min: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.fromRate.replace(/,/g, '')) : null,
+        budget_max: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.toRate.replace(/,/g, '')) : null,
+        budget_fixed_price: storedData.budget?.type === 'fixed' ? parseFloat(storedData.budget.fixedRate.replace(/,/g, '')) : null,
+        project_budget_type: storedData.budget?.type || 'fixed',
+        project_location: storedData.project_location || 'remote',
+        project_scope: storedData.scope?.scope || 'medium',
+        project_type: projectType,
+        skill_ids: storedData.skills?.map(skill => skill.skill_id) || []
+      };
+
+      // Make API call
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(projectData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create project');
+      }
+
+      // Clear stored data after successful submission
+      jobPostingStore.clearData();
+      
+      // Navigate to success page
+      router.push('/buyer/post-job/success');
+
+    } catch (error) {
+      console.error('Error posting project:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create project. Please try again.');
+    } finally {
+      setIsPosting(false);
+    }
   };
 
-  const handlePostFeatured = () => {
-    // Submit job posting as featured
-    jobPostingStore.clearData(); // Clear stored data after successful submission
-    router.push('/buyer/post-job/success');
-  };
+  const handlePostStandard = () => handlePost('standard');
+  const handlePostFeatured = () => handlePost('featured');
 
   const handleSaveDraft = () => {
     // The data is already saved in localStorage, so we can just redirect
@@ -46,6 +105,13 @@ export default function FeaturePage() {
           <h2 className="text-4xl font-semibold text-gray-900 mb-12">
             Choose the right option for you
           </h2>
+
+          {/* Error display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Standard Job Post */}
@@ -76,9 +142,10 @@ export default function FeaturePage() {
 
               <button
                 onClick={handlePostStandard}
-                className="w-full py-2 px-4 border border-custom-green text-custom-green hover:bg-custom-green/5 rounded-lg font-medium"
+                disabled={isPosting}
+                className="w-full py-2 px-4 border border-custom-green text-custom-green hover:bg-custom-green/5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Post as standard for free
+                {isPosting ? 'Posting...' : 'Post as standard for free'}
               </button>
             </div>
 
@@ -122,16 +189,18 @@ export default function FeaturePage() {
 
               <button
                 onClick={handlePostFeatured}
-                className="w-full py-2 px-4 bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium"
+                disabled={isPosting}
+                className="w-full py-2 px-4 bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Post as Featured for $29.99
+                {isPosting ? 'Posting...' : 'Post as Featured for $29.99'}
               </button>
             </div>
           </div>
 
           <button
             onClick={handleSaveDraft}
-            className="mt-12 text-custom-green hover:text-custom-green/90 font-medium"
+            disabled={isPosting}
+            className="mt-12 text-custom-green hover:text-custom-green/90 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Save draft without posting
           </button>

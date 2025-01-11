@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react'
 
@@ -19,10 +19,7 @@ export default function AuthForm() {
   const [isSignUp, setIsSignUp] = useState(false)
   const router = useRouter()
   
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClientComponentClient()
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,14 +52,21 @@ export default function AuthForm() {
 
         setMessage('Check your email for the confirmation link!')
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        router.refresh()
+
+        // Get user metadata to determine the dashboard
+        const userType = data.user?.user_metadata?.member_type || 'buyer'
+        const dashboardPath = userType === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard'
+        
+        // Redirect to the appropriate dashboard
+        router.push(dashboardPath)
       }
     } catch (error: any) {
+      console.error('Auth error:', error)
       setMessage(error.message || 'An error occurred')
     } finally {
       setIsLoading(false)
