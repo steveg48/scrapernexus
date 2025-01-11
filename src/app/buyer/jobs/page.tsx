@@ -1,21 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, SlidersHorizontal, X, MoreHorizontal } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface Job {
   id: string;
   title: string;
-  status: 'draft' | 'open';
   createdAt: string;
   createdBy: string;
-  proposalCount: number;
-  messagedCount: number;
-  hiredCount: number;
-  visibility: string;
-  priceType: string;
+  isDraft: boolean;
 }
 
 export default function JobsPage() {
@@ -24,33 +20,49 @@ export default function JobsPage() {
     open: true,
     drafts: true
   });
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const supabase = createClientComponentClient();
 
-  const jobs: Job[] = [
-    {
-      id: 'b080 008y08 08y0y 0y 0y89p 08y',
-      title: 'b080 008y08 08y0y 0y 0y89p 08y',
-      status: 'draft',
-      createdAt: '2 days ago',
-      createdBy: 'You',
-      proposalCount: 0,
-      messagedCount: 0,
-      hiredCount: 0,
-      visibility: '',
-      priceType: ''
-    },
-    {
-      id: 'retool-table',
-      title: 'Retool Table Modification: Dropdown Implem...',
-      status: 'open',
-      createdAt: '2 weeks ago',
-      createdBy: 'You',
-      proposalCount: 6,
-      messagedCount: 1,
-      hiredCount: 0,
-      visibility: 'Public',
-      priceType: 'Fixed Price'
-    }
-  ];
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user found');
+        return;
+      }
+      console.log('Fetching jobs for user:', user.id);
+
+      const { data: projectPostings, error } = await supabase
+        .from('project_postings')
+        .select('*')
+        .eq('buyer_id', user.id)
+        .order('created_at', { ascending: false });
+
+      console.log('Project postings from DB:', projectPostings);
+      console.log('Query error if any:', error);
+
+      if (error) {
+        console.error('Error fetching jobs:', error);
+        return;
+      }
+
+      const formattedJobs: Job[] = projectPostings?.map(posting => {
+        console.log('Processing posting:', posting);
+        return {
+          id: posting.id,
+          title: posting.title || 'Untitled',
+          createdAt: new Date(posting.created_at).toLocaleDateString(),
+          createdBy: 'You',
+          isDraft: posting.is_draft
+        };
+      }) || [];
+
+      console.log('Formatted jobs:', formattedJobs);
+      setJobs(formattedJobs);
+    };
+
+    fetchJobs();
+  }, []);
 
   const clearFilter = (filter: keyof typeof filters) => {
     setFilters(prev => ({ ...prev, [filter]: false }));
@@ -62,13 +74,6 @@ export default function JobsPage() {
       drafts: false
     });
   };
-
-  const filteredJobs = jobs.filter(job => {
-    if (!filters.open && !filters.drafts) return true;
-    if (filters.open && job.status === 'open') return true;
-    if (filters.drafts && job.status === 'draft') return true;
-    return false;
-  });
 
   return (
     <div>
@@ -150,67 +155,40 @@ export default function JobsPage() {
             )}
           </div>
 
-          <div className="space-y-4">
-            {filteredJobs.map((job) => (
-              <div key={job.id} className="border-b border-gray-200 pb-4">
-                <div className="flex items-start justify-between mb-2">
+          <div className="space-y-8">
+            {jobs.map((job) => (
+              <div key={job.id} className="space-y-1">
+                <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-gray-900 font-medium mb-1">{job.title}</h2>
-                    <p className="text-sm text-gray-600">
-                      Created {job.createdAt} by {job.createdBy}
-                    </p>
-                    {job.status === 'draft' && (
-                      <p className="text-sm text-gray-600">Draft - Saved Jan 4, 2025</p>
-                    )}
-                    {job.status === 'open' && (
-                      <p className="text-sm text-gray-600">{job.visibility} - {job.priceType}</p>
+                    <h2 className="text-xl font-normal text-gray-900">{job.title}</h2>
+                    <p className="text-gray-600">Created {job.createdAt} by {job.createdBy}</p>
+                    {job.isDraft && (
+                      <p className="mt-2 text-gray-900">Draft - Saved {job.createdAt}</p>
                     )}
                   </div>
-                  {job.status === 'draft' ? (
-                    <button className="text-[#14a800] hover:text-[#14a800]/90">
-                      Edit draft
+                  <div className="flex items-center gap-2">
+                    {job.isDraft ? (
+                      <Link
+                        href={`/buyer/jobs/${job.id}/edit`}
+                        className="inline-flex items-center px-4 py-2 rounded-lg border border-[#14a800] text-[#14a800] hover:bg-[#14a800]/5"
+                      >
+                        Edit draft
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/buyer/jobs/${job.id}`}
+                        className="inline-flex items-center px-4 py-2 rounded-lg text-[#14a800] hover:text-[#14a800]/90"
+                      >
+                        View proposals
+                      </Link>
+                    )}
+                    <button className="p-2 hover:bg-gray-100 rounded-full">
+                      <MoreHorizontal className="h-5 w-5 text-gray-600" />
                     </button>
-                  ) : (
-                    <button className="text-[#14a800] hover:text-[#14a800]/90">
-                      View proposals
-                    </button>
-                  )}
+                  </div>
                 </div>
-                {job.status === 'open' && (
-                  <div className="flex gap-8">
-                    <div>
-                      <span className="text-gray-900">{job.proposalCount}</span>
-                      <span className="text-gray-600 ml-1">Proposals</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-900">{job.messagedCount}</span>
-                      <span className="text-gray-600 ml-1">Messaged</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-900">{job.hiredCount}</span>
-                      <span className="text-gray-600 ml-1">Hired</span>
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
-          </div>
-
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-sm text-gray-600">1 - 2 of 2 Job posts</p>
-            <div className="flex items-center gap-2">
-              <button className="p-2 text-gray-400 cursor-not-allowed">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <span className="w-8 h-8 flex items-center justify-center rounded-full bg-[#e4ebe4] text-gray-900">1</span>
-              <button className="p-2 text-gray-400 cursor-not-allowed">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
       </div>

@@ -133,52 +133,24 @@ export default function JobPostsPage() {
               className="border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors duration-200"
             >
               <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-gray-600">Created {job.createdAt} by {job.createdBy}</span>
-                  </div>
-                  {job.status === 'draft' ? (
-                    <>
-                      <h3 className="text-lg text-gray-400 mb-1">{job.title || 'Untitled'}</h3>
-                      <div className="text-sm">Draft - Saved Jan 4, 2025</div>
-                      <button className="mt-4 px-4 py-1.5 border border-[#14a800] text-[#14a800] rounded hover:bg-[#14a800]/5">
-                        Edit draft
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="text-lg text-gray-900 hover:text-[#14a800] mb-2">{job.title}</h3>
-                      <div className="text-sm">Public - Fixed Price</div>
-                      <div className="flex items-center gap-8 mt-4">
-                        <div>
-                          <div className="font-medium">{job.stats?.proposals} ({job.stats?.newProposals} new)</div>
-                          <div className="text-sm text-gray-600">Proposals</div>
-                        </div>
-                        <div>
-                          <div className="font-medium">{job.stats?.messaged}</div>
-                          <div className="text-sm text-gray-600">Messaged</div>
-                        </div>
-                        <div>
-                          <div className="font-medium">{job.stats?.hired}</div>
-                          <div className="text-sm text-gray-600">Hired</div>
-                        </div>
-                      </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg text-gray-900">{job.title || 'Untitled'}</h3>
+                    {job.status === 'draft' && (
                       <Link 
-                        href={`/buyer/proposals?job=${job.id}`}
-                        className="inline-block mt-4 px-4 py-1.5 border border-[#14a800] text-[#14a800] rounded hover:bg-[#14a800]/5"
+                        href={`/buyer/post-job/title?draft=${job.id}`}
+                        className="text-[#14a800] hover:text-[#14a800]/80"
                       >
-                        View proposals
+                        Edit draft
                       </Link>
-                    </>
-                  )}
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span>Created {job.createdAt} by {job.createdBy}</span>
+                    <span>•</span>
+                    <span className="capitalize">{job.status}</span>
+                  </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M19 13C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11C18.4477 11 18 11.4477 18 12C18 12.5523 18.4477 13 19 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M5 13C5.55228 13 6 12.5523 6 12C6 11.4477 5.55228 11 5 11C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
               </div>
             </div>
           ))}

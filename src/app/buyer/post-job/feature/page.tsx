@@ -9,12 +9,18 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function FeaturePage() {
   const router = useRouter();
-  const [isPosting, setIsPosting] = useState(false);
+  const [isPostingStandard, setIsPostingStandard] = useState(false);
+  const [isPostingFeatured, setIsPostingFeatured] = useState(false);
+  const [isDraftSaving, setIsDraftSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClientComponentClient();
 
   const handlePost = async (projectType: 'standard' | 'featured') => {
-    setIsPosting(true);
+    if (projectType === 'standard') {
+      setIsPostingStandard(true);
+    } else {
+      setIsPostingFeatured(true);
+    }
     setError(null);
 
     try {
@@ -58,7 +64,8 @@ export default function FeaturePage() {
         project_location: storedData.project_location || 'remote',
         project_scope: storedData.scope?.scope?.toLowerCase() || 'medium',
         project_type: projectType,
-        skill_ids: storedData.skills?.map(skill => skill.skill_id) || []
+        skill_ids: storedData.skills?.map(skill => skill.skill_id) || [],
+        is_draft: false  // Set is_draft to false when posting
       };
 
       // Debug logging
@@ -90,16 +97,74 @@ export default function FeaturePage() {
       console.error('Error posting project:', error);
       setError(error instanceof Error ? error.message : 'Failed to create project. Please try again.');
     } finally {
-      setIsPosting(false);
+      setIsPostingStandard(false);
+      setIsPostingFeatured(false);
     }
   };
 
   const handlePostStandard = () => handlePost('standard');
   const handlePostFeatured = () => handlePost('featured');
 
-  const handleSaveDraft = () => {
-    // The data is already saved in localStorage, so we can just redirect
-    router.push('/buyer/dashboard');
+  const handleSaveDraft = async () => {
+    setIsDraftSaving(true);
+    setError(null);
+
+    try {
+      // Get the current user session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('Please sign in to save draft');
+      }
+
+      // Get all stored data
+      const storedData = jobPostingStore.getAllData();
+      
+      // Prepare project data for draft
+      const projectData = {
+        buyer_id: session.user.id,
+        title: storedData.title || '',
+        description: storedData.description || '',
+        frequency: storedData.scope?.duration || 'one-time',
+        budget_min: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.fromRate.replace(/,/g, '')) : null,
+        budget_max: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.toRate.replace(/,/g, '')) : null,
+        budget_fixed_price: storedData.budget?.type === 'fixed' ? parseFloat(storedData.budget.fixedRate.replace(/,/g, '')) : null,
+        project_budget_type: storedData.budget?.type || 'fixed',
+        project_location: storedData.project_location || 'remote',
+        project_scope: storedData.scope?.scope?.toLowerCase() || 'medium',
+        project_type: 'standard',
+        skill_ids: storedData.skills?.map(skill => skill.skill_id) || [],
+        is_draft: true  // Set is_draft to true when saving as draft
+      };
+
+      // Make API call
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(projectData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save draft');
+      }
+
+      // Clear stored data after successful submission
+      jobPostingStore.clearData();
+      
+      // Navigate back to jobs page
+      router.push('/buyer/jobs');
+
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save draft. Please try again.');
+    } finally {
+      setIsDraftSaving(false);
+    }
   };
 
   return (
@@ -158,10 +223,10 @@ export default function FeaturePage() {
 
               <button
                 onClick={handlePostStandard}
-                disabled={isPosting}
+                disabled={isPostingStandard}
                 className="w-full py-2 px-4 border border-custom-green text-custom-green hover:bg-custom-green/5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPosting ? 'Posting...' : 'Post as standard for free'}
+                {isPostingStandard ? 'Posting...' : 'Post as standard for free'}
               </button>
             </div>
 
@@ -205,20 +270,20 @@ export default function FeaturePage() {
 
               <button
                 onClick={handlePostFeatured}
-                disabled={isPosting}
+                disabled={isPostingFeatured}
                 className="w-full py-2 px-4 bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPosting ? 'Posting...' : 'Post as Featured for $29.99'}
+                {isPostingFeatured ? 'Posting...' : 'Post as Featured for $29.99'}
               </button>
             </div>
           </div>
 
           <button
             onClick={handleSaveDraft}
-            disabled={isPosting}
+            disabled={isDraftSaving}
             className="mt-12 text-custom-green hover:text-custom-green/90 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save draft without posting
+            {isDraftSaving ? "Saving draft..." : "Save draft without posting"}
           </button>
         </div>
       </div>
