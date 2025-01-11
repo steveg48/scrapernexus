@@ -14,6 +14,29 @@ interface Job {
   isDraft: boolean;
 }
 
+const formatDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date:', dateString);
+      return dateString;
+    }
+    const formatted = date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    return formatted.replace(/(\d+)(?=(,\s\d{4}))/, (match) => {
+      const num = parseInt(match);
+      const suffix = ['th', 'st', 'nd', 'rd'][(num % 10 > 3 || num % 100 - num % 10 == 10) ? 0 : num % 10];
+      return num + suffix;
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+};
+
 export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
@@ -51,7 +74,7 @@ export default function JobsPage() {
         return {
           id: posting.id,
           title: posting.title || 'Untitled',
-          createdAt: new Date(posting.created_at).toLocaleDateString(),
+          createdAt: new Date(posting.created_at).toISOString(),
           createdBy: 'You',
           isDraft: posting.is_draft
         };
@@ -155,15 +178,19 @@ export default function JobsPage() {
             )}
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-4">
             {jobs.map((job) => (
-              <div key={job.id} className="space-y-1">
+              <div key={job.id} className="bg-white border border-[#e4e4e4] rounded-xl p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-xl font-normal text-gray-900">{job.title}</h2>
-                    <p className="text-gray-600">Created {job.createdAt} by {job.createdBy}</p>
+                    <h2 className="text-xl font-bold text-gray-900">{job.title}</h2>
+                    <p className="text-sm text-[#c4c4c2]">created: {new Date(job.createdAt).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}</p>
                     {job.isDraft && (
-                      <p className="mt-2 text-gray-900">Draft - Saved {job.createdAt}</p>
+                      <p className="mt-2 text-gray-900">Draft - Saved {formatDate(job.createdAt)}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
