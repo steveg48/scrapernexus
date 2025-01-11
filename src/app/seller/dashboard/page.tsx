@@ -6,6 +6,20 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
+import { createBrowserClient } from '@supabase/ssr';
+
+interface JobPost {
+  project_id: string;
+  title: string;
+  description: string;
+  rate_type: string;
+  experience_level: string;
+  estimated_time: string;
+  hours_per_week: string;
+  skills: string[];
+  created_at: string;
+  buyer_id: string;
+}
 
 const carouselItems = [
   {
@@ -35,13 +49,55 @@ export default function SellerDashboard() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
+  const [firstName, setFirstName] = useState('');
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
-    }, 8000); // Change slide every 8 seconds
+    }, 8000);
 
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+      );
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.first_name) {
+        setFirstName(user.user_metadata.first_name);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const fetchJobPosts = async () => {
+      try {
+        const response = await fetch('/api/jobs/all');
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch jobs');
+        }
+        
+        setJobPosts(data.jobs);
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      }
+    };
+
+    fetchJobPosts();
   }, []);
 
   const handleShowNotification = () => {
@@ -70,6 +126,13 @@ export default function SellerDashboard() {
       />
       
       <Navigation />
+
+      {/* Welcome Message */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Hi, {firstName}
+        </h1>
+      </div>
       
       {/* Carousel Banner */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 mt-6">
@@ -173,39 +236,40 @@ export default function SellerDashboard() {
               </div>
 
               {/* Job Card */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 hover:border-[#14a800] cursor-pointer">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 hover:text-[#14a800]">
-                      Expert in Word Macros and VB Development Needed
-                    </h3>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Hourly - Expert - Est. Time: 1 to 3 months, Less than 30 hrs/week
+              {jobPosts.map((job) => (
+                <div key={job.project_id} className="bg-white rounded-lg border border-gray-200 p-6 mb-4 hover:border-[#14a800] cursor-pointer">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 hover:text-[#14a800]">
+                        {job.title}
+                      </h3>
+                      <div className="text-sm text-gray-500 mt-1">
+                        {job.rate_type} - {job.experience_level} - Est. Time: {job.estimated_time}, {job.hours_per_week}
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <span className="sr-only">Thumbs down</span>
+                        👎
+                      </button>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <span className="sr-only">Save job</span>
+                        ❤️
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-4">
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <span className="sr-only">Thumbs down</span>
-                      👎
-                    </button>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <span className="sr-only">Save job</span>
-                      ❤️
-                    </button>
+                  <p className="text-gray-700 mb-4">
+                    {job.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {job.skills && job.skills.map((skill, index) => (
+                      <span key={index} className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
+                        {skill}
+                      </span>
+                    ))}
                   </div>
                 </div>
-                <p className="text-gray-700 mb-4">
-                  We are seeking an expert in Word Macros and Visual Basic (VB) to help automate our document processes. The ideal candidate will have extensive experience in creating and modifying Macros to streamline workflows and improve efficiency...
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Automation</span>
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">API Integration</span>
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Visual Basic for Applications</span>
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Macro Programming</span>
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Microsoft Word</span>
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Standalone App</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 

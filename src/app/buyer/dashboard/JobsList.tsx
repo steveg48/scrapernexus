@@ -7,17 +7,24 @@ import Pagination from '@/components/Pagination';
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  const month = date.toLocaleString('default', { month: 'long' });
-  const day = date.getDate();
-  const year = date.getFullYear();
-  const hour = date.getHours();
-  const minute = date.getMinutes();
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour % 12 || 12;
-  const minuteStr = minute.toString().padStart(2, '0');
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: 'America/New_York',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  };
 
+  const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
+  
+  // Add the ordinal suffix to the day
+  const day = date.getDate();
   const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || day % 100 - day % 10 == 10) ? 0 : day % 10];
-  return `${month} ${day}${suffix}, ${year} at ${hour12}:${minuteStr} ${period}`;
+  
+  // Replace the day number with the day number + suffix
+  return formattedDate.replace(/(\d+),/, `$1${suffix},`);
 };
 
 interface Job {

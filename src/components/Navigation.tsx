@@ -55,8 +55,17 @@ export default function Navigation() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        return;
+      }
+      // Force a hard refresh to clear all state
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   // Close dropdowns when clicking outside
