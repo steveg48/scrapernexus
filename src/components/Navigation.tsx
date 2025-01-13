@@ -56,13 +56,20 @@ export default function Navigation() {
 
   const handleLogout = async () => {
     try {
+      // Clear any local state first
+      setActiveDropdown(null);
+      setShowNotifications(false);
+      setShowProfileMenu(false);
+
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
         return;
       }
-      // Force a hard refresh to clear all state
-      window.location.href = '/login';
+
+      // Use Next.js router instead of window.location
+      router.push('/login');
+      router.refresh();
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -349,6 +356,7 @@ export default function Navigation() {
                     <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
                   </div>
                   
+
                   <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-50 max-h-[360px] p-4">
                     <div className="space-y-4">
                       {notifications.map((notification) => (
