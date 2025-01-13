@@ -34,7 +34,7 @@ export default function AuthForm({ isSignUp = false }: AuthFormProps) {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${location.origin}/auth/callback`,
           },
         });
       } else {
@@ -45,22 +45,14 @@ export default function AuthForm({ isSignUp = false }: AuthFormProps) {
       }
 
       const { error } = result;
-      if (error) {
-        setMessage(error.message);
+      if (error) throw error;
+
+      if (isSignUp) {
+        setMessage('Please check your email for the confirmation link.');
       } else {
-        if (isSignUp) {
-          setMessage('Check your email for the confirmation link.');
-        } else {
-          const { data: { user } } = await supabase.auth.getUser();
-          const userType = user?.user_metadata?.user_type;
-          const firstName = user?.user_metadata?.first_name;
-          
-          if (userType === 'seller') {
-            router.push('/seller/dashboard');
-          } else {
-            router.push('/buyer/dashboard');
-          }
-        }
+        // After successful login, redirect to dashboard
+        // The middleware will handle the profile check and proper redirection
+        router.push('/dashboard');
       }
     } catch (error: any) {
       setMessage(error.message)

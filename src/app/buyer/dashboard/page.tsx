@@ -3,37 +3,46 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Navigation from '@/components/Navigation'
+import { createBrowserClient } from '@supabase/ssr'
 import JobsList from './JobsList'
 
-interface UserData {
+interface UserProfile {
   id: string
-  email: string
-  firstName: string
-  fullName: string
+  first_name: string
+  last_name: string
+  user_type: string
 }
 
 export default function Dashboard() {
-  const [userData, setUserData] = useState<UserData | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    async function fetchUserData() {
+    async function fetchProfile() {
       try {
-        const response = await fetch('/api/auth/user')
-        const data = await response.json()
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch user data')
-        }
-        
-        setUserData(data.user)
-      } catch (error) {
-        console.error('Error fetching user data:', error)
-        setError('Failed to load user data')
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) throw profileError
+        setProfile(profile)
+      } catch (error: any) {
+        console.error('Error fetching profile:', error)
+        setError(error.message)
       }
     }
 
-    fetchUserData()
+    fetchProfile()
   }, [])
 
   if (error) {
@@ -47,13 +56,24 @@ export default function Dashboard() {
     )
   }
 
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div>Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center pb-6 border-b border-gray-200">
           <h1 className="text-[32px] font-normal text-gray-900">
-            Hi, {userData?.firstName || 'there'}
+            Hi, {profile.first_name}
           </h1>
           <Link 
             href="/buyer/post-job/title"

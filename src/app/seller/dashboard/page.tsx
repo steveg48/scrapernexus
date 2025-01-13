@@ -8,17 +8,11 @@ import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
 import { createBrowserClient } from '@supabase/ssr';
 
-interface JobPost {
-  project_id: string;
-  title: string;
-  description: string;
-  rate_type: string;
-  experience_level: string;
-  estimated_time: string;
-  hours_per_week: string;
-  skills: string[];
-  created_at: string;
-  buyer_id: string;
+interface UserProfile {
+  id: string;
+  display_name: string;
+  member_type: string;
+  role: string;
 }
 
 const carouselItems = [
@@ -49,13 +43,8 @@ export default function SellerDashboard() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
-  const [firstName, setFirstName] = useState('');
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-  );
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -66,53 +55,58 @@ export default function SellerDashboard() {
   }, []);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-      );
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.user_metadata?.first_name) {
-        setFirstName(user.user_metadata.first_name);
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
-  useEffect(() => {
-    const fetchJobPosts = async () => {
+    async function fetchProfile() {
       try {
-        const response = await fetch('/api/jobs/all');
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch jobs');
-        }
-        
-        setJobPosts(data.jobs);
-      } catch (error) {
-        console.error('Error fetching jobs:', error);
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        setProfile(profile);
+      } catch (error: any) {
+        console.error('Error fetching profile:', error);
+        setError(error.message);
       }
-    };
+    }
 
-    fetchJobPosts();
+    fetchProfile();
   }, []);
-
-  const handleShowNotification = () => {
-    console.log('Opening notification popup');
-    setShowNotificationPopup(true);
-  };
-
-  const handleCloseNotification = () => {
-    console.log('Closing notification popup');
-    setShowNotificationPopup(false);
-  };
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-red-500">{error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div>Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -126,19 +120,12 @@ export default function SellerDashboard() {
       />
       
       <Navigation />
-
-      {/* Welcome Message */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Hi, {firstName}
-        </h1>
-      </div>
       
       {/* Carousel Banner */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 mt-6">
-        <div className="relative max-w-6xl mx-auto">
+      <div className="w-full bg-gray-50 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div 
-            className="transition-all duration-1000 ease-in-out rounded-lg overflow-hidden"
+            className="transition-all duration-1000 ease-in-out rounded-lg overflow-hidden w-full"
             style={{ backgroundColor: carouselItems[currentSlide].bgColor }}
           >
             <div className="p-8 relative">
@@ -158,27 +145,27 @@ export default function SellerDashboard() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Carousel Navigation Dots */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {carouselItems.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-500 ${
-                  currentSlide === index 
-                    ? 'bg-white w-4' 
-                    : 'bg-white/50 hover:bg-white/75'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
+            {/* Carousel Navigation Dots */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+              {carouselItems.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-500 ${
+                    currentSlide === index 
+                      ? 'bg-white w-4' 
+                      : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <div className="flex gap-8">
           {/* Main Content */}
           <div className="flex-1">
@@ -220,6 +207,7 @@ export default function SellerDashboard() {
                   </button>
                 </div>
               )}
+
               {/* Job Tabs */}
               <div className="border-b border-gray-200 mb-4">
                 <div className="flex gap-6">
@@ -236,40 +224,41 @@ export default function SellerDashboard() {
               </div>
 
               {/* Job Card */}
-              {jobPosts.map((job) => (
-                <div key={job.project_id} className="bg-white rounded-lg border border-gray-200 p-6 mb-4 hover:border-[#14a800] cursor-pointer">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 hover:text-[#14a800]">
-                        {job.title}
-                      </h3>
-                      <div className="text-sm text-gray-500 mt-1">
-                        {job.rate_type} - {job.experience_level} - Est. Time: {job.estimated_time}, {job.hours_per_week}
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <span className="sr-only">Thumbs down</span>
-                        👎
-                      </button>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <span className="sr-only">Save job</span>
-                        ❤️
-                      </button>
+              <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 hover:border-[#14a800] cursor-pointer">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 hover:text-[#14a800]">
+                      Expert in Word Macros and VB Development Needed
+                    </h3>
+                    <div className="text-sm text-gray-500 mt-1">
+                      Hourly - Expert - Est. Time: 1 to 3 months, Less than 30 hrs/week
                     </div>
                   </div>
-                  <p className="text-gray-700 mb-4">
-                    {job.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {job.skills && job.skills.map((skill, index) => (
-                      <span key={index} className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
-                        {skill}
-                      </span>
-                    ))}
+                  <div className="flex gap-2">
+                    <button className="p-2 hover:bg-gray-100 rounded-lg">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+                        <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+                      </svg>
+                    </button>
+                    <button className="p-2 hover:bg-gray-100 rounded-lg">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
-              ))}
+                <p className="text-gray-700 mb-4">
+                  We are seeking an expert in Word Macros and Visual Basic (VB) to help automate our document processes. The ideal candidate will have extensive experience in creating and modifying Macros to streamline workflows and improve efficiency...
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Automation</span>
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">API Integration</span>
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Visual Basic for Applications</span>
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Macro Programming</span>
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Microsoft Word</span>
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">Standalone App</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -286,8 +275,8 @@ export default function SellerDashboard() {
                   className="rounded-full"
                 />
                 <div>
-                  <h3 className="font-medium text-gray-900">Steven G.</h3>
-                  <p className="text-sm text-gray-600">System Engineer, Ex...</p>
+                  <h3 className="font-medium text-gray-900">{profile.display_name}</h3>
+                  <p className="text-sm text-gray-600">System Engineer</p>
                 </div>
               </div>
               <div className="mb-4">

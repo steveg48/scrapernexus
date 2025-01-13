@@ -53,24 +53,28 @@ export default function SignUpPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            user_type: userType
+            display_name: `${formData.firstName} ${formData.lastName}`,
+            member_type: userType,
+            role: userType
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+          emailRedirectTo: `${location.origin}/auth/callback`
+        }
       })
 
-      if (error) {
-        setMessage(error.message)
-      } else {
-        setMessage('Check your email for the confirmation link.')
+      if (authError) {
+        console.error('Signup error:', authError)
+        setMessage(authError.message)
+        return
       }
+
+      console.log('Signup successful:', authData)
+      setMessage('Please check your email for the confirmation link.')
+      router.push('/auth?message=Check your email for the confirmation link')
     } catch (error: any) {
       setMessage(error.message)
     } finally {
