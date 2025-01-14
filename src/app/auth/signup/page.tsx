@@ -74,7 +74,7 @@ export default function SignUpPage() {
 
       console.log('Signup successful:', authData)
       setMessage('Please check your email for the confirmation link.')
-      router.push('/auth?message=Check your email for the confirmation link')
+      //router.push('/auth?message=Check your email for the confirmation link')
     } catch (error: any) {
       setMessage(error.message)
     } finally {
