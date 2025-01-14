@@ -1,35 +1,26 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-        },
-      }
-    );
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     
+    // Verify authentication
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 401 });
-    }
-
-    if (!user) {
+    if (userError || !user) {
+      console.error('Auth error:', userError);
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // Get jobs from the view
     const { data: jobs, error: jobsError } = await supabase
-      .from('project_postings')
-      .select('project_id, title, created_at')
+      .from('project_postings_with_skills')
+      .select('project_postings_id, title, created_at')
       .eq('buyer_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -40,10 +31,10 @@ export async function GET() {
 
     // Transform the data to match the expected interface
     const transformedJobs = jobs?.map(job => ({
-      id: job.project_id,
+      id: job.project_postings_id,
       title: job.title || 'Untitled',
       created_at: job.created_at,
-      status: 'open' // Default status
+      status: 'open' // Default status for now
     })) || [];
 
     return NextResponse.json({

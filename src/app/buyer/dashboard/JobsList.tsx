@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { File } from 'lucide-react';
-import ProfileImage from '@/components/ProfileImage';
-import Pagination from '@/components/Pagination';
+import Link from 'next/link';
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -34,45 +33,11 @@ interface Job {
   status: string;
 }
 
-export default function JobsList() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+interface JobsListProps {
+  jobs: Job[];
+}
 
-  useEffect(() => {
-    async function fetchJobs() {
-      try {
-        const response = await fetch('/api/jobs');
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch jobs');
-        }
-        
-        setJobs(data.jobs);
-      } catch (error) {
-        console.error('Error fetching jobs:', error);
-        setError('Failed to load jobs');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchJobs();
-  }, []);
-
-  if (loading) {
-    return <div>Loading jobs...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-500">
-        Error loading jobs. Please try refreshing the page.
-      </div>
-    );
-  }
-
+export default function JobsList({ jobs }: JobsListProps) {
   if (jobs.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -82,35 +47,29 @@ export default function JobsList() {
   }
 
   return (
-    <div>
-      <div className="space-y-4">
-        {jobs.map((job) => (
-          <div key={job.id} className="bg-white border border-gray-200 p-6">
-            <div className="flex flex-col space-y-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
-                    <File className="w-6 h-6 text-gray-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium">{job.title || 'Untitled'}</h3>
-                  </div>
-                </div>
+    <div className="space-y-4">
+      {jobs.map((job) => (
+        <Link href={`/buyer/jobs/${job.id}`} key={job.id}>
+          <div className="bg-white border border-gray-200 p-6 rounded-lg hover:border-gray-300 transition-colors">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg flex-shrink-0">
+                <File className="w-6 h-6 text-gray-500" />
               </div>
-
-              <div className="flex items-center space-x-6">
-                <span className="inline-flex items-center px-3 py-1 text-sm rounded-md bg-[#59baea] text-white">
-                  Open job post
-                </span>
-                <span className="text-gray-500 text-sm">
+              <div className="flex-grow">
+                <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
+                <p className="text-sm text-gray-500 mt-1">
                   Created {formatDate(job.created_at)}
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Open job post
                 </span>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-      <Pagination totalItems={13} />
+        </Link>
+      ))}
     </div>
   );
 }
