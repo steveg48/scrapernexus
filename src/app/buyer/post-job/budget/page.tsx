@@ -1,24 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Tag, ArrowLeft } from 'lucide-react';
 import Navigation from '@/components/Navigation';
-import { jobPostingStore } from '@/lib/jobPostingStore';
+import { getJobPostingStore } from '@/lib/jobPostingStore';
 
 export default function BudgetPage() {
-  const storedBudget = jobPostingStore.getField<{
-    type: 'hourly' | 'fixed' | null;
-    fromRate?: string;
-    toRate?: string;
-    fixedRate?: string;
-  }>('budget');
-
-  const [budgetType, setBudgetType] = useState<'hourly' | 'fixed' | null>(storedBudget?.type || null);
-  const [fromRate, setFromRate] = useState<string>(storedBudget?.fromRate || '15.00');
-  const [toRate, setToRate] = useState<string>(storedBudget?.toRate || '35.00');
-  const [fixedRate, setFixedRate] = useState<string>(storedBudget?.fixedRate || '0');
+  const [budgetType, setBudgetType] = useState<'hourly' | 'fixed' | null>(null);
+  const [fromRate, setFromRate] = useState<string>('15.00');
+  const [toRate, setToRate] = useState<string>('35.00');
+  const [fixedRate, setFixedRate] = useState<string>('0');
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    const store = getJobPostingStore();
+    const storedBudget = store.getField<{
+      type: 'hourly' | 'fixed' | null;
+      fromRate?: string;
+      toRate?: string;
+      fixedRate?: string;
+    }>('budget');
+
+    if (storedBudget) {
+      setBudgetType(storedBudget.type || null);
+      setFromRate(storedBudget.fromRate || '15.00');
+      setToRate(storedBudget.toRate || '35.00');
+      setFixedRate(storedBudget.fixedRate || '0');
+    }
+    setIsLoading(false);
+  }, []);
 
   const formatNumber = (value: string) => {
     // Remove any non-digit characters except decimal point
@@ -49,14 +61,16 @@ export default function BudgetPage() {
 
   const handleNext = () => {
     if (budgetType === 'hourly' && fromRate && toRate) {
-      jobPostingStore.saveField('budget', {
+      const store = getJobPostingStore();
+      store.saveField('budget', {
         type: budgetType,
         fromRate: fromRate.replace(/,/g, ''),
         toRate: toRate.replace(/,/g, '')
       });
       router.push('/buyer/post-job/skills');
     } else if (budgetType === 'fixed' && fixedRate) {
-      jobPostingStore.saveField('budget', {
+      const store = getJobPostingStore();
+      store.saveField('budget', {
         type: budgetType,
         fixedRate: fixedRate.replace(/,/g, '')
       });
@@ -74,6 +88,17 @@ export default function BudgetPage() {
       setToRate('35.00');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Navigation from '@/components/Navigation'
 import { useRouter } from 'next/navigation'
 import { Pencil } from 'lucide-react'
-import { jobPostingStore } from '@/lib/jobPostingStore'
+import { getJobPostingStore } from '@/lib/jobPostingStore'
 import Link from 'next/link'
 
 export default function PostJobScope() {
@@ -14,7 +14,8 @@ export default function PostJobScope() {
   const [selectedDuration, setSelectedDuration] = useState<string>('')
 
   useEffect(() => {
-    const storedData = jobPostingStore.getField<{scope: string, duration: string}>('scope');
+    const store = getJobPostingStore();
+    const storedData = store.getField<{scope: string, duration: string}>('scope');
     setSelectedScope(storedData?.scope || '');
     setSelectedDuration(storedData?.duration || '');
     setIsLoading(false);
@@ -22,7 +23,8 @@ export default function PostJobScope() {
 
   const handleNext = () => {
     if (selectedScope && selectedDuration) {
-      jobPostingStore.saveField('scope', {
+      const store = getJobPostingStore();
+      store.saveField('scope', {
         scope: selectedScope,
         duration: selectedDuration
       });

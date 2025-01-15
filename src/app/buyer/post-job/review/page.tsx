@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Pencil, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import Navigation from '@/components/Navigation';
-import { jobPostingStore } from '@/lib/jobPostingStore';
+import { getJobPostingStore } from '@/lib/jobPostingStore';
 import Modal from '@/components/Modal';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@/lib/supabase';
 
 interface Skill {
   skill_id: number;
@@ -26,8 +26,8 @@ export default function ReviewPage() {
   const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClientComponentClient();
+  const [isLoading, setIsLoading] = useState(true);
+  const supabase = createBrowserClient();
   
   const [jobDetails, setJobDetails] = useState({
     title: 'No title specified',
@@ -62,18 +62,66 @@ export default function ReviewPage() {
   const [editingField, setEditingField] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedData = jobPostingStore.getAllData();
-      setJobDetails({
-        title: storedData.title || 'No title specified',
-        description: storedData.description || 'No description provided',
-        skills: Array.isArray(storedData.skills) ? storedData.skills : [],
-        scope: storedData.scope || { scope: '', duration: '' },
-        location: storedData.location === 'us' ? 'U.S. Only' : 'Worldwide',
-        budget: formatBudget(storedData.budget) || '$0',
-        project_type: storedData.project_type || 'standard'
-      });
-    }
+    const initializePage = async () => {
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        const storedData = await store.getAllData();
+        
+        // Handle title
+        const title = storedData.title?.trim() || 'No title specified';
+        
+        // Handle description
+        const description = storedData.description?.trim() || 'No description provided';
+        
+        // Handle skills
+        const skills = Array.isArray(storedData.skills) ? storedData.skills : [];
+        
+        // Handle scope
+        const scope = storedData.scope || { scope: '', duration: '' };
+        
+        // Handle location
+        const location = storedData.project_location === 'us' ? 'U.S. Only' : 'Worldwide';
+        
+        // Handle budget
+        const budget = formatBudget(storedData.budget);
+        
+        // Handle project type
+        const project_type = storedData.project_type || 'standard';
+
+        setJobDetails({
+          title,
+          description,
+          skills,
+          scope,
+          location,
+          budget,
+          project_type
+        });
+
+        // Also set initial temp values
+        setTempValues({
+          title: storedData.title || '',
+          description: storedData.description || '',
+          scope: storedData.scope || { scope: '', duration: '' },
+          location: storedData.project_location || 'worldwide',
+          budget: storedData.budget || {
+            type: 'fixed',
+            fixedRate: '0',
+            fromRate: '0',
+            toRate: '0'
+          },
+          project_type: storedData.project_type || 'standard'
+        });
+
+      } catch (error) {
+        console.error('Error loading job details:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializePage();
   }, []);
 
   const fetchSkills = async () => {
@@ -108,6 +156,7 @@ export default function ReviewPage() {
               }]
             });
           }
+
           return acc;
         }, []);
 
@@ -120,6 +169,68 @@ export default function ReviewPage() {
     }
   };
 
+  const handleSave = async (field: string) => {
+    try {
+      const store = getJobPostingStore();
+      await store.initialize();
+      
+      switch (field) {
+        case 'title':
+          await store.saveField('title', tempValues.title);
+          setJobDetails(prev => ({ ...prev, title: tempValues.title }));
+          break;
+        case 'description':
+          await store.saveField('description', tempValues.description);
+          setJobDetails(prev => ({ ...prev, description: tempValues.description }));
+          break;
+        case 'scope':
+          await store.saveField('scope', tempValues.scope);
+          setJobDetails(prev => ({ ...prev, scope: tempValues.scope }));
+          break;
+        case 'location':
+          await store.saveField('project_location', tempValues.location);
+          setJobDetails(prev => ({ 
+            ...prev, 
+            location: tempValues.location === 'us' ? 'U.S. Only' : 'Worldwide' 
+          }));
+          break;
+        case 'budget':
+          await store.saveField('budget', tempValues.budget);
+          setJobDetails(prev => ({ ...prev, budget: formatBudget(tempValues.budget) }));
+          break;
+      }
+      setEditingField(null);
+    } catch (error) {
+      console.error('Error saving field:', error);
+    }
+  };
+
+  const formatBudget = (budget: any) => {
+    if (!budget) return '$0';
+    
+    if (budget.type === 'fixed') {
+      const rate = parseFloat(budget.fixedRate || '0');
+      return `$${rate.toLocaleString()}`;
+    } else if (budget.type === 'hourly') {
+      const from = parseFloat(budget.fromRate || '0');
+      const to = parseFloat(budget.toRate || '0');
+      return `$${from.toLocaleString()} - $${to.toLocaleString()}/hr`;
+    }
+    
+    return '$0';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   const handleStartEdit = (field: string) => {
     if (field === 'skills') {
       setIsSkillsModalOpen(true);
@@ -128,7 +239,7 @@ export default function ReviewPage() {
     }
     
     if (field === 'budget') {
-      const currentBudget = jobPostingStore.getField('budget');
+      const currentBudget = getJobPostingStore().getField('budget');
       setTempValues(prev => ({
         ...prev,
         budget: currentBudget || { 
@@ -139,7 +250,7 @@ export default function ReviewPage() {
         }
       }));
     } else if (field === 'scope') {
-      const currentScope = jobPostingStore.getField('scope');
+      const currentScope = getJobPostingStore().getField('scope');
       setTempValues(prev => ({
         ...prev,
         scope: currentScope || { scope: '', duration: '' }
@@ -154,59 +265,9 @@ export default function ReviewPage() {
     setEditingField(field);
   };
 
-  const handleSave = (field: string) => {
-    const value = tempValues[field as keyof typeof tempValues];
-    
-    // Special handling for budget
-    if (field === 'budget') {
-      const budgetValue = value as {
-        type: string;
-        fixedRate?: string;
-        fromRate?: string;
-        toRate?: string;
-      };
-
-      if (budgetValue.type === 'fixed') {
-        jobPostingStore.saveField('budget', {
-          type: 'fixed',
-          fixedRate: budgetValue.fixedRate
-        });
-      } else {
-        jobPostingStore.saveField('budget', {
-          type: 'hourly',
-          fromRate: budgetValue.fromRate,
-          toRate: budgetValue.toRate
-        });
-      }
-    } else if (field === 'scope') {
-      const scopeValue = value as {
-        scope: string;
-        duration: string;
-      };
-      jobPostingStore.saveField('scope', scopeValue);
-      setJobDetails(prev => ({
-        ...prev,
-        scope: scopeValue
-      }));
-    } else {
-      jobPostingStore.saveField(field, value);
-    }
-
-    if (field === 'budget') {
-      setJobDetails(prev => ({
-        ...prev,
-        budget: formatBudget(value)
-      }));
-    } else if (field === 'scope') {
-      // Already handled above
-    } else {
-      setJobDetails(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
-    
-    setEditingField(null);
+  const handleSaveSkills = () => {
+    getJobPostingStore().saveField('skills', jobDetails.skills);
+    setIsSkillsModalOpen(false);
   };
 
   const toggleCategory = (categoryName: string) => {
@@ -226,56 +287,10 @@ export default function ReviewPage() {
     }));
   };
 
-  const handleSaveSkills = () => {
-    jobPostingStore.saveField('skills', jobDetails.skills);
-    setIsSkillsModalOpen(false);
-  };
-
   const router = useRouter();
 
   const handleFinalize = () => {
     router.push('/buyer/post-job/feature');
-  };
-
-  const formatBudget = (budget: any) => {
-    if (!budget || (!budget.fixedRate && !budget.fromRate)) return '$0.00 (Fixed Price)';
-    
-    const formatNumber = (num: string | number) => {
-      return parseFloat(num.toString()).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    };
-    
-    if (budget.type === 'fixed') {
-      return budget.fixedRate ? `$${formatNumber(budget.fixedRate)} (Fixed Price)` : '$0.00 (Fixed Price)';
-    } else if (budget.type === 'hourly') {
-      return budget.fromRate && budget.toRate 
-        ? `$${formatNumber(budget.fromRate)} - $${formatNumber(budget.toRate)} (Per Hour)` 
-        : '$0.00 (Per Hour)';
-    }
-    return '$0.00 (Fixed Price)';
-  };
-
-  const formatScope = (scope: any) => {
-    if (!scope || !scope.scope || !scope.duration) return 'Not specified';
-    
-    let duration;
-    switch (scope.duration) {
-      case 'one-time':
-        duration = 'One-time';
-        break;
-      case 'weekly':
-        duration = 'Weekly';
-        break;
-      case 'monthly':
-        duration = 'Monthly';
-        break;
-      default:
-        duration = scope.duration;
-    }
-    
-    return `${scope.scope}, ${duration}`;
   };
 
   const handleEditSection = (section: string) => {
@@ -417,7 +432,7 @@ export default function ReviewPage() {
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
                 <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Scope</h3>
-                <p className="text-gray-600">{formatScope(jobDetails.scope)}</p>
+                <p className="text-gray-600">{formatBudget(jobDetails.scope)}</p>
               </div>
               <button 
                 onClick={() => setIsScopeModalOpen(true)}

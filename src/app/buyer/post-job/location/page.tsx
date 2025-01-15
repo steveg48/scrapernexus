@@ -4,27 +4,38 @@ import { useState, useEffect } from 'react';
 import { MapPin, Globe } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
-import { jobPostingStore } from '@/lib/jobPostingStore';
+import { getJobPostingStore } from '@/lib/jobPostingStore';
 
 export default function LocationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
   const fromReview = searchParams?.get('from') === 'review';
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedLocation = jobPostingStore.getField<string>('project_location');
-      if (storedLocation) {
-        setSelectedLocation(storedLocation);
+    const initializePage = () => {
+      try {
+        const store = getJobPostingStore();
+        const storedLocation = store.getField<string>('project_location');
+        if (storedLocation) {
+          setSelectedLocation(storedLocation);
+        }
+      } catch (error) {
+        console.error('Error loading location:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    initializePage();
   }, []);
 
   const handleNext = async () => {
     if (selectedLocation) {
       try {
-        jobPostingStore.saveField('project_location', selectedLocation);
+        const store = getJobPostingStore();
+        store.saveField('project_location', selectedLocation);
         const nextPath = fromReview ? '/buyer/post-job/review' : '/buyer/post-job/description';
         await router.push(nextPath);
       } catch (error) {
@@ -32,6 +43,17 @@ export default function LocationPage() {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

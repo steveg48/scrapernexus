@@ -4,36 +4,72 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Award, Check } from 'lucide-react';
 import Navigation from '@/components/Navigation';
-import { jobPostingStore } from '@/lib/jobPostingStore';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getJobPostingStore } from '@/lib/jobPostingStore';
+import { createBrowserClient } from '@/lib/supabase';
 
 export default function FeaturePage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
   const [isPostingStandard, setIsPostingStandard] = useState(false);
   const [isPostingFeatured, setIsPostingFeatured] = useState(false);
   const [isDraftSaving, setIsDraftSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClientComponentClient();
+  const [jobData, setJobData] = useState<any>(null);
+  const [session, setSession] = useState<any>(null);
+  const supabase = createBrowserClient();
+
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Get session first
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (!currentSession) {
+          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          router.push(`/auth/login?returnUrl=${returnUrl}`);
+          return;
+        }
+
+        setSession(currentSession);
+
+        // Initialize store and get job data after session is confirmed
+        const store = getJobPostingStore();
+        await store.initialize();
+        const data = await store.getAllData();
+        setJobData(data);
+      } catch (error) {
+        console.error('Error initializing:', error);
+        setError('Error loading data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeData();
+  }, [router, supabase.auth]);
 
   const handlePost = async (projectType: 'standard' | 'featured') => {
-    if (projectType === 'standard') {
-      setIsPostingStandard(true);
-    } else {
-      setIsPostingFeatured(true);
+    if (!session) {
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      router.push(`/auth/login?returnUrl=${returnUrl}`);
+      return;
     }
-    setError(null);
 
     try {
-      // Get the current user session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        throw new Error('Please sign in to post a project');
+      if (projectType === 'standard') {
+        setIsPostingStandard(true);
+      } else {
+        setIsPostingFeatured(true);
       }
 
-      // Get all stored data
-      const storedData = jobPostingStore.getAllData();
-      
+      const store = getJobPostingStore();
+      await store.initialize();
+      const storedData = await store.getAllData();
+
       // Validate required fields
       if (!storedData.title || !storedData.description || !storedData.scope || !storedData.skills) {
         throw new Error('Missing required project information');
@@ -47,29 +83,21 @@ export default function FeaturePage() {
         'yearly': 'yearly'
       };
 
-      // Debug logging
-      console.log('Stored duration:', storedData.scope?.duration);
-      console.log('Mapped frequency:', frequencyMap[storedData.scope?.duration as keyof typeof frequencyMap]);
-
       // Prepare project data
       const projectData = {
-        buyer_id: session.user.id,
         title: storedData.title,
         description: storedData.description,
         frequency: frequencyMap[storedData.scope?.duration as keyof typeof frequencyMap] || 'one-time',
-        budget_min: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.fromRate.replace(/,/g, '')) : null,
-        budget_max: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.toRate.replace(/,/g, '')) : null,
-        budget_fixed_price: storedData.budget?.type === 'fixed' ? parseFloat(storedData.budget.fixedRate.replace(/,/g, '')) : null,
+        budget_min: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.fromRate?.replace(/,/g, '') || '0') : null,
+        budget_max: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.toRate?.replace(/,/g, '') || '0') : null,
+        budget_fixed_price: storedData.budget?.type === 'fixed' ? parseFloat(storedData.budget.fixedRate?.replace(/,/g, '') || '0') : null,
         project_budget_type: storedData.budget?.type || 'fixed',
         project_location: storedData.project_location || 'remote',
         project_scope: storedData.scope?.scope?.toLowerCase() || 'medium',
         project_type: projectType,
-        skill_ids: storedData.skills?.map(skill => skill.skill_id) || [],
-        is_draft: false  // Set is_draft to false when posting
+        skill_ids: storedData.skills?.map(skill => Number(skill.skill_id)) || [],
+        data_fields: JSON.stringify(storedData) // Store full data as JSON string
       };
-
-      // Debug logging
-      console.log('Project data being sent:', projectData);
 
       // Make API call
       const response = await fetch('/api/projects', {
@@ -81,98 +109,79 @@ export default function FeaturePage() {
         body: JSON.stringify(projectData)
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create project');
+        const errorData = await response.json();
+        console.error('Server error details:', errorData);
+        throw new Error(errorData.details || errorData.error || 'Failed to create project');
       }
 
-      // Clear stored data after successful submission
-      jobPostingStore.clearData();
+      // Clear the store after successful post
+      await store.clearData();
       
-      // Navigate to success page
+      // Redirect to success page
       router.push('/buyer/post-job/success');
-
     } catch (error) {
-      console.error('Error posting project:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create project. Please try again.');
+      console.error('Error posting job:', error);
+      setError(error instanceof Error ? error.message : 'Failed to post job. Please try again.');
     } finally {
       setIsPostingStandard(false);
       setIsPostingFeatured(false);
     }
   };
 
-  const handlePostStandard = () => handlePost('standard');
-  const handlePostFeatured = () => handlePost('featured');
-
   const handleSaveDraft = async () => {
-    setIsDraftSaving(true);
-    setError(null);
+    if (!session) {
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      router.push(`/auth/login?returnUrl=${returnUrl}`);
+      return;
+    }
 
     try {
-      // Get the current user session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        throw new Error('Please sign in to save draft');
-      }
-
-      // Get all stored data
-      const storedData = jobPostingStore.getAllData();
-      
-      // Prepare project data for draft
-      const projectData = {
-        buyer_id: session.user.id,
-        title: storedData.title || '',
-        description: storedData.description || '',
-        frequency: storedData.scope?.duration || 'one-time',
-        budget_min: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.fromRate.replace(/,/g, '')) : null,
-        budget_max: storedData.budget?.type === 'hourly' ? parseFloat(storedData.budget.toRate.replace(/,/g, '')) : null,
-        budget_fixed_price: storedData.budget?.type === 'fixed' ? parseFloat(storedData.budget.fixedRate.replace(/,/g, '')) : null,
-        project_budget_type: storedData.budget?.type || 'fixed',
-        project_location: storedData.project_location || 'remote',
-        project_scope: storedData.scope?.scope?.toLowerCase() || 'medium',
-        project_type: 'standard',
-        skill_ids: storedData.skills?.map(skill => skill.skill_id) || [],
-        is_draft: true  // Set is_draft to true when saving as draft
-      };
-
-      // Make API call
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(projectData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save draft');
-      }
-
-      // Clear stored data after successful submission
-      jobPostingStore.clearData();
-      
-      // Navigate back to jobs page
-      router.push('/buyer/jobs');
-
+      setIsDraftSaving(true);
+      const store = getJobPostingStore();
+      await store.initialize();
+      await store.persistToStorage();
     } catch (error) {
       console.error('Error saving draft:', error);
-      setError(error instanceof Error ? error.message : 'Failed to save draft. Please try again.');
+      setError('Failed to save draft. Please try again.');
     } finally {
       setIsDraftSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="text-red-500 mb-4">{error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 text-custom-green hover:text-custom-green/90 font-medium"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <Navigation />
       <div className="min-h-screen bg-white">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          {/* Back link at the top */}
           <button
             onClick={() => router.back()}
             className="text-gray-600 hover:text-gray-900 flex items-center gap-2 mb-6"
@@ -187,7 +196,6 @@ export default function FeaturePage() {
             Choose the right option for you
           </h2>
 
-          {/* Error display */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600">{error}</p>
@@ -222,11 +230,18 @@ export default function FeaturePage() {
               </ul>
 
               <button
-                onClick={handlePostStandard}
+                onClick={() => handlePost('standard')}
                 disabled={isPostingStandard}
                 className="w-full py-2 px-4 border border-custom-green text-custom-green hover:bg-custom-green/5 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPostingStandard ? 'Posting...' : 'Post as standard for free'}
+                {isPostingStandard ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-custom-green mr-2"></div>
+                    Posting...
+                  </div>
+                ) : (
+                  'Post as standard for free'
+                )}
               </button>
             </div>
 
@@ -269,11 +284,18 @@ export default function FeaturePage() {
               </ul>
 
               <button
-                onClick={handlePostFeatured}
+                onClick={() => handlePost('featured')}
                 disabled={isPostingFeatured}
                 className="w-full py-2 px-4 bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPostingFeatured ? 'Posting...' : 'Post as Featured for $29.99'}
+                {isPostingFeatured ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-gray-900 mr-2"></div>
+                    Posting...
+                  </div>
+                ) : (
+                  'Post as Featured for $29.99'
+                )}
               </button>
             </div>
           </div>
@@ -281,9 +303,16 @@ export default function FeaturePage() {
           <button
             onClick={handleSaveDraft}
             disabled={isDraftSaving}
-            className="mt-12 text-custom-green hover:text-custom-green/90 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-12 text-custom-green hover:text-custom-green/90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            {isDraftSaving ? "Saving draft..." : "Save draft without posting"}
+            {isDraftSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-custom-green mr-2"></div>
+                Saving draft...
+              </>
+            ) : (
+              "Save draft without posting"
+            )}
           </button>
         </div>
       </div>

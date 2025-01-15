@@ -1,4 +1,4 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@/lib/supabase';
 
 interface ProjectPostingData {
     buyer_id: string;  // Changed from number to string for UUID compatibility
@@ -22,7 +22,7 @@ interface ProjectPostingData {
  * @throws Error if the API call fails
  */
 export async function insertProjectWithSkills(projectData: ProjectPostingData): Promise<string> {
-    const supabase = createClientComponentClient();
+    const supabase = createBrowserClient();
 
     try {
         // Debug logging before insert

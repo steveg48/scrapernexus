@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@/lib/supabase';
 import { File } from 'lucide-react';
 import ProfileImage from '@/components/ProfileImage';
 import ReviewButton from '@/components/ReviewButton';
@@ -32,7 +32,7 @@ export default function JobsList() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient();
 
   useEffect(() => {
     async function fetchJobs() {

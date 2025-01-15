@@ -1,15 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { jobPostingStore } from '@/lib/jobPostingStore'
+import { getJobPostingStore } from '@/lib/jobPostingStore'
 
 export default function PostJobTitle() {
-  const [title, setTitle] = useState(jobPostingStore.getField<string>('title') || '')
   const router = useRouter()
+  const [title, setTitle] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadTitle() {
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        const savedTitle = await store.getField<string>('title');
+        if (savedTitle) {
+          setTitle(savedTitle);
+        }
+      } catch (error) {
+        console.error('Error loading title:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadTitle();
+  }, []);
+
   const mockUser = {
     display_name: "John Doe",
     avatar_url: "/avatar-placeholder.png",
@@ -22,9 +42,33 @@ export default function PostJobTitle() {
     "Extract Real Estate Listings Data from Multiple Property Websites"
   ]
 
-  const handleNext = () => {
-    jobPostingStore.saveField('title', title);
-    router.push('/buyer/post-job/scope')
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+  };
+
+  const handleNext = async () => {
+    if (title.trim().length >= 6) {
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        await store.saveField('title', title.trim());
+        router.push('/buyer/post-job/scope');
+      } catch (error) {
+        console.error('Error saving title:', error);
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -64,19 +108,19 @@ export default function PostJobTitle() {
                 type="text"
                 id="title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={handleTitleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter your job post title"
                 minLength={6}
               />
               <div className="mt-2 space-y-2">
-                {title.length > 100 && (
+                {title && title.length > 100 && (
                   <div className="text-red-500 text-sm flex items-center gap-2">
                     <span>⚠</span>
                     Must be less than 100 characters
                   </div>
                 )}
-                {title.split(' ').some(word => word.length > 50) && (
+                {title && title.trim().split(/\s+/).some(word => word.length > 50) && (
                   <div className="text-red-500 text-sm flex items-center gap-2">
                     <span>⚠</span>
                     Please limit the length of the words to less than 50 characters each
@@ -102,11 +146,11 @@ export default function PostJobTitle() {
             <div className="pt-4">
               <button
                 className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  title.length >= 6
+                  title.trim().length >= 6
                     ? 'bg-green-600 hover:bg-green-700 text-white' 
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
-                disabled={title.length < 6}
+                disabled={title.trim().length < 6}
                 onClick={handleNext}
               >
                 Continue

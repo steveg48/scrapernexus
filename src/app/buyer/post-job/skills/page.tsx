@@ -5,15 +5,15 @@ import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { jobPostingStore } from '@/lib/jobPostingStore';
+import { createBrowserClient } from '@/lib/supabase';
+import { getJobPostingStore } from '@/lib/jobPostingStore';
 
 // Debug: Log environment variables
 console.log('SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
 console.log('SUPABASE_ANON_KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
-// Initialize Supabase client using the auth-helpers client
-const supabase = createClientComponentClient()
+// Initialize Supabase client using the shared client
+const supabase = createBrowserClient();
 console.log('Supabase client initialized:', !!supabase)
 
 interface Skill {
@@ -30,8 +30,7 @@ interface Category {
 }
 
 export default function PostJobSkills() {
-  const storedSkills = jobPostingStore.getField<Skill[]>('skills') || [];
-  const [selectedSkills, setSelectedSkills] = useState<Skill[]>(storedSkills)
+  const [selectedSkills, setSelectedSkills] = useState<Skill[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [expanded, setExpanded] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -40,16 +39,22 @@ export default function PostJobSkills() {
   useEffect(() => {
     const initializePage = async () => {
       try {
-        setIsLoading(true)
-        await fetchSkills()
+        setIsLoading(true);
+        const store = getJobPostingStore();
+        await store.initialize();
+        const storedSkills = await store.getField<Skill[]>('skills');
+        if (storedSkills) {
+          setSelectedSkills(storedSkills);
+        }
+        await fetchSkills();
       } catch (error) {
-        console.error('Error initializing page:', error)
+        console.error('Error initializing page:', error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    initializePage()
+    initializePage();
   }, [])
 
   useEffect(() => {
@@ -57,69 +62,40 @@ export default function PostJobSkills() {
   }, [selectedSkills])
 
   const fetchSkills = async () => {
-    console.log('=== Starting fetchSkills ===')
     try {
-      console.log('Attempting to fetch from skills_view...')
       const { data: skillsData, error } = await supabase
         .from('skills_view')
         .select('*')
+        .order('skill_name')
       
-      console.log('Fetch complete')
-      console.log('Error:', error)
-      console.log('Data received:', skillsData)
-      
-      if (error) {
-        console.error('Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        })
-        throw error
-      }
-      
+      if (error) throw error
+
       if (skillsData) {
-        console.log('First skill record:', skillsData[0]);
-        console.log('Skills data structure:', Object.keys(skillsData[0]));
-        console.log('Processing skills data...')
-        console.log('Number of skills:', skillsData.length)
         const categoryList = skillsData.reduce((acc: Category[], skill) => {
-          console.log('\n--- Processing Skill ---');
-          console.log('Skill:', skill.skill_name);
-          console.log('Category:', skill.category_name);
-          
           const existingCategory = acc.find(cat => cat.name === skill.category_name)
-          console.log('Found existing category:', existingCategory?.name || 'none');
           
           if (existingCategory) {
-            console.log('Adding to existing category:', existingCategory.name);
             existingCategory.skills.push({
               skill_id: skill.skill_id,
               skill_name: skill.skill_name,
-              category_id: skill.skill_id,
+              category_id: skill.category_id,
               category_name: skill.category_name
             })
           } else {
-            console.log('Creating new category:', skill.category_name);
             acc.push({
-              id: acc.length + 1,
+              id: skill.category_id,
               name: skill.category_name,
               skills: [{
                 skill_id: skill.skill_id,
                 skill_name: skill.skill_name,
-                category_id: skill.skill_id,
+                category_id: skill.category_id,
                 category_name: skill.category_name
               }]
             })
           }
           
-          console.log('Current categories:', acc.map(c => ({name: c.name, skillCount: c.skills.length})));
           return acc
         }, [])
-
-        console.log('\nFinal Category List:', categoryList.map(c => ({
-          name: c.name,
-          skills: c.skills.map(s => s.skill_name)
-        })));
 
         setCategories(categoryList)
         
@@ -128,8 +104,7 @@ export default function PostJobSkills() {
         }
       }
     } catch (error) {
-      console.error('Error in fetchSkills:', error)
-      throw error
+      console.error('Error fetching skills:', error)
     }
   }
 
@@ -156,12 +131,18 @@ export default function PostJobSkills() {
     )
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selectedSkills.length > 0) {
-      jobPostingStore.saveField('skills', selectedSkills);
-      router.push('/buyer/post-job/location')
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        await store.saveField('skills', selectedSkills);
+        router.push('/buyer/post-job/location');
+      } catch (error) {
+        console.error('Error saving skills:', error);
+      }
     } else {
-      console.log('Error: No skills selected')
+      console.log('Error: No skills selected');
     }
   };
 
@@ -224,7 +205,6 @@ export default function PostJobSkills() {
                 Selected skills ({selectedSkills.length}/10)
               </h2>
               <div className="flex flex-wrap gap-2 min-h-[40px]">
-                {console.log('6. Rendering selectedSkills:', selectedSkills)}
                 {selectedSkills && selectedSkills.length > 0 ? (
                   renderSelectedSkills()
                 ) : (
@@ -234,49 +214,42 @@ export default function PostJobSkills() {
             </div>
 
             <div className="space-y-0 divide-y divide-gray-200">
-              {console.log('Categories available:', categories)}
-              {categories.map((category) => {
-                console.log('Rendering category:', category.name);
-                return (
-                  <div key={category.id}>
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(category.name)}
-                      className="w-full px-4 py-3 flex justify-between items-center hover:bg-gray-50"
-                    >
-                      <span className="font-medium text-gray-900">{category.name}</span>
-                      {expanded.includes(category.name) ? (
-                        <ChevronUp className="h-5 w-5 text-gray-500" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-gray-500" />
-                      )}
-                    </button>
-                    
-                    {expanded.includes(category.name) && (
-                      <div className="px-4 py-3 bg-white">
-                        <div className="flex flex-wrap gap-2">
-                          {category.skills
-                            .filter(skill => !selectedSkills.find(s => s.skill_id === skill.skill_id))
-                            .map((skill) => (
-                              <button
-                                key={skill.skill_id}
-                                type="button"
-                                onClick={() => {
-                                  console.log('CLICK TEST - Button clicked for skill:', skill.skill_name);
-                                  handleAddSkill(skill)
-                                }}
-                                className="inline-flex items-center px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-700 hover:border-gray-400"
-                              >
-                                {skill.skill_name}
-                                <Plus className="ml-1 h-4 w-4" />
-                              </button>
-                            ))}
-                        </div>
-                      </div>
+              {categories.map((category) => (
+                <div key={category.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(category.name)}
+                    className="w-full px-4 py-3 flex justify-between items-center hover:bg-gray-50"
+                  >
+                    <span className="font-medium text-gray-900">{category.name}</span>
+                    {expanded.includes(category.name) ? (
+                      <ChevronUp className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
                     )}
-                  </div>
-                )
-              })}
+                  </button>
+                  
+                  {expanded.includes(category.name) && (
+                    <div className="px-4 py-3 bg-white">
+                      <div className="flex flex-wrap gap-2">
+                        {category.skills
+                          .filter(skill => !selectedSkills?.some(s => s.skill_id === skill.skill_id))
+                          .map((skill) => (
+                            <button
+                              key={skill.skill_id}
+                              type="button"
+                              onClick={() => handleAddSkill(skill)}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-700 hover:border-gray-400"
+                            >
+                              {skill.skill_name}
+                              <Plus className="ml-1 h-4 w-4" />
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -4,25 +4,56 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Paperclip } from 'lucide-react';
 import Navigation from '@/components/Navigation';
-import { jobPostingStore } from '@/lib/jobPostingStore';
+import { getJobPostingStore } from '@/lib/jobPostingStore';
 
 export default function JobDescriptionPage() {
   const router = useRouter();
   const [description, setDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedDescription = jobPostingStore.getField<string>('description');
-    if (savedDescription) {
-      setDescription(savedDescription);
-    }
+    const initializePage = async () => {
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        const savedDescription = await store.getField<string>('description');
+        if (savedDescription) {
+          setDescription(savedDescription);
+        }
+      } catch (error) {
+        console.error('Error loading description:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializePage();
   }, []);
 
-  const handleNext = () => {
-    if (description.trim()) {
-      jobPostingStore.saveField('description', description.trim());
-      router.push('/buyer/post-job/review');
+  const handleNext = async () => {
+    const trimmedDescription = description?.trim();
+    if (trimmedDescription) {
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        await store.saveField('description', trimmedDescription);
+        router.push('/buyer/post-job/review');
+      } catch (error) {
+        console.error('Error saving description:', error);
+      }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation />
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -129,7 +160,7 @@ export default function JobDescriptionPage() {
             </button>
             <button
               onClick={handleNext}
-              disabled={!description.trim()}
+              disabled={!description?.trim()}
               className="px-6 py-3 bg-custom-green text-white rounded-lg hover:bg-custom-green/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@/lib/supabase';
 
 interface Skill {
   skill_id: number;
@@ -19,16 +19,22 @@ interface Category {
 
 interface SkillsEditorProps {
   selectedSkills: Skill[];
-  onSave: (skills: Skill[]) => void;
-  onCancel: () => void;
+  onSkillsChange: (skills: Skill[]) => void;
+  maxSkills?: number;
+  className?: string;
 }
 
-export default function SkillsEditor({ selectedSkills, onSave, onCancel }: SkillsEditorProps) {
+export default function SkillsEditor({ 
+  selectedSkills, 
+  onSkillsChange,
+  maxSkills = 10,
+  className = ''
+}: SkillsEditorProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = createBrowserClient();
   const [localSelectedSkills, setLocalSelectedSkills] = useState<Skill[]>(selectedSkills);
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
     fetchSkills();
@@ -95,7 +101,7 @@ export default function SkillsEditor({ selectedSkills, onSave, onCancel }: Skill
   };
 
   const handleSave = () => {
-    onSave(localSelectedSkills);
+    onSkillsChange(localSelectedSkills);
   };
 
   if (isLoading) {
@@ -103,7 +109,7 @@ export default function SkillsEditor({ selectedSkills, onSave, onCancel }: Skill
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${className}`}>
       <div className="space-y-4">
         {categories.map(category => (
           <div key={category.id} className="border rounded-lg overflow-hidden">
@@ -147,7 +153,7 @@ export default function SkillsEditor({ selectedSkills, onSave, onCancel }: Skill
 
       <div className="flex justify-end space-x-3 pt-4 border-t">
         <button
-          onClick={onCancel}
+          onClick={() => onSkillsChange(selectedSkills)}
           className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
         >
           Cancel

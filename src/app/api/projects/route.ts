@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 
 // Helper function to add delay between retries
@@ -31,9 +31,14 @@ async function retryOperation<T>(
 
 export async function POST(request: Request) {
     try {
-        // Create a Supabase client with cookies
         const cookieStore = cookies();
-        const supabase = createServerClient({ cookies: () => cookieStore });
+        const supabase = createServerComponentClient({ cookies: () => cookieStore });
+        
+        // Get auth token from header
+        const authHeader = request.headers.get('Authorization');
+        if (!authHeader?.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
+        }
         
         // Get the current session with retry
         const { data: { session }, error: sessionError } = await retryOperation(
@@ -41,7 +46,14 @@ export async function POST(request: Request) {
         );
 
         if (sessionError || !session) {
-            throw new Error('Not authenticated');
+            console.error('Session error:', sessionError);
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
+        // Verify the token matches
+        const token = authHeader.split(' ')[1];
+        if (token !== session.access_token) {
+            return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
         }
 
         // Check if profile exists, if not create it
@@ -67,38 +79,102 @@ export async function POST(request: Request) {
             );
         }
 
-        const data = await request.json();
-        
-        // Create the project posting directly
-        const { data: posting, error: postingError } = await supabase
-            .from('project_postings')
-            .insert({
-                buyer_id: session.user.id,
-                title: data.title,
-                description: data.description,
-                frequency: data.frequency,
-                budget_min: data.budget_min,
-                budget_max: data.budget_max,
-                budget_fixed_price: data.budget_fixed_price,
-                project_budget_type: data.project_budget_type,
-                project_location: data.project_location,
-                project_scope: data.project_scope,
-                project_type: data.project_type
-            })
-            .select()
-            .single();
+        // Extract the project data from the request
+        const projectData = await request.json();
+        console.log('Received project data:', projectData);
 
-        if (postingError) {
-            console.error('Error creating project posting:', postingError);
-            throw new Error(`Failed to create project posting: ${postingError.message}`);
+        // First insert the project posting
+        const { data: projectPosting, error: projectError } = await retryOperation(
+            () => supabase
+                .from('project_postings')
+                .insert({
+                    buyer_id: session.user.id,
+                    title: projectData.title,
+                    description: projectData.description,
+                    frequency: projectData.frequency,
+                    budget_min: projectData.budget_min,
+                    budget_max: projectData.budget_max,
+                    budget_fixed_price: projectData.budget_fixed_price,
+                    project_budget_type: projectData.project_budget_type,
+                    project_location: projectData.project_location,
+                    project_scope: projectData.project_scope,
+                    project_type: projectData.project_type,
+                    data_fields: projectData.data_fields,
+                    project_id: undefined // Let Supabase generate this
+                })
+                .select('project_postings_id')
+                .single()
+        );
+
+        if (projectError) {
+            console.error('Error creating project:', JSON.stringify(projectError, null, 2));
+            return NextResponse.json({ 
+                error: 'Failed to create project',
+                details: projectError.message,
+                code: projectError.code
+            }, { status: 500 });
         }
 
-        // Return success response with the project ID
+        if (!projectPosting || !projectPosting.project_postings_id) {
+            console.error('Project posting created but no ID returned');
+            return NextResponse.json({ 
+                error: 'Failed to create project',
+                details: 'No project ID returned'
+            }, { status: 500 });
+        }
+
+        console.log('Project created with ID:', projectPosting.project_postings_id);
+        console.log('Adding skills:', projectData.skill_ids);
+
+        // Then add skills one by one using direct insert to project_skills
+        if (projectData.skill_ids && projectData.skill_ids.length > 0) {
+            for (const skillId of projectData.skill_ids) {
+                try {
+                    console.log(`Adding skill ${skillId} to project ${projectPosting.project_postings_id}`);
+                    const { error: skillError } = await retryOperation(
+                        () => supabase
+                            .from('project_skills')
+                            .insert({
+                                project_posting_id: projectPosting.project_postings_id,
+                                skill_id: skillId
+                            })
+                    );
+                    
+                    if (skillError) {
+                        console.error(`Error adding skill ${skillId}:`, JSON.stringify(skillError, null, 2));
+                        // If a skill fails to add, delete the project posting and return error
+                        await supabase
+                            .from('project_postings')
+                            .delete()
+                            .eq('project_postings_id', projectPosting.project_postings_id);
+                        return NextResponse.json({ 
+                            error: 'Failed to add project skills',
+                            details: skillError.message,
+                            code: skillError.code,
+                            skill_id: skillId
+                        }, { status: 500 });
+                    }
+                    console.log(`Successfully added skill ${skillId}`);
+                } catch (error) {
+                    console.error(`Error adding skill ${skillId}:`, error);
+                    // If a skill fails to add, delete the project posting and return error
+                    await supabase
+                        .from('project_postings')
+                        .delete()
+                        .eq('project_postings_id', projectPosting.project_postings_id);
+                    return NextResponse.json({ 
+                        error: 'Failed to add project skills',
+                        details: error instanceof Error ? error.message : 'Unknown error',
+                        skill_id: skillId
+                    }, { status: 500 });
+                }
+            }
+        }
+
         return NextResponse.json({ 
             success: true, 
-            project_id: posting.project_id
-        }, { 
-            status: 201 
+            project: projectPosting,
+            message: `Successfully added ${projectData.skill_ids?.length || 0} skills`
         });
 
     } catch (error) {
@@ -115,9 +191,8 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     try {
-        // Create a Supabase client with cookies
         const cookieStore = cookies();
-        const supabase = createServerClient({ cookies: () => cookieStore });
+        const supabase = createServerComponentClient({ cookies: () => cookieStore });
         
         // Get the current session with retry
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
