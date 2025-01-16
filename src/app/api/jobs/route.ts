@@ -1,41 +1,71 @@
-import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { NextResponse, Request } from 'next/server';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    console.log('API: Starting jobs fetch');
+    
+    // Create a Supabase client for the route handler
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    
-    // Verify authentication
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const supabase = createRouteHandlerClient({ 
+      cookies: () => cookieStore,
+      supabaseUrl,
+      supabaseAnonKey
+    });
+
+    // Verify auth
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    if (authError || !session) {
+      console.log('Auth error or no session:', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get jobs from the view
+    console.log('Session user ID:', session.user.id);
+
+    // Get jobs for this user
     const { data: jobs, error: jobsError } = await supabase
-      .from('project_postings_with_skills')
-      .select('project_postings_id, title, created_at')
-      .eq('buyer_id', user.id)
+      .from('project_postings')
+      .select(`
+        project_postings_id,
+        title,
+        description,
+        created_at,
+        status,
+        data_fields,
+        frequency
+      `)
+      .eq('buyer_id', session.user.id)
       .order('created_at', { ascending: false });
 
+    console.log('Jobs for user:', jobs);
+    console.log('Query error if any:', jobsError);
+
     if (jobsError) {
-      console.error('Jobs error:', jobsError);
+      console.error('API: Jobs error:', jobsError);
       return NextResponse.json({ error: jobsError.message }, { status: 500 });
     }
 
-    // Transform the data to match the expected interface
+    // Transform the data
     const transformedJobs = jobs?.map(job => ({
-      id: job.project_postings_id,
-      title: job.title || 'Untitled',
+      id: job.project_postings_id.toString(),
+      title: job.title || 'Untitled Project',
+      description: job.description || '',
       created_at: job.created_at,
-      status: 'open' // Default status for now
+      status: job.status || 'open',
+      data_fields: job.data_fields || {},
+      frequency: job.frequency || 'one_time'
     })) || [];
+
+    console.log('Transformed jobs:', transformedJobs);
+
+    console.log('API: Sending response:', { success: true, jobs: transformedJobs });
 
     return NextResponse.json({
       success: true,
@@ -43,10 +73,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Error in GET /api/jobs:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('API: Server error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

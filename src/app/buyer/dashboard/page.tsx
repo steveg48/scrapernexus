@@ -1,122 +1,75 @@
-'use client'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import DashboardClient from './DashboardClient';
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import Navigation from '@/components/Navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import JobsList from './JobsList'
+export const dynamic = 'force-dynamic';
 
-interface UserProfile {
-  id: string
-  display_name: string
-  member_type: string
-}
+async function getData() {
+  const supabase = createServerComponentClient({ cookies });
 
-interface Job {
-  id: string
-  title: string
-  created_at: string
-  status: string
-}
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-export default function Dashboard() {
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Create the Supabase client with proper auth context
-        const supabase = createClientComponentClient()
-
-        // Get the current user and handle auth state
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        if (userError) throw userError
-
-        if (!user) {
-          throw new Error('Not authenticated')
-        }
-
-        // Get the user's profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-
-        if (profileError) throw profileError
-        setProfile(profile)
-
-        // Fetch jobs with auth header
-        const response = await fetch('/api/jobs', {
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        })
-        
-        if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error || 'Failed to fetch jobs')
-        }
-        
-        const data = await response.json()
-        setJobs(data.jobs || [])
-
-      } catch (error: any) {
-        console.error('Error fetching data:', error)
-        setError(error.message)
-      }
-    }
-
-    fetchData()
-  }, [])
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-red-500">{error}</div>
-        </div>
-      </div>
-    )
+  if (!session) {
+    redirect('/auth/login');
   }
 
-  if (!profile) {
+  const [profileResult, jobsResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, display_name, member_type, created_at')
+      .eq('id', session.user.id)
+      .single(),
+    supabase
+      .from('project_postings')
+      .select('project_postings_id, title, description, created_at, status, data_fields, frequency')
+      .eq('buyer_id', session.user.id)
+      .order('created_at', { ascending: false })
+  ]);
+
+  if (profileResult.error) throw profileResult.error;
+  if (jobsResult.error) throw jobsResult.error;
+
+  const transformedJobs = jobsResult.data?.map(job => ({
+    id: job.project_postings_id,
+    title: job.title || 'Untitled Project',
+    description: job.description || '',
+    created_at: job.created_at,
+    status: job.status || 'open',
+    data_fields: job.data_fields || {},
+    frequency: job.frequency || 'one_time'
+  })) || [];
+
+  return {
+    profile: profileResult.data,
+    jobs: transformedJobs
+  };
+}
+
+export default async function Dashboard() {
+  try {
+    const data = await getData();
+    
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div>Loading...</div>
+        <DashboardClient 
+          initialProfile={data.profile} 
+          initialJobs={data.jobs} 
+        />
+      </div>
+    );
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    return (
+      <div className="min-h-screen bg-white p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="text-red-700">Error loading dashboard. Please try refreshing the page.</div>
+          </div>
         </div>
       </div>
-    )
+    );
   }
-
-  return (
-    <div className="min-h-screen bg-white">
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center pb-6 border-b border-gray-200">
-          <h1 className="text-[32px] font-normal text-gray-900">
-            Hi, {profile.display_name.split(' ')[0]}
-          </h1>
-          <Link 
-            href="/buyer/post-job"
-            className="inline-flex items-center px-6 py-2.5 bg-[#14a800] hover:bg-[#14a800]/90 text-white rounded-md text-base font-medium"
-          >
-            + Post a job
-          </Link>
-        </div>
-
-        {jobs.length > 0 && (
-          <>
-            <h2 className="text-[32px] font-normal text-gray-900 mt-8 mb-6">Overview</h2>
-            <JobsList jobs={jobs} />
-          </>
-        )}
-      </div>
-    </div>
-  )
 }

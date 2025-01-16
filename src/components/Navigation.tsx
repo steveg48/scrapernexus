@@ -3,9 +3,9 @@
 import { Search, Bell, CloudDownload, ChevronDown, MessageSquare, X, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProfileImage from '@/components/ProfileImage';
-import { createBrowserClient } from '@/lib/supabase';
+import supabaseClient from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 
 interface Notification {
@@ -20,8 +20,16 @@ export default function Navigation() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
-  const supabase = createBrowserClient();
+  
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const notifications = [
     {
@@ -48,342 +56,247 @@ export default function Navigation() {
 
   const handleDropdownClick = (dropdownName: string) => {
     setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
+    setShowNotifications(false);
+    setShowProfileMenu(false);
+  };
+
+  const handleNotificationsClick = () => {
+    setShowNotifications(!showNotifications);
+    setActiveDropdown(null);
+    setShowProfileMenu(false);
+  };
+
+  const handleProfileMenuClick = () => {
+    setShowProfileMenu(!showProfileMenu);
+    setActiveDropdown(null);
+    setShowNotifications(false);
   };
 
   const dismissNotification = (id: number) => {
     console.log('Dismissing notification:', id);
   };
 
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     try {
       setActiveDropdown(null);
       setShowNotifications(false);
       setShowProfileMenu(false);
 
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        return;
+      const client = supabaseClient;
+      if (client) {
+        await client.auth.signOut();
+        router.push('/auth');
+        router.refresh();
       }
-
-      router.push('/auth');
-      router.refresh();
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Error signing out:', error);
     }
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (!(event.target as Element).closest('.dropdown-button')) {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node) &&
+        notificationsRef.current && 
+        !notificationsRef.current.contains(event.target as Node) &&
+        profileMenuRef.current && 
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
         setActiveDropdown(null);
+        setShowNotifications(false);
+        setShowProfileMenu(false);
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  return (
-    <nav className="bg-white border-b border-gray-200 pt-2">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Left side */}
-          <div className="flex items-center">
-            {/* Logo */}
-            <Link href="/buyer/dashboard" className="flex items-center">
-              <span className="text-[24px] font-semibold text-[#3c8dd5]">
-                ScrapeNexus
-              </span>
-              <CloudDownload className="ml-1 h-10 w-10 text-[#FF69B4]" />
-            </Link>
+  if (!isClient) {
+    return null;
+  }
 
-            {/* Nav Links */}
-            <div className="ml-8 flex items-center space-x-6">
-              {pathname?.includes('/buyer') ? (
-                <>
-                  <div className="relative">
-                    <button 
-                      className={`dropdown-button flex items-center text-[16px] ${
-                        (pathname?.includes('/post-job') || pathname?.includes('/suggested'))
-                          ? 'text-selected-green' 
-                          : 'text-gray-600 hover:text-hover-green'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDropdownClick('hire-talent');
-                      }}
-                    >
-                      <span>Hire talent</span>
-                      <ChevronDown className={`ml-1 h-4 w-4`} />
-                    </button>
-                    {activeDropdown === 'hire-talent' && (
-                      <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                        <div className="py-1">
-                          <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Manage jobs and offers</div>
-                          <Link href="/buyer/jobs" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Job posts and proposals
-                          </Link>
-                          <Link href="/buyer/offers" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Pending offers
-                          </Link>
-                          <div className="border-t border-gray-100 my-1"></div>
-                          <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Find freelancers</div>
-                          <Link href="/buyer/post-job" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Post a job
-                          </Link>
-                          <Link href="/buyer/suggested" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Search for talent
-                          </Link>
-                          <Link href="/buyer/hired" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Talent you've hired
-                          </Link>
-                          <Link href="/buyer/saved" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Talent you've saved
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <button 
-                      className={`dropdown-button flex items-center text-[16px] ${
-                        (pathname?.includes('/jobs') || pathname?.includes('/offers') || pathname?.includes('/contracts'))
-                          ? 'text-selected-green' 
-                          : 'text-gray-600 hover:text-hover-green'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDropdownClick('manage-work');
-                      }}
-                    >
-                      <span>Manage work</span>
-                      <ChevronDown className={`ml-1 h-4 w-4`} />
-                    </button>
-                    {activeDropdown === 'manage-work' && (
-                      <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                        <div className="py-1">
-                          <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Active and past work</div>
-                          <Link href="/buyer/contracts" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Your contracts
-                          </Link>
-                          <div className="border-t border-gray-100 my-1"></div>
-                          <div className="px-4 py-2 text-xs font-bold text-[#3c8dd5]">Hourly contract activity</div>
-                          <Link href="/buyer/timesheets" className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Timesheets
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="relative">
-                    <button 
-                      className={`dropdown-button flex items-center text-[16px] ${
-                        pathname?.includes('/find-work')
-                          ? 'text-[#14a800]' 
-                          : 'text-gray-600 hover:text-[#14a800]'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDropdownClick('find-work');
-                      }}
-                    >
-                      <span>Find work</span>
-                      <ChevronDown className={`ml-1 h-4 w-4`} />
-                    </button>
-                    {activeDropdown === 'find-work' && (
-                      <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                        <div className="py-1">
-                          <Link href="/seller/find-work" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Find Work
-                          </Link>
-                          <Link href="/seller/saved-jobs" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Saved Jobs
-                          </Link>
-                          <Link href="/seller/proposals" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Proposals
-                          </Link>
-                          <Link href="/seller/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Profile
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <button 
-                      className={`dropdown-button flex items-center text-[16px] ${
-                        pathname?.includes('/deliver-work')
-                          ? 'text-[#14a800]' 
-                          : 'text-gray-600 hover:text-[#14a800]'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDropdownClick('deliver-work');
-                      }}
-                    >
-                      <span>Deliver work</span>
-                      <ChevronDown className={`ml-1 h-4 w-4`} />
-                    </button>
-                    {activeDropdown === 'deliver-work' && (
-                      <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                        <div className="py-1">
-                          <Link href="/seller/active-contracts" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Your active contracts
-                          </Link>
-                          <Link href="/seller/contract-history" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Contract history
-                          </Link>
-                          <Link href="/seller/work-diary" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Hourly work diary
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <button 
-                      className={`dropdown-button flex items-center text-[16px] ${
-                        pathname?.includes('/manage-finances')
-                          ? 'text-[#14a800]' 
-                          : 'text-gray-600 hover:text-[#14a800]'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDropdownClick('manage-finances');
-                      }}
-                    >
-                      <span>Manage finances</span>
-                      <ChevronDown className={`ml-1 h-4 w-4`} />
-                    </button>
-                    {activeDropdown === 'manage-finances' && (
-                      <div className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                        <div className="py-1">
-                          <Link href="/seller/financial-overview" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Financial overview
-                          </Link>
-                          <Link href="/seller/reports" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Your reports
-                          </Link>
-                          <Link href="/seller/billings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Billings and earnings
-                          </Link>
-                          <Link href="/seller/transactions" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Transactions and invoices
-                          </Link>
-                          <Link href="/seller/payments" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Payments
-                          </Link>
-                          <Link href="/seller/withdraw" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Withdraw earnings
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-              <div className="relative">
-                <Link href="/messages" className="relative">
-                  <button className="flex items-center text-[16px] text-gray-600 hover:text-[#039625]">
-                    <span>Messages</span>
-                    <div className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500">
-                      <span className="text-sm font-medium text-white">1</span>
-                    </div>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Left side */}
+            <div className="flex items-center">
+              {/* Logo */}
+              <Link href="/buyer/dashboard" className="flex items-center">
+                <span className="text-[24px] font-semibold text-[#3c8dd5]">
+                  ScrapeNexus
+                </span>
+                <CloudDownload className="ml-1 h-6 w-6 text-[#FF69B4]" />
+              </Link>
+
+              {/* Nav Links */}
+              <div className="ml-10 flex items-center space-x-8">
+                <div className="relative group" ref={dropdownRef}>
+                  <button 
+                    className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    onClick={() => handleDropdownClick('hire')}
+                  >
+                    Hire talent
+                    <ChevronDown className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${activeDropdown === 'hire' ? 'rotate-180' : ''}`} />
                   </button>
+
+                  {activeDropdown === 'hire' && (
+                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                      <div className="py-1">
+                        <Link
+                          href="/buyer/dashboard"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          Post a Job
+                        </Link>
+                        <Link
+                          href="/buyer/talent"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          Talent Marketplace
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative group" ref={dropdownRef}>
+                  <button 
+                    className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    onClick={() => handleDropdownClick('manage')}
+                  >
+                    Manage work
+                    <ChevronDown className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${activeDropdown === 'manage' ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {activeDropdown === 'manage' && (
+                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                      <div className="py-1">
+                        <Link
+                          href="/buyer/jobs"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          All Jobs
+                        </Link>
+                        <Link
+                          href="/buyer/contracts"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          All Contracts
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Link
+                  href="/messages"
+                  className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                >
+                  Messages
+                  <span className="ml-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    1
+                  </span>
                 </Link>
               </div>
             </div>
-          </div>
 
-          {/* Right side */}
-          <div className="flex items-center space-x-4">
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            </div>
+            {/* Right side */}
+            <div className="flex items-center space-x-6">
+              {/* Search */}
+              <div className="relative w-64">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#14a800] focus:border-transparent"
+                />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
 
-            {/* Help icon */}
-            <Link href="/help" className="p-2 hover:bg-gray-100 rounded-full">
-              <span className="text-2xl font-['Inter'] text-gray-600 hover:text-gray-900">?</span>
-            </Link>
-
-            {/* Notifications */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none"
-              >
-                <Bell className="h-6 w-6" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
+              {/* Help */}
+              <button className="text-gray-600 hover:text-[#14a800]">
+                <span className="text-xl">?</span>
               </button>
 
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-1 z-10">
-                  <div className="px-4 py-2 font-semibold border-b">
-                    Notifications
-                  </div>
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className="px-4 py-3 hover:bg-gray-50 flex justify-between items-start"
-                    >
-                      <div className="flex-1 pr-4">
-                        <p className="text-sm text-gray-900">{notification.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                      </div>
-                      <button
-                        onClick={() => dismissNotification(notification.id)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+              {/* Notifications */}
+              <div className="relative" ref={notificationsRef}>
+                <button
+                  onClick={handleNotificationsClick}
+                  className="text-gray-600 hover:text-[#14a800]"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
 
-            {/* Profile */}
-            <div className="relative">
-              <div 
-                onMouseEnter={() => {
-                  setShowProfileMenu(true);
-                  setShowNotifications(false);
-                }}
-                onMouseLeave={() => setShowProfileMenu(false)}
-                className="p-2 cursor-pointer"
-              >
-                <ProfileImage size="sm" isMenuIcon />
-                
-                {/* Profile Menu */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                    <div className="p-4">
+                      <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+                      <div className="mt-2 space-y-4">
+                        {notifications.map((notification) => (
+                          <div key={notification.id} className="flex items-start">
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-600">{notification.message}</p>
+                              <p className="mt-1 text-xs text-gray-500">{notification.time}</p>
+                            </div>
+                            <button
+                              onClick={() => dismissNotification(notification.id)}
+                              className="ml-4 text-gray-400 hover:text-gray-500"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Profile dropdown */}
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  onClick={handleProfileMenuClick}
+                  className="flex items-center space-x-2"
+                >
+                  <ProfileImage size="sm" isMenuIcon />
+                  <ChevronDown className={`h-4 w-4 text-gray-500 transform transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
+                </button>
+
                 {showProfileMenu && (
-                  <div className="absolute -right-36 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
                     <div className="py-1">
-                      <Link 
-                        href="/profile" 
+                      <Link
+                        href="/profile"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowProfileMenu(false)}
                       >
                         Profile
                       </Link>
+                      <Link
+                        href="/settings"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowProfileMenu(false)}
+                      >
+                        Settings
+                      </Link>
                       <button
-                        onClick={handleLogout}
+                        onClick={handleSignOut}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                       >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Sign out
                       </button>
                     </div>
                   </div>
@@ -392,7 +305,7 @@ export default function Navigation() {
             </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }

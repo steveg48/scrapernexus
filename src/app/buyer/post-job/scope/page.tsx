@@ -14,25 +14,38 @@ export default function PostJobScope() {
   const [selectedDuration, setSelectedDuration] = useState<string>('')
 
   useEffect(() => {
-    const store = getJobPostingStore();
-    const storedData = store.getField<{scope: string, duration: string}>('scope');
-    setSelectedScope(storedData?.scope || '');
-    setSelectedDuration(storedData?.duration || '');
-    setIsLoading(false);
+    async function loadData() {
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        const storedScope = await store.getField<string>('project_scope');
+        const storedFrequency = await store.getField<string>('frequency');
+        setSelectedScope(storedScope || '');
+        setSelectedDuration(storedFrequency || '');
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selectedScope && selectedDuration) {
-      const store = getJobPostingStore();
-      store.saveField('scope', {
-        scope: selectedScope,
-        duration: selectedDuration
-      });
-      router.push('/buyer/post-job/budget')
+      try {
+        const store = getJobPostingStore();
+        await store.initialize();
+        await store.saveField('project_scope', selectedScope);
+        await store.saveField('frequency', selectedDuration);
+        router.push('/buyer/post-job/budget');
+      } catch (error) {
+        console.error('Error saving data:', error);
+      }
     } else {
-      console.log('Please select a scope and duration to proceed to the budget page.')
+      console.log('Please select a scope and duration to proceed to the budget page.');
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -102,113 +115,76 @@ export default function PostJobScope() {
                         <input
                           type="radio"
                           name="duration"
-                          value="one_time"
-                          checked={selectedDuration === 'one_time'}
+                          value="one-time"
+                          checked={selectedDuration === 'one-time'}
                           onChange={(e) => setSelectedDuration(e.target.value)}
-                          className="h-4 w-4 text-blue-600"
+                          className="h-4 w-4 text-custom-green border-gray-300 focus:ring-custom-green"
                         />
-                        <span className="ml-3 text-base text-gray-900">One-time</span>
+                        <span className="ml-3 text-gray-900">One-time project</span>
                       </div>
                     </label>
-
                     <label className="block">
                       <div className="flex items-center">
                         <input
                           type="radio"
                           name="duration"
-                          value="weekly"
-                          checked={selectedDuration === 'weekly'}
+                          value="ongoing"
+                          checked={selectedDuration === 'ongoing'}
                           onChange={(e) => setSelectedDuration(e.target.value)}
-                          className="h-4 w-4 text-blue-600"
+                          className="h-4 w-4 text-custom-green border-gray-300 focus:ring-custom-green"
                         />
-                        <span className="ml-3 text-base text-gray-900">Weekly</span>
-                      </div>
-                    </label>
-
-                    <label className="block">
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          name="duration"
-                          value="monthly"
-                          checked={selectedDuration === 'monthly'}
-                          onChange={(e) => setSelectedDuration(e.target.value)}
-                          className="h-4 w-4 text-blue-600"
-                        />
-                        <span className="ml-3 text-base text-gray-900">Monthly</span>
+                        <span className="ml-3 text-gray-900">Ongoing project</span>
                       </div>
                     </label>
                   </div>
                 </div>
               </div>
             ) : (
-              /* Scope options */
-              <div className="space-y-4">
-                <label className="block">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="scope"
-                      value="large"
-                      checked={selectedScope === 'large'}
-                      onChange={(e) => setSelectedScope(e.target.value)}
-                      className="h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-3 text-base font-medium text-gray-900">Large</span>
-                  </div>
-                  <p className="mt-1 ml-7 text-gray-600">
-                    Longer term or complex initiatives (ex. develop and execute a brand strategy (i.e., graphics, positioning))
-                  </p>
-                </label>
-
-                <label className="block">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="scope"
-                      value="medium"
-                      checked={selectedScope === 'medium'}
-                      onChange={(e) => setSelectedScope(e.target.value)}
-                      className="h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-3 text-base font-medium text-gray-900">Medium</span>
-                  </div>
-                  <p className="mt-1 ml-7 text-gray-600">
-                    Well-defined projects (ex. design business rebrand package (i.e., logos, icons))
-                  </p>
-                </label>
-
-                <label className="block">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="scope"
-                      value="small"
-                      checked={selectedScope === 'small'}
-                      onChange={(e) => setSelectedScope(e.target.value)}
-                      className="h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-3 text-base font-medium text-gray-900">Small</span>
-                  </div>
-                  <p className="mt-1 ml-7 text-gray-600">
-                    Quick and straightforward tasks (ex. create logo for a new product)
-                  </p>
-                </label>
+              <div>
+                <h2 className="text-base font-medium text-gray-900 mb-4">Project scope</h2>
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setSelectedScope('small')}
+                    className="w-full text-left p-4 border rounded-lg hover:border-custom-green focus:outline-none focus:ring-2 focus:ring-custom-green"
+                  >
+                    <h3 className="font-medium text-gray-900">Small</h3>
+                    <p className="text-sm text-gray-600 mt-1">Quick and straightforward tasks</p>
+                  </button>
+                  <button
+                    onClick={() => setSelectedScope('medium')}
+                    className="w-full text-left p-4 border rounded-lg hover:border-custom-green focus:outline-none focus:ring-2 focus:ring-custom-green"
+                  >
+                    <h3 className="font-medium text-gray-900">Medium</h3>
+                    <p className="text-sm text-gray-600 mt-1">Well-defined projects</p>
+                  </button>
+                  <button
+                    onClick={() => setSelectedScope('large')}
+                    className="w-full text-left p-4 border rounded-lg hover:border-custom-green focus:outline-none focus:ring-2 focus:ring-custom-green"
+                  >
+                    <h3 className="font-medium text-gray-900">Large</h3>
+                    <p className="text-sm text-gray-600 mt-1">Longer term or complex initiatives</p>
+                  </button>
+                </div>
               </div>
             )}
-
-            {/* Next button */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleNext}
-                className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-custom-green hover:bg-custom-green-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-green"
-              >
-                Next: Budget
-              </button>
-            </div>
           </div>
+        </div>
+
+        {/* Next button */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleNext}
+            disabled={!selectedScope || !selectedDuration}
+            className={`px-6 py-2 rounded-md text-white ${
+              selectedScope && selectedDuration
+                ? 'bg-custom-green hover:bg-custom-green-dark'
+                : 'bg-gray-300 cursor-not-allowed'
+            }`}
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

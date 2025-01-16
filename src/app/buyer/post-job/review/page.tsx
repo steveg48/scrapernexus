@@ -21,42 +21,39 @@ interface Category {
   skills: Skill[];
 }
 
+// Create Supabase client outside component
+const supabase = createBrowserClient();
+
 export default function ReviewPage() {
+  const router = useRouter();
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
   const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createBrowserClient();
   
   const [jobDetails, setJobDetails] = useState({
     title: 'No title specified',
     description: 'No description provided',
     skills: [] as Skill[],
-    scope: {
-      scope: '',
-      duration: ''
-    },
+    scope: '',
+    frequency: '',
     location: 'Worldwide',
-    budget: '$0',
-    project_type: 'standard'
+    budget: '$0'
   });
 
   const [tempValues, setTempValues] = useState({
     title: '',
     description: '',
-    scope: {
-      scope: '',
-      duration: ''
-    },
+    scope: '',
+    frequency: '',
     location: '',
     budget: {
       type: 'fixed',
       fixedRate: '0',
       fromRate: '0',
       toRate: '0'
-    },
-    project_type: 'standard'
+    }
   });
 
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -77,46 +74,55 @@ export default function ReviewPage() {
         // Handle skills
         const skills = Array.isArray(storedData.skills) ? storedData.skills : [];
         
-        // Handle scope
-        const scope = storedData.scope || { scope: '', duration: '' };
+        // Handle scope - check if it's in the old format
+        let scope = '';
+        if (typeof storedData.scope === 'object' && storedData.scope !== null) {
+          scope = storedData.scope.scope || '';
+        } else {
+          scope = storedData.project_scope || '';
+        }
+        
+        // Handle frequency - check if it's in the old format
+        let frequency = '';
+        if (typeof storedData.scope === 'object' && storedData.scope !== null) {
+          frequency = storedData.scope.duration || '';
+        } else {
+          frequency = storedData.frequency || '';
+        }
         
         // Handle location
         const location = storedData.project_location === 'us' ? 'U.S. Only' : 'Worldwide';
         
         // Handle budget
         const budget = formatBudget(storedData.budget);
-        
-        // Handle project type
-        const project_type = storedData.project_type || 'standard';
 
         setJobDetails({
           title,
           description,
           skills,
           scope,
+          frequency,
           location,
-          budget,
-          project_type
+          budget
         });
 
-        // Also set initial temp values
         setTempValues({
           title: storedData.title || '',
           description: storedData.description || '',
-          scope: storedData.scope || { scope: '', duration: '' },
+          scope,
+          frequency,
           location: storedData.project_location || 'worldwide',
           budget: storedData.budget || {
             type: 'fixed',
             fixedRate: '0',
             fromRate: '0',
             toRate: '0'
-          },
-          project_type: storedData.project_type || 'standard'
+          }
         });
 
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error loading job details:', error);
-      } finally {
+        console.error('Error initializing page:', error);
         setIsLoading(false);
       }
     };
@@ -184,8 +190,12 @@ export default function ReviewPage() {
           setJobDetails(prev => ({ ...prev, description: tempValues.description }));
           break;
         case 'scope':
-          await store.saveField('scope', tempValues.scope);
+          await store.saveField('project_scope', tempValues.scope);
           setJobDetails(prev => ({ ...prev, scope: tempValues.scope }));
+          break;
+        case 'frequency':
+          await store.saveField('frequency', tempValues.frequency);
+          setJobDetails(prev => ({ ...prev, frequency: tempValues.frequency }));
           break;
         case 'location':
           await store.saveField('project_location', tempValues.location);
@@ -249,11 +259,13 @@ export default function ReviewPage() {
           toRate: '0'
         }
       }));
-    } else if (field === 'scope') {
+    } else if (field === 'scope' || field === 'frequency') {
       const currentScope = getJobPostingStore().getField('scope');
+      const currentFrequency = getJobPostingStore().getField('frequency');
       setTempValues(prev => ({
         ...prev,
-        scope: currentScope || { scope: '', duration: '' }
+        scope: currentScope || '',
+        frequency: currentFrequency || ''
       }));
     } else {
       setTempValues(prev => ({
@@ -286,8 +298,6 @@ export default function ReviewPage() {
         : [...prev.skills, skill]
     }));
   };
-
-  const router = useRouter();
 
   const handleFinalize = () => {
     router.push('/buyer/post-job/feature');
@@ -432,7 +442,25 @@ export default function ReviewPage() {
             <div className="flex justify-between items-start border-b border-gray-100 pb-6">
               <div className="flex-grow">
                 <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Scope</h3>
-                <p className="text-gray-600">{formatBudget(jobDetails.scope)}</p>
+                <p className="text-gray-600">
+                  {jobDetails.scope || 'Not specified'}
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsScopeModalOpen(true)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Frequency Section */}
+            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
+              <div className="flex-grow">
+                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Frequency</h3>
+                <p className="text-gray-600">
+                  {jobDetails.frequency || 'Not specified'}
+                </p>
               </div>
               <button 
                 onClick={() => setIsScopeModalOpen(true)}
@@ -575,14 +603,6 @@ export default function ReviewPage() {
               </button>
             </div>
 
-            {/* Project Type Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Project Type</h3>
-                <p className="text-gray-600">Post as standard for free</p>
-              </div>
-            </div>
-
           </div>
 
           {/* Back and Next Buttons */}
@@ -718,7 +738,7 @@ export default function ReviewPage() {
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Select Scope</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Select Scope and Frequency</h2>
                 <button
                   onClick={() => setIsScopeModalOpen(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -735,13 +755,10 @@ export default function ReviewPage() {
                       type="radio"
                       name="scope"
                       value="Large"
-                      checked={tempValues.scope.scope === 'Large'}
+                      checked={tempValues.scope === 'Large'}
                       onChange={(e) => setTempValues({
                         ...tempValues,
-                        scope: {
-                          ...tempValues.scope,
-                          scope: e.target.value
-                        }
+                        scope: e.target.value
                       })}
                       className="h-4 w-4 text-custom-green"
                     />
@@ -758,13 +775,10 @@ export default function ReviewPage() {
                       type="radio"
                       name="scope"
                       value="Medium"
-                      checked={tempValues.scope.scope === 'Medium'}
+                      checked={tempValues.scope === 'Medium'}
                       onChange={(e) => setTempValues({
                         ...tempValues,
-                        scope: {
-                          ...tempValues.scope,
-                          scope: e.target.value
-                        }
+                        scope: e.target.value
                       })}
                       className="h-4 w-4 text-custom-green"
                     />
@@ -781,13 +795,10 @@ export default function ReviewPage() {
                       type="radio"
                       name="scope"
                       value="Small"
-                      checked={tempValues.scope.scope === 'Small'}
+                      checked={tempValues.scope === 'Small'}
                       onChange={(e) => setTempValues({
                         ...tempValues,
-                        scope: {
-                          ...tempValues.scope,
-                          scope: e.target.value
-                        }
+                        scope: e.target.value
                       })}
                       className="h-4 w-4 text-custom-green"
                     />
@@ -799,23 +810,20 @@ export default function ReviewPage() {
                 </label>
               </div>
 
-              {/* Duration Section */}
+              {/* Frequency Section */}
               <div className="mb-6">
-                <h3 className="text-base font-medium text-gray-900 mb-4">How long will your work take?</h3>
+                <h3 className="text-base font-medium text-gray-900 mb-4">How often will you need this work done?</h3>
                 <div className="space-y-4">
                   <label className="block">
                     <div className="flex items-center">
                       <input
                         type="radio"
-                        name="duration"
+                        name="frequency"
                         value="one-time"
-                        checked={tempValues.scope.duration === 'one-time'}
+                        checked={tempValues.frequency === 'one-time'}
                         onChange={(e) => setTempValues({
                           ...tempValues,
-                          scope: {
-                            ...tempValues.scope,
-                            duration: e.target.value
-                          }
+                          frequency: e.target.value
                         })}
                         className="h-4 w-4 text-custom-green"
                       />
@@ -827,15 +835,12 @@ export default function ReviewPage() {
                     <div className="flex items-center">
                       <input
                         type="radio"
-                        name="duration"
+                        name="frequency"
                         value="weekly"
-                        checked={tempValues.scope.duration === 'weekly'}
+                        checked={tempValues.frequency === 'weekly'}
                         onChange={(e) => setTempValues({
                           ...tempValues,
-                          scope: {
-                            ...tempValues.scope,
-                            duration: e.target.value
-                          }
+                          frequency: e.target.value
                         })}
                         className="h-4 w-4 text-custom-green"
                       />
@@ -847,15 +852,12 @@ export default function ReviewPage() {
                     <div className="flex items-center">
                       <input
                         type="radio"
-                        name="duration"
+                        name="frequency"
                         value="monthly"
-                        checked={tempValues.scope.duration === 'monthly'}
+                        checked={tempValues.frequency === 'monthly'}
                         onChange={(e) => setTempValues({
                           ...tempValues,
-                          scope: {
-                            ...tempValues.scope,
-                            duration: e.target.value
-                          }
+                          frequency: e.target.value
                         })}
                         className="h-4 w-4 text-custom-green"
                       />
@@ -876,6 +878,7 @@ export default function ReviewPage() {
                 <button
                   onClick={() => {
                     handleSave('scope');
+                    handleSave('frequency');
                     setIsScopeModalOpen(false);
                   }}
                   className="px-4 py-2 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"

@@ -62,7 +62,7 @@ export default function SignUpPage() {
           emailRedirectTo: `${location.origin}/auth/callback`
         }
       })
-
+Xy
       if (authError) {
         console.error('Signup error:', authError)
         setMessage(authError.message)

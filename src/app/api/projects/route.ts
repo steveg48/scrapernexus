@@ -97,7 +97,7 @@ export async function POST(request: Request) {
                     budget_fixed_price: projectData.budget_fixed_price,
                     project_budget_type: projectData.project_budget_type,
                     project_location: projectData.project_location,
-                    project_scope: projectData.project_scope,
+                    project_scope: projectData.scope?.scope || projectData.project_scope || '',
                     project_type: projectData.project_type,
                     data_fields: projectData.data_fields,
                     project_id: undefined // Let Supabase generate this

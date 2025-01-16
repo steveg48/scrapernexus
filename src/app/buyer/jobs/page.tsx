@@ -200,14 +200,14 @@ export default function JobsPage() {
                   <div className="flex items-center gap-2">
                     {job.isDraft ? (
                       <Link
-                        href={`/buyer/jobs/${job.id}/edit`}
+                        href={`/buyer/jobs/details/${job.id}/edit`}
                         className="inline-flex items-center px-4 py-2 rounded-lg border border-[#14a800] text-[#14a800] hover:bg-[#14a800]/5"
                       >
                         Edit draft
                       </Link>
                     ) : (
                       <Link
-                        href={`/buyer/jobs/${job.id}`}
+                        href={`/buyer/jobs/details/${job.id}`}
                         className="inline-flex items-center px-4 py-2 rounded-lg text-[#14a800] hover:text-[#14a800]/90"
                       >
                         View proposals

@@ -12,40 +12,48 @@ export const supabaseServer = createClient(
   }
 )
 
+let browserClient: ReturnType<typeof createClientComponentClient> | null = null;
+
 // Use this in client components
 export const createBrowserClient = () => {
-  return createClientComponentClient({
-    options: {
-      auth: {
-        persistSession: true,
-        storageKey: 'supabase-auth',
-        storage: {
-          getItem: (key) => {
-            try {
-              const value = localStorage.getItem(key)
-              return value
-            } catch (error) {
-              // Handle cases where localStorage is not available
-              console.warn('LocalStorage not available:', error)
-              return null
-            }
-          },
-          setItem: (key, value) => {
-            try {
-              localStorage.setItem(key, value)
-            } catch (error) {
-              console.warn('LocalStorage not available:', error)
-            }
-          },
-          removeItem: (key) => {
-            try {
-              localStorage.removeItem(key)
-            } catch (error) {
-              console.warn('LocalStorage not available:', error)
-            }
+  if (typeof window === 'undefined') {
+    return null; // Return null if we're on the server side
+  }
+
+  if (!browserClient) {
+    browserClient = createClientComponentClient({
+      options: {
+        auth: {
+          persistSession: true,
+          storageKey: 'supabase-auth',
+          storage: {
+            getItem: (key) => {
+              try {
+                return localStorage.getItem(key)
+              } catch (error) {
+                console.warn('LocalStorage not available:', error)
+                return null
+              }
+            },
+            setItem: (key, value) => {
+              try {
+                localStorage.setItem(key, value)
+              } catch (error) {
+                console.warn('LocalStorage not available:', error)
+              }
+            },
+            removeItem: (key) => {
+              try {
+                localStorage.removeItem(key)
+              } catch (error) {
+                console.warn('LocalStorage not available:', error)
+              }
+            },
           },
         },
       },
-    },
-  })
+    })
+  }
+
+  return browserClient;
 }

@@ -2,10 +2,8 @@ interface JobPostingData {
   title?: string;
   description?: string;
   skills?: Array<{ skill_id: string; name: string }>;
-  scope?: {
-    scope: string;
-    duration: string;
-  };
+  project_scope?: string;
+  frequency?: string;
   budget?: {
     type: 'hourly' | 'fixed';
     fromRate?: string;
@@ -60,29 +58,47 @@ class JobPostingStore {
   }
 
   public async saveField<T>(key: keyof JobPostingData, value: T): Promise<void> {
+    if (!this.isClient) {
+      console.warn('Attempting to save data in server context');
+      return;
+    }
+    
     await this.initialize();
     this.data[key] = value;
     await this.persistToStorage();
   }
 
   public async getField<T>(key: keyof JobPostingData): Promise<T | undefined> {
+    if (!this.isClient) {
+      console.warn('Attempting to get data in server context');
+      return undefined;
+    }
+    
     await this.initialize();
     return this.data[key] as T;
   }
 
   public async getAllData(): Promise<JobPostingData> {
+    if (!this.isClient) {
+      console.warn('Attempting to get all data in server context');
+      return {};
+    }
+    
     await this.initialize();
     return { ...this.data };
   }
 
   public async clearData(): Promise<void> {
+    if (!this.isClient) {
+      console.warn('Attempting to clear data in server context');
+      return;
+    }
+    
     this.data = {};
-    if (this.isClient) {
-      try {
-        localStorage.removeItem('job_posting_draft');
-      } catch (error) {
-        console.error('Error clearing localStorage:', error);
-      }
+    try {
+      localStorage.removeItem('job_posting_draft');
+    } catch (error) {
+      console.error('Error clearing localStorage:', error);
     }
     this.initialized = false;
   }
