@@ -1,13 +1,12 @@
 import './globals.css'
-import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { cookies } from 'next/headers'
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'ScrapeNexus - Find Web Scraping Experts',
+export const metadata = {
+  title: 'ScrapeNexus',
   description: 'Connect with top web scraping experts for your projects'
 }
 
@@ -16,13 +15,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = createServerComponentClient({ cookies })
 
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
+        <div className="min-h-screen bg-gray-50">
+          {children}
+        </div>
       </body>
     </html>
   )
