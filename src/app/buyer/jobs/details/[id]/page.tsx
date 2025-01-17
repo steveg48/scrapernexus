@@ -31,7 +31,7 @@ export default async function JobDetailsPage({ params }: { params: { id: string 
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-gray-50">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white shadow rounded-lg p-6">
@@ -52,37 +52,31 @@ export default async function JobDetailsPage({ params }: { params: { id: string 
       throw new Error('Invalid project ID')
     }
 
-    // Get job details
-    const { data: job, error: jobError } = await supabase
-      .from('project_postings')
-      .select(`
-        *,
-        project_skills (
-          skill_id,
-          skills (
-            skill_id,
-            skill_name,
-            category_id,
-            skill_categories (
-              category_name
-            )
-          )
-        )
-      `)
-      .eq('project_id', projectId)
-      .single()
+    // Fetch job details from the REST endpoint
+    const response = await fetch(
+      `https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/project_postings_with_skills?project_postings_id=eq.${projectId}`,
+      {
+        headers: {
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      }
+    )
 
-    if (jobError) {
-      throw new Error(jobError.message || 'Failed to load job details')
+    if (!response.ok) {
+      throw new Error('Failed to fetch job details')
     }
 
-    if (!job) {
+    const data = await response.json()
+    if (!data || data.length === 0) {
       throw new Error('Job not found')
     }
 
+    const job = data[0]
+
     // Transform job data
     const transformedJob: Job = {
-      id: job.project_id.toString(),
+      id: job.project_postings_id.toString(),
       title: job.title || 'Untitled',
       description: job.description || '',
       created_at: job.created_at,
@@ -94,24 +88,20 @@ export default async function JobDetailsPage({ params }: { params: { id: string 
       project_scope: job.project_scope || '',
       project_type: job.project_type || '',
       project_location: job.project_location || '',
-      skills: job.project_skills?.map((ps: any) => ({
-        id: ps.skills.skill_id.toString(),
-        name: ps.skills.skill_name,
-        category: ps.skills.skill_categories?.category_name || ''
-      })) || []
+      skills: job.skills || []
     }
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-gray-50">
         <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="container mx-auto px-4 mt-4">
           <JobDetails job={transformedJob} />
         </div>
       </div>
     )
   } catch (error: any) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-gray-50">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white shadow rounded-lg p-6">

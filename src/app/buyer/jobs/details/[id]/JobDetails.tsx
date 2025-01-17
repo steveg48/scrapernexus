@@ -2,9 +2,6 @@
 
 import { ArrowLeft, Edit, Eye, Copy, X, Lock, MapPin, Clock, Briefcase } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import supabaseClient from '@/lib/supabaseClient'
-import { getJobDetails } from './actions'
 
 interface Skill {
   id: string
@@ -28,49 +25,11 @@ interface JobPost {
   skills: Skill[]
 }
 
-export default function JobDetails({ jobId }: { jobId: string }) {
-  const [job, setJob] = useState<JobPost | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function fetchJob() {
-      try {
-        const jobData = await getJobDetails(jobId);
-        setJob(jobData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch job details');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchJob();
-  }, [jobId]);
-
-  if (loading) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    )
-  }
-
+export default function JobDetails({ job }: { job: JobPost }) {
   if (!job || !job.id) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="text-red-500">Invalid job data</div>
-        <Link href="/buyer/dashboard" className="text-blue-500 hover:underline mt-4 inline-block">
-          Return to Dashboard
-        </Link>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="text-red-500">{error}</div>
         <Link href="/buyer/dashboard" className="text-blue-500 hover:underline mt-4 inline-block">
           Return to Dashboard
         </Link>

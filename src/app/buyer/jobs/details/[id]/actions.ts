@@ -3,7 +3,7 @@
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 
-// Initialize Supabase client with environment variables
+const supabaseUrl = 'https://exqsnrdlctgxutmwpjua.supabase.co'
 const supabase = createServerActionClient({ cookies: () => cookies() })
 
 export async function getJobDetails(jobId: string) {
@@ -13,43 +13,33 @@ export async function getJobDetails(jobId: string) {
       throw new Error('Invalid project ID')
     }
 
-    // Get job details without joins
-    const { data: job, error: jobError } = await supabase
-      .from('project_postings')
-      .select('*')
-      .eq('project_postings_id', projectId)
-      .maybeSingle()
+    // Get the current session for the auth token
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      throw new Error('Not authenticated')
+    }
 
-    if (jobError) {
-      console.error('Database error:', jobError)
+    // Fetch job details from the REST endpoint
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/project_postings_with_skills?project_postings_id=eq.${projectId}`,
+      {
+        headers: {
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
       throw new Error('Failed to fetch job details')
     }
 
-    if (!job) {
+    const data = await response.json()
+    if (!data || data.length === 0) {
       throw new Error('Job not found')
     }
 
-    // Get skills in a separate query
-    const { data: projectSkills } = await supabase
-      .from('project_skills')
-      .select('skill_id')
-      .eq('project_postings_id', projectId)
-
-    const skills = []
-    if (projectSkills && projectSkills.length > 0) {
-      const { data: skillsData } = await supabase
-        .from('skills')
-        .select('skill_id, skill_name, skill_categories(category_name)')
-        .in('skill_id', projectSkills.map(ps => ps.skill_id))
-
-      if (skillsData) {
-        skills.push(...skillsData.map(skill => ({
-          id: skill.skill_id.toString(),
-          name: skill.skill_name,
-          category: skill.skill_categories?.category_name || ''
-        })))
-      }
-    }
+    const job = data[0]
 
     // Format the project scope as a string
     let projectScope = ''
@@ -76,10 +66,10 @@ export async function getJobDetails(jobId: string) {
       project_scope: projectScope,
       project_type: job.project_type || '',
       project_location: job.project_location || '',
-      skills
+      skills: job.skills || []
     }
   } catch (error) {
-    console.error('Error in getJobDetails:', error)
+    console.error('Error fetching job details:', error)
     throw error
   }
 }

@@ -44,7 +44,7 @@ export default function JobsList({ jobs }: JobsListProps) {
             </div>
           </div>
           <Link
-            href={`/buyer/jobs/${job.id}`}
+            href={`/buyer/jobs/details/${job.id}`}
             className="text-sm text-[#59baea] hover:text-[#59baea]/80"
           >
             Open Job Posting
