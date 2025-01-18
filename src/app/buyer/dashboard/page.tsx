@@ -2,7 +2,6 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import DashboardClient from './DashboardClient'
-import TopNavigation from '@/components/TopNavigation'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -35,7 +34,6 @@ export default async function DashboardPage() {
 
     return (
       <>
-        <TopNavigation />
         <DashboardClient
           initialProfile={profileResult.data || { display_name: session.user.email }}
           initialJobs={

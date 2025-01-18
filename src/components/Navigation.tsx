@@ -23,7 +23,8 @@ export default function Navigation() {
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const hireDropdownRef = useRef<HTMLDivElement>(null);
+  const manageDropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +56,9 @@ export default function Navigation() {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const handleDropdownClick = (dropdownName: string) => {
-    setActiveDropdown(activeDropdown === dropdownName ? null : dropdownName);
+    const newState = activeDropdown === dropdownName ? null : dropdownName;
+    console.log(`Dropdown ${dropdownName} clicked. Current: ${activeDropdown}, New: ${newState}`);
+    setActiveDropdown(newState);
     setShowNotifications(false);
     setShowProfileMenu(false);
   };
@@ -96,8 +99,10 @@ export default function Navigation() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current && 
-        !dropdownRef.current.contains(event.target as Node) &&
+        hireDropdownRef.current && 
+        !hireDropdownRef.current.contains(event.target as Node) &&
+        manageDropdownRef.current && 
+        !manageDropdownRef.current.contains(event.target as Node) &&
         notificationsRef.current && 
         !notificationsRef.current.contains(event.target as Node) &&
         profileMenuRef.current && 
@@ -134,7 +139,7 @@ export default function Navigation() {
 
               {/* Nav Links */}
               <div className="ml-10 flex items-center space-x-8">
-                <div className="relative group" ref={dropdownRef}>
+                <div className="relative" ref={hireDropdownRef}>
                   <button 
                     className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
                     onClick={() => handleDropdownClick('hire')}
@@ -144,28 +149,57 @@ export default function Navigation() {
                   </button>
 
                   {activeDropdown === 'hire' && (
-                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                      <div className="py-1">
+                    <div className="absolute z-50 left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
+                      <div className="py-2">
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <h3 className="text-sm font-semibold text-gray-900">Manage jobs and offers</h3>
+                        </div>
                         <Link
                           href="/buyer/dashboard"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setActiveDropdown(null)}
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         >
-                          Post a Job
+                          Job posts and proposals
                         </Link>
                         <Link
-                          href="/buyer/talent"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setActiveDropdown(null)}
+                          href="/buyer/offers"
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         >
-                          Talent Marketplace
+                          Pending offers
+                        </Link>
+                        
+                        <div className="px-4 py-2 border-b border-t border-gray-100 mt-2">
+                          <h3 className="text-sm font-semibold text-gray-900">Find freelancers</h3>
+                        </div>
+                        <Link
+                          href="/buyer/jobs/post"
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Post a job
+                        </Link>
+                        <Link
+                          href="/buyer/search"
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Search for talent
+                        </Link>
+                        <Link
+                          href="/buyer/hired"
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Talent you've hired
+                        </Link>
+                        <Link
+                          href="/buyer/saved"
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Talent you've saved
                         </Link>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="relative group" ref={dropdownRef}>
+                <div className="relative" ref={manageDropdownRef}>
                   <button 
                     className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
                     onClick={() => handleDropdownClick('manage')}
@@ -175,21 +209,22 @@ export default function Navigation() {
                   </button>
 
                   {activeDropdown === 'manage' && (
-                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                      <div className="py-1">
-                        <Link
-                          href="/buyer/jobs"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setActiveDropdown(null)}
-                        >
-                          All Jobs
-                        </Link>
+                    <div className="absolute z-50 left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
+                      <div className="py-2">
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <h3 className="text-sm font-semibold text-gray-900">Current work</h3>
+                        </div>
                         <Link
                           href="/buyer/contracts"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setActiveDropdown(null)}
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         >
-                          All Contracts
+                          Your contracts
+                        </Link>
+                        <Link
+                          href="/buyer/timesheets"
+                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Timesheets
                         </Link>
                       </div>
                     </div>
