@@ -18,10 +18,11 @@ export default function PostJobScope() {
       try {
         const store = getJobPostingStore();
         await store.initialize();
-        const storedScope = await store.getField<string>('project_scope');
-        const storedFrequency = await store.getField<string>('frequency');
-        setSelectedScope(storedScope || '');
-        setSelectedDuration(storedFrequency || '');
+        const storedData = await store.getField<{ scope: string; duration: string }>('scope');
+        if (storedData) {
+          setSelectedScope(storedData.scope || '');
+          setSelectedDuration(storedData.duration || '');
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -36,8 +37,11 @@ export default function PostJobScope() {
       try {
         const store = getJobPostingStore();
         await store.initialize();
-        await store.saveField('project_scope', selectedScope);
-        await store.saveField('frequency', selectedDuration);
+        await store.saveField('scope', {
+          scope: selectedScope,
+          duration: selectedDuration
+        });
+        await store.saveField('project_scope', selectedScope.toLowerCase());
         router.push('/buyer/post-job/budget');
       } catch (error) {
         console.error('Error saving data:', error);
@@ -121,6 +125,7 @@ export default function PostJobScope() {
                           className="h-4 w-4 text-custom-green border-gray-300 focus:ring-custom-green"
                         />
                         <span className="ml-3 text-gray-900">One-time project</span>
+                        <span className="ml-2 text-sm text-gray-500">Single scraping task or project</span>
                       </div>
                     </label>
                     <label className="block">
@@ -128,12 +133,27 @@ export default function PostJobScope() {
                         <input
                           type="radio"
                           name="duration"
-                          value="ongoing"
-                          checked={selectedDuration === 'ongoing'}
+                          value="weekly"
+                          checked={selectedDuration === 'weekly'}
                           onChange={(e) => setSelectedDuration(e.target.value)}
                           className="h-4 w-4 text-custom-green border-gray-300 focus:ring-custom-green"
                         />
-                        <span className="ml-3 text-gray-900">Ongoing project</span>
+                        <span className="ml-3 text-gray-900">Weekly scraping</span>
+                        <span className="ml-2 text-sm text-gray-500">Data updated every week</span>
+                      </div>
+                    </label>
+                    <label className="block">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          name="duration"
+                          value="monthly"
+                          checked={selectedDuration === 'monthly'}
+                          onChange={(e) => setSelectedDuration(e.target.value)}
+                          className="h-4 w-4 text-custom-green border-gray-300 focus:ring-custom-green"
+                        />
+                        <span className="ml-3 text-gray-900">Monthly scraping</span>
+                        <span className="ml-2 text-sm text-gray-500">Data updated every month</span>
                       </div>
                     </label>
                   </div>

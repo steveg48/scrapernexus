@@ -79,8 +79,7 @@ export default function FeaturePage() {
       const frequencyMap = {
         'one-time': 'one-time',
         'weekly': 'weekly',
-        'monthly': 'monthly',
-        'yearly': 'yearly'
+        'monthly': 'monthly'
       };
 
       // Prepare project data

@@ -143,7 +143,7 @@ export function validateProjectData(data: ProjectPostingData): void {
     }
 
     // Validate frequency enum
-    const validFrequencies = ['one-time', 'weekly', 'monthly', 'yearly'];
+    const validFrequencies = ['one-time', 'weekly', 'monthly'];
     if (!validFrequencies.includes(data.frequency)) {
         throw new Error('Invalid frequency value');
     }

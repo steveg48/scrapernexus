@@ -14,11 +14,11 @@ interface JobsListProps {
 
 export default function JobsList({ jobs }: JobsListProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {jobs.map((job) => (
         <div
           key={job.id}
-          className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg"
+          className="flex items-center justify-between p-6 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
         >
           <div className="flex items-center space-x-3">
             <div className="h-8 w-8 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -39,13 +39,18 @@ export default function JobsList({ jobs }: JobsListProps) {
             <div>
               <h3 className="text-sm font-medium text-gray-900">{job.title}</h3>
               <p className="text-sm text-gray-500">
-                Created {new Date(job.created_at).toLocaleDateString()}
+                Created {new Date(job.created_at).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                  ordinal: true
+                })}
               </p>
             </div>
           </div>
           <Link
             href={`/buyer/jobs/details/${job.id}`}
-            className="text-sm text-[#59baea] hover:text-[#59baea]/80"
+            className="px-4 py-2 bg-[#59baea] hover:bg-[#59baea]/90 text-white rounded-md text-sm font-medium transition-colors"
           >
             Open Job Posting
           </Link>
