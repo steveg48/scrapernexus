@@ -13,11 +13,15 @@ interface Job {
   project_status: string;
 }
 
+interface Profile {
+  display_name: string;
+}
+
 export default function DashboardClient() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
+  const [displayName, setDisplayName] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 5;
   const supabase = createBrowserClient();
@@ -27,11 +31,20 @@ export default function DashboardClient() {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
-        
-        if (user?.email) {
-          setUserEmail(user.email);
+
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user?.id)
+          .single();
+
+        if (profile?.display_name) {
+          const firstName = profile.display_name.split(' ')[0];
+          setDisplayName(firstName);
         }
 
+        // Fetch jobs
         const { data: jobsData, error: jobsError } = await supabase
           .from('project_postings')
           .select('*')
@@ -82,7 +95,7 @@ export default function DashboardClient() {
         <div className="max-w-7xl mx-auto px-8 sm:px-10 lg:px-12 py-8">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-medium text-gray-900">
-              Hi, {userEmail || 'there'}
+              Hi, {displayName || 'there'}
             </h1>
             <Link
               href="/buyer/post-job"
