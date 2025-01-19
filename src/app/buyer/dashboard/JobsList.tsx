@@ -43,7 +43,7 @@ export default function JobsList({ jobs }: JobsListProps) {
           href={`/buyer/jobs/details/${job.project_postings_id}`}
           className="block group"
         >
-          <div className="bg-white border border-gray-200 rounded-lg p-6 hover:border-[#59baea] transition-colors">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 hover:bg-gray-50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
