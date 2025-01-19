@@ -246,7 +246,7 @@ export default function Navigation() {
             {/* Right side */}
             <div className="flex items-center space-x-6">
               {/* Search */}
-              <div className="relative w-64">
+              <div className="relative w-96">
                 <input
                   type="text"
                   placeholder="Search..."
