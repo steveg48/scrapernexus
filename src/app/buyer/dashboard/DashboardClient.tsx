@@ -1,43 +1,74 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createBrowserClient } from '@/lib/supabase';
 import JobsList from './JobsList';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
-import { useState } from 'react';
-
-interface UserProfile {
-  id?: string;
-  display_name: string;
-  member_type?: string;
-  created_at?: string;
-}
 
 interface Job {
-  id: string;
+  project_postings_id: number;
   title: string;
-  description: string;
   created_at: string;
-  status: string;
-  data_fields: any;
-  frequency: string;
+  project_status: string;
 }
 
-interface DashboardClientProps {
-  initialProfile: UserProfile;
-  initialJobs: Job[];
-}
-
-export default function DashboardClient({ initialProfile, initialJobs }: DashboardClientProps) {
-  const firstName = initialProfile?.display_name?.split(' ')[0] || 'there';
+export default function DashboardClient() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 5;
+  const supabase = createBrowserClient();
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        
+        if (user?.email) {
+          setUserEmail(user.email);
+        }
+
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('project_postings')
+          .select('*')
+          .eq('buyer_id', user?.id)
+          .order('created_at', { ascending: false });
+
+        if (jobsError) throw jobsError;
+        setJobs(jobsData || []);
+      } catch (err) {
+        console.error('Error:', err);
+        setError('Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500">
+        Error: {error}
+      </div>
+    );
+  }
 
   // Calculate pagination values
-  const totalJobs = initialJobs.length;
+  const totalJobs = jobs.length;
   const totalPages = Math.ceil(totalJobs / jobsPerPage);
   const startIndex = (currentPage - 1) * jobsPerPage;
   const endIndex = startIndex + jobsPerPage;
-  const currentJobs = initialJobs.slice(startIndex, endIndex);
+  const currentJobs = jobs.slice(startIndex, endIndex);
 
   // Handle page changes
   const handlePageChange = (pageNumber: number) => {
@@ -51,7 +82,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         <div className="max-w-7xl mx-auto px-8 sm:px-10 lg:px-12 py-8">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-medium text-gray-900">
-              Hi, {firstName}
+              Hi, {userEmail || 'there'}
             </h1>
             <Link
               href="/buyer/post-job"
