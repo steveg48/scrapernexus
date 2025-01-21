@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
+import { getBrowserClient } from '@/lib/supabase';
 
 interface AuthFormProps {
   isSignUp?: boolean;
@@ -15,8 +16,7 @@ export default function AuthForm({ isSignUp = false }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo');
+  const supabase = getBrowserClient();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,36 +24,38 @@ export default function AuthForm({ isSignUp = false }: AuthFormProps) {
     setMessage('');
 
     try {
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email, 
-          password, 
-          action: isSignUp ? 'signUp' : 'signIn' 
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
       if (isSignUp) {
-        setMessage(data.message || 'Please check your email for the confirmation link.');
-      } else {
-        if (!data.session) {
-          throw new Error('No session returned');
-        }
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
 
-        if (!data.memberType) {
-          throw new Error('No member type returned');
-        }
+        if (error) throw error;
+        setMessage('Please check your email for the confirmation link.');
+      } else {
+        const { data: { user }, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        if (!user) throw new Error('No user returned after sign in');
+
+        // Get user's member type
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('member_type')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        if (!profile) throw new Error('No profile found');
 
         // Redirect to the appropriate dashboard
-        const dashboardPath = redirectTo || `/${data.memberType}/dashboard`;
-        router.push(dashboardPath);
+        router.push(`/${profile.member_type}/dashboard`);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
