@@ -1,11 +1,13 @@
+import SupabaseProvider from '@/components/providers/SupabaseProvider'
+
 export default function SellerLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <div>
+    <SupabaseProvider>
       {children}
-    </div>
-  );
+    </SupabaseProvider>
+  )
 }

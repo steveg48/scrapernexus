@@ -1,32 +1,32 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export async function middleware(request: NextRequest) {
+  const res = NextResponse.next()
+  const pathname = request.nextUrl.pathname
 
-  // Refresh session if expired
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // If there's no session and the request is for a protected route
-  if (!session && (
-    req.nextUrl.pathname.startsWith('/buyer') ||
-    req.nextUrl.pathname.startsWith('/seller')
-  )) {
-    const redirectUrl = new URL('/auth/login', req.url);
-    return NextResponse.redirect(redirectUrl);
+  // Skip middleware for public routes and static files
+  if (
+    pathname === '/' || 
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon.ico')
+  ) {
+    return res
   }
 
-  return res;
+  try {
+    const supabase = createMiddlewareClient({ req: request, res })
+    await supabase.auth.getSession()
+    return res
+  } catch (e) {
+    console.error('Middleware error:', e)
+    return res
+  }
 }
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/buyer/:path*',
-    '/seller/:path*',
-    '/auth/:path*',
-    '/api/:path*'
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ]
 }

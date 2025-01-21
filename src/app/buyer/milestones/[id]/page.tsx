@@ -1,11 +1,18 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { MoreHorizontal, RotateCcw, Upload } from 'lucide-react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import ProfileImage from '@/components/ProfileImage';
 import MilestoneTimeline from '@/components/MilestoneTimeline';
+
+interface Job {
+  id: string
+  title: string
+}
 
 interface ProjectStats {
   projectPrice: number;
@@ -15,40 +22,129 @@ interface ProjectStats {
   totalCharges: number;
 }
 
+interface Milestone {
+  title: string;
+  amount: number;
+  status: 'paid' | 'pending' | 'rejected';
+}
+
+interface RecentFile {
+  name: string;
+  size: string;
+  uploadedBy: string;
+  uploadTime: string;
+  message: string;
+}
+
 export default function MilestonePage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [job, setJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const params = useParams()
+  const supabase = createClientComponentClient()
 
-  const projectStats: ProjectStats = {
-    projectPrice: 250.00,
-    inEscrow: 0.00,
-    milestonesPaid: 250.00,
-    milestonesRemaining: 0.00,
-    totalCharges: 260.00
-  };
+  const [projectStats, setProjectStats] = useState<ProjectStats>({
+    projectPrice: 0,
+    inEscrow: 0,
+    milestonesPaid: 0,
+    milestonesRemaining: 0,
+    totalCharges: 0
+  });
 
-  const milestones = [
-    {
-      title: 'Automate Execution and Reporting of Cucumber Tests',
-      amount: 25.00,
-      status: 'paid' as const
-    },
-    {
-      title: 'Google Sheet Report',
-      amount: 225.00,
-      description: 'As discussed',
-      status: 'paid' as const
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
+
+  useEffect(() => {
+    async function loadJob() {
+      try {
+        const { data: job, error } = await supabase
+          .from('jobs')
+          .select('id, title')
+          .eq('id', params.id)
+          .single()
+
+        if (error) throw error
+
+        setJob(job)
+      } catch (error: any) {
+        setError(error.message)
+      } finally {
+        setLoading(false)
+      }
     }
-  ];
 
-  const recentFiles = [
-    {
-      name: 'loginfail.png',
-      size: '28.02 kB',
-      uploadedBy: 'Steven Greenbaum',
-      uploadTime: '7:31 AM',
-      message: 'all failed in login step in scheduled run last night'
+    loadJob()
+  }, [params.id, supabase])
+
+  useEffect(() => {
+    async function loadProjectStats() {
+      try {
+        const { data, error } = await supabase
+          .from('project_stats')
+          .select('projectPrice, inEscrow, milestonesPaid, milestonesRemaining, totalCharges')
+          .eq('jobId', params.id)
+          .single()
+
+        if (error) throw error
+
+        setProjectStats(data)
+      } catch (error: any) {
+        setError(error.message)
+      }
     }
-  ];
+
+    loadProjectStats()
+  }, [params.id, supabase])
+
+  useEffect(() => {
+    async function loadMilestones() {
+      try {
+        const { data, error } = await supabase
+          .from('milestones')
+          .select('title, amount, status')
+          .eq('jobId', params.id)
+
+        if (error) throw error
+
+        setMilestones(data)
+      } catch (error: any) {
+        setError(error.message)
+      }
+    }
+
+    loadMilestones()
+  }, [params.id, supabase])
+
+  useEffect(() => {
+    async function loadRecentFiles() {
+      try {
+        const { data, error } = await supabase
+          .from('recent_files')
+          .select('name, size, uploadedBy, uploadTime, message')
+          .eq('jobId', params.id)
+
+        if (error) throw error
+
+        setRecentFiles(data)
+      } catch (error: any) {
+        setError(error.message)
+      }
+    }
+
+    loadRecentFiles()
+  }, [params.id, supabase])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>
+  }
+
+  if (!job) {
+    return <div>Job not found</div>
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -60,7 +156,7 @@ export default function MilestonePage() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-semibold mb-4">
-                Automate Execution and Reporting of Cucumber Tests
+                {job.title}
               </h1>
               <div className="flex items-center gap-3">
                 <ProfileImage size="lg" />
@@ -91,11 +187,11 @@ export default function MilestonePage() {
               <p className="text-xl font-medium">${projectStats.inEscrow.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Milestones paid (2)</p>
+              <p className="text-sm text-gray-600">Milestones paid ({milestones.filter(milestone => milestone.status === 'paid').length})</p>
               <p className="text-xl font-medium">${projectStats.milestonesPaid.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Milestones remaining (0)</p>
+              <p className="text-sm text-gray-600">Milestones remaining ({milestones.filter(milestone => milestone.status !== 'paid').length})</p>
               <p className="text-xl font-medium">${projectStats.milestonesRemaining.toFixed(2)}</p>
             </div>
             <div>
@@ -114,11 +210,10 @@ export default function MilestonePage() {
               <button
                 key={tab}
                 className={`py-4 ${
-                  activeTab === tab.toLowerCase()
+                  tab === 'Overview'
                     ? 'border-b-2 border-gray-900 text-gray-900'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                onClick={() => setActiveTab(tab.toLowerCase())}
               >
                 {tab}
               </button>
