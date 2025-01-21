@@ -4,14 +4,18 @@ import { File } from 'lucide-react';
 import Link from 'next/link';
 
 interface Job {
-  project_postings_id: number;
+  id: number;
   title: string;
+  description: string;
   created_at: string;
-  project_status: string;
+  status: string;
+  data_fields: Record<string, any>;
+  frequency: string;
 }
 
 interface JobsListProps {
   jobs: Job[];
+  loading?: boolean;
 }
 
 const formatDate = (dateString: string) => {
@@ -26,7 +30,15 @@ const formatDate = (dateString: string) => {
   });
 };
 
-export default function JobsList({ jobs }: JobsListProps) {
+export default function JobsList({ jobs, loading }: JobsListProps) {
+  if (loading) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        Loading job postings...
+      </div>
+    );
+  }
+
   if (!jobs.length) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -39,8 +51,8 @@ export default function JobsList({ jobs }: JobsListProps) {
     <div className="space-y-4">
       {jobs.map((job) => (
         <Link
-          key={job.project_postings_id}
-          href={`/buyer/jobs/details/${job.project_postings_id}`}
+          key={job.id}
+          href={`/buyer/jobs/details/${job.id}`}
           className="block group"
         >
           <div className="bg-white border border-gray-200 rounded-lg p-6 hover:bg-gray-50 transition-colors">
@@ -51,12 +63,12 @@ export default function JobsList({ jobs }: JobsListProps) {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium">{job.title || 'Untitled'}</h3>
-                  <p className="text-sm text-gray-500">Created {formatDate(job.created_at)} | {job.project_status}</p>
+                  <p className="text-sm text-gray-500">Created {formatDate(job.created_at)} | {job.status}</p>
                 </div>
               </div>
 
               <div className="px-4 py-2 bg-[#59baea] text-white rounded-md text-sm font-medium">
-                Open Job Posting
+                {job.status === 'open' ? 'Open Job Posting' : job.status}
               </div>
             </div>
           </div>
