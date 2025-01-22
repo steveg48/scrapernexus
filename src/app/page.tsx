@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { CloudDownload } from 'lucide-react'
 
@@ -38,25 +40,69 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative isolate px-6 pt-14 lg:px-8">
-        <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
+      <div className="bg-blue-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-8">
               Web Scraping Made Easy
             </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
-              Connect with expert developers to build custom web scraping solutions for your business
+            <p className="text-xl text-gray-600 mb-8">
+              Connect with expert developers to build custom web scraping solutions
             </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
+            <div className="flex justify-center gap-4">
               <Link
                 href="/auth/signup"
-                className="rounded-md bg-[#14A800] px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#14A800]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#14A800]"
+                className="bg-[#FF1493] hover:bg-[#FF1493]/90 text-white px-6 py-3 rounded-full text-lg font-medium"
               >
-                Get started
+                Get Started
               </Link>
-              <Link href="/about" className="text-sm font-semibold leading-6 text-gray-900">
-                Learn more <span aria-hidden="true">→</span>
+              <Link
+                href="/about"
+                className="text-gray-700 hover:text-gray-900 px-6 py-3 rounded-full text-lg font-medium"
+              >
+                Learn More
               </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* How It Works */}
+      <div className="py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <div className="text-center">
+              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-[#3c8dd5] font-semibold text-lg">1</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Post Your Project</h3>
+              <p className="text-gray-600">
+                Tell us what you need. Get custom offers from our experts.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center">
+              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-[#3c8dd5] font-semibold text-lg">2</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Choose an Expert</h3>
+              <p className="text-gray-600">
+                Browse custom offers and pick the best one.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center">
+              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-[#3c8dd5] font-semibold text-lg">3</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Secure Payments</h3>
+              <p className="text-gray-600">
+                Pay safely through our secure platform.
+              </p>
             </div>
           </div>
         </div>
