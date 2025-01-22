@@ -23,6 +23,9 @@ interface JobPosting {
   frequency: string;
   budget: number;
   buyer_name: string;
+  project_scope?: string;
+  project_type?: string;
+  project_location?: string;
 }
 
 const carouselItems = [
@@ -174,17 +177,35 @@ export default function DashboardClient({
                       <span>Posted by {posting.buyer_name}</span>
                       <span className="mx-2">•</span>
                       <span>{formatDate(posting.created_at)}</span>
+                      {posting.project_location && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span>{posting.project_location}</span>
+                        </>
+                      )}
                     </div>
                     <p className="text-gray-600 mb-3">{posting.description}</p>
                     <div className="flex flex-wrap gap-2">
-                      {Object.entries(posting.data_fields).map(([key, value]) => (
+                      {posting.project_type && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
+                          {posting.project_type}
+                        </span>
+                      )}
+                      {posting.project_scope && (
+                        <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm">
+                          {posting.project_scope}
+                        </span>
+                      )}
+                      {posting.frequency && (
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
+                          {posting.frequency}
+                        </span>
+                      )}
+                      {Object.entries(posting.data_fields || {}).map(([key, value]) => (
                         <span key={key} className="bg-gray-100 px-2 py-1 rounded-md text-sm">
                           {key}: {value}
                         </span>
                       ))}
-                      <span className="bg-gray-100 px-2 py-1 rounded-md text-sm">
-                        Frequency: {posting.frequency}
-                      </span>
                     </div>
                   </div>
                 ))}
