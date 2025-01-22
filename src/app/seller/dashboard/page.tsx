@@ -29,22 +29,9 @@ export default async function DashboardPage() {
       supabase
         .from('project_postings')
         .select(`
-          project_postings_id,
-          title,
-          description,
-          created_at,
-          status,
-          data_fields,
-          frequency,
-          budget_min,
-          budget_max,
-          project_scope,
-          project_type,
-          project_location,
-          buyer_id,
+          *,
           profiles:buyer_id (display_name)
         `)
-        .eq('status', 'active')
         .order('created_at', { ascending: false })
     ])
 
@@ -52,27 +39,42 @@ export default async function DashboardPage() {
       redirect('/buyer/dashboard')
     }
 
-    console.log('Project Postings:', projectPostingsResult.data) // Debug log
+    // Debug logs
+    console.log('Profile Result:', profileResult)
+    console.log('Project Postings Result:', projectPostingsResult)
+    
+    // If there's an error in the query, log it
+    if (projectPostingsResult.error) {
+      console.error('Error fetching project postings:', projectPostingsResult.error)
+    }
+
+    // Log the number of postings found
+    console.log('Number of postings found:', projectPostingsResult.data?.length || 0)
+
+    const postings = projectPostingsResult.data?.map((posting) => {
+      console.log('Processing posting:', posting) // Log each posting
+      return {
+        id: posting.project_postings_id,
+        title: posting.title || 'Untitled Project',
+        description: posting.description || '',
+        created_at: posting.created_at,
+        status: posting.status || 'active',
+        data_fields: posting.data_fields || {},
+        frequency: posting.frequency || 'one_time',
+        budget: posting.budget_max || posting.budget_min || 0,
+        buyer_name: posting.profiles?.display_name || 'Anonymous',
+        project_scope: posting.project_scope,
+        project_type: posting.project_type,
+        project_location: posting.project_location
+      }
+    }) || []
+
+    console.log('Processed postings:', postings) // Log processed postings
 
     return (
       <DashboardClient
         initialProfile={profileResult.data || { display_name: session.user.email }}
-        jobPostings={
-          projectPostingsResult.data?.map((posting) => ({
-            id: posting.project_postings_id,
-            title: posting.title || 'Untitled Project',
-            description: posting.description || '',
-            created_at: posting.created_at,
-            status: posting.status || 'active',
-            data_fields: posting.data_fields || {},
-            frequency: posting.frequency || 'one_time',
-            budget: posting.budget_max || posting.budget_min || 0,
-            buyer_name: posting.profiles?.display_name || 'Anonymous',
-            project_scope: posting.project_scope,
-            project_type: posting.project_type,
-            project_location: posting.project_location
-          })) || []
-        }
+        jobPostings={postings}
       />
     )
   } catch (error) {

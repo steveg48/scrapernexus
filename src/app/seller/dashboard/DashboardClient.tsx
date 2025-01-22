@@ -74,10 +74,18 @@ export default function DashboardClient({
     return () => clearInterval(timer);
   }, []);
 
+  // Debug logs
+  console.log('DashboardClient - Total job postings:', jobPostings.length)
+  console.log('DashboardClient - Job postings:', jobPostings)
+
   // Calculate pagination
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = jobPostings.slice(indexOfFirstPost, indexOfLastPost);
+
+  console.log('DashboardClient - Current page:', currentPage)
+  console.log('DashboardClient - Current posts:', currentPosts)
+
   const totalPages = Math.ceil(jobPostings.length / postsPerPage);
 
   const formatDate = (dateString: string) => {
