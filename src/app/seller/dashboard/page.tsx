@@ -30,7 +30,12 @@ export default async function DashboardPage() {
       redirect('/buyer/dashboard')
     }
 
-    // Get latest 3 project postings with skills
+    // Get total count for pagination
+    const { count } = await supabase
+      .from('project_postings_with_skills')
+      .select('*', { count: 'exact', head: true })
+
+    // Get latest 3 project postings with skills for current page
     const { data: projectPostings } = await supabase
       .from('project_postings_with_skills')
       .select('*')
@@ -39,6 +44,7 @@ export default async function DashboardPage() {
 
     console.log('Profile:', profileResult.data)
     console.log('Project Postings with Skills:', projectPostings)
+    console.log('Total postings:', count)
 
     const postings = projectPostings?.map((posting) => ({
       id: posting.id,
@@ -58,6 +64,7 @@ export default async function DashboardPage() {
       <DashboardClient
         initialProfile={profileResult.data || { display_name: session.user.email }}
         jobPostings={postings}
+        totalPostings={count || 0}
       />
     )
   } catch (error) {
