@@ -19,6 +19,13 @@ export default async function DashboardPage() {
       redirect('/auth/login')
     }
 
+    // First check if we have any project postings at all
+    const { count } = await supabase
+      .from('project_postings')
+      .select('*', { count: 'exact', head: true })
+
+    console.log('Total project postings in database:', count)
+
     // Get profile and project postings
     const [profileResult, projectPostingsResult] = await Promise.all([
       supabase
@@ -33,6 +40,7 @@ export default async function DashboardPage() {
           title,
           description,
           created_at,
+          status,
           frequency,
           budget_min,
           budget_max,
@@ -41,7 +49,6 @@ export default async function DashboardPage() {
           buyer_id,
           buyer:profiles!project_postings_buyer_id_fkey (display_name)
         `)
-        .eq('status', 'active')
         .order('created_at', { ascending: false })
     ])
 
@@ -50,19 +57,30 @@ export default async function DashboardPage() {
     }
 
     // Debug logs
-    console.log('Project Postings Result:', projectPostingsResult)
+    console.log('Profile:', profileResult.data)
+    console.log('Project Postings Result:', {
+      error: projectPostingsResult.error,
+      count: projectPostingsResult.data?.length,
+      data: projectPostingsResult.data
+    })
 
-    const postings = projectPostingsResult.data?.map((posting) => ({
-      id: posting.project_postings_id,
-      title: posting.title || 'Untitled Project',
-      description: posting.description || '',
-      created_at: posting.created_at,
-      frequency: posting.frequency || 'one_time',
-      budget: posting.budget_max || posting.budget_min || 0,
-      buyer_name: posting.buyer?.display_name || 'Anonymous',
-      project_type: posting.project_type,
-      project_location: posting.project_location
-    })) || []
+    const postings = projectPostingsResult.data?.map((posting) => {
+      console.log('Processing posting:', posting)
+      return {
+        id: posting.project_postings_id,
+        title: posting.title || 'Untitled Project',
+        description: posting.description || '',
+        created_at: posting.created_at,
+        status: posting.status,
+        frequency: posting.frequency || 'one_time',
+        budget: posting.budget_max || posting.budget_min || 0,
+        buyer_name: posting.buyer?.display_name || 'Anonymous',
+        project_type: posting.project_type,
+        project_location: posting.project_location
+      }
+    }) || []
+
+    console.log('Final postings being sent to client:', postings)
 
     return (
       <DashboardClient
