@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, ChevronRight, Crown, Award, UserCircle2 } from 'lucide-react';
+import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
@@ -13,7 +13,7 @@ interface Profile {
   created_at?: string;
 }
 
-interface Project {
+interface JobPosting {
   id: string;
   title: string;
   description: string;
@@ -21,6 +21,8 @@ interface Project {
   status: string;
   data_fields: Record<string, any>;
   frequency: string;
+  budget: number;
+  buyer_name: string;
 }
 
 const carouselItems = [
@@ -49,15 +51,17 @@ const carouselItems = [
 
 interface DashboardClientProps {
   initialProfile: Profile;
-  initialProjects: Project[];
+  jobPostings: JobPosting[];
 }
 
 export default function DashboardClient({ 
   initialProfile,
-  initialProjects 
+  jobPostings
 }: DashboardClientProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 3;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -66,6 +70,30 @@ export default function DashboardClient({
 
     return () => clearInterval(timer);
   }, []);
+
+  // Calculate pagination
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = jobPostings.slice(indexOfFirstPost, indexOfLastPost);
+  const totalPages = Math.ceil(jobPostings.length / postsPerPage);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(date);
+  };
+
+  const formatBudget = (budget: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(budget);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -135,19 +163,65 @@ export default function DashboardClient({
               <p className="text-sm text-gray-600 mb-4">Browse jobs that match your experience to a client's hiring preferences. Ordered by most relevant.</p>
               
               {/* Job Listings */}
-              {initialProjects.map((project) => (
-                <div key={project.id} className="border-t py-4">
-                  <h3 className="text-lg font-medium mb-2">{project.title}</h3>
-                  <p className="text-gray-600 mb-2">{project.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(project.data_fields).map(([key, value]) => (
-                      <span key={key} className="bg-gray-100 px-2 py-1 rounded-md text-sm">
-                        {key}: {value}
+              <div className="space-y-6">
+                {currentPosts.map((posting) => (
+                  <div key={posting.id} className="border-t pt-6">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-medium text-gray-900">{posting.title}</h3>
+                      <span className="text-lg font-medium text-gray-900">{formatBudget(posting.budget)}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-500 mb-2">
+                      <span>Posted by {posting.buyer_name}</span>
+                      <span className="mx-2">•</span>
+                      <span>{formatDate(posting.created_at)}</span>
+                    </div>
+                    <p className="text-gray-600 mb-3">{posting.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(posting.data_fields).map(([key, value]) => (
+                        <span key={key} className="bg-gray-100 px-2 py-1 rounded-md text-sm">
+                          {key}: {value}
+                        </span>
+                      ))}
+                      <span className="bg-gray-100 px-2 py-1 rounded-md text-sm">
+                        Frequency: {posting.frequency}
                       </span>
-                    ))}
+                    </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-4 mt-8">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded-md ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
