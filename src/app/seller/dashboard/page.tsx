@@ -19,68 +19,40 @@ export default async function DashboardPage() {
       redirect('/auth/login')
     }
 
-    // First check if we have any project postings at all
-    const { count } = await supabase
-      .from('project_postings')
-      .select('*', { count: 'exact', head: true })
-
-    console.log('Total project postings in database:', count)
-
-    // Get profile and project postings
-    const [profileResult, projectPostingsResult] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, display_name, member_type, created_at')
-        .eq('id', session.user.id)
-        .single(),
-      supabase
-        .from('project_postings')
-        .select(`
-          project_postings_id,
-          title,
-          description,
-          created_at,
-          status,
-          frequency,
-          budget_min,
-          budget_max,
-          project_type,
-          project_location,
-          buyer_id,
-          buyer:profiles!project_postings_buyer_id_fkey (display_name)
-        `)
-        .order('created_at', { ascending: false })
-    ])
+    // Get profile
+    const profileResult = await supabase
+      .from('profiles')
+      .select('id, display_name, member_type, created_at')
+      .eq('id', session.user.id)
+      .single()
 
     if (profileResult.data?.member_type !== 'seller') {
       redirect('/buyer/dashboard')
     }
 
-    // Debug logs
+    // Get latest 3 project postings with skills
+    const { data: projectPostings } = await supabase
+      .from('project_postings_with_skills')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(3)
+
     console.log('Profile:', profileResult.data)
-    console.log('Project Postings Result:', {
-      error: projectPostingsResult.error,
-      count: projectPostingsResult.data?.length,
-      data: projectPostingsResult.data
-    })
+    console.log('Project Postings with Skills:', projectPostings)
 
-    const postings = projectPostingsResult.data?.map((posting) => {
-      console.log('Processing posting:', posting)
-      return {
-        id: posting.project_postings_id,
-        title: posting.title || 'Untitled Project',
-        description: posting.description || '',
-        created_at: posting.created_at,
-        status: posting.status,
-        frequency: posting.frequency || 'one_time',
-        budget: posting.budget_max || posting.budget_min || 0,
-        buyer_name: posting.buyer?.display_name || 'Anonymous',
-        project_type: posting.project_type,
-        project_location: posting.project_location
-      }
-    }) || []
-
-    console.log('Final postings being sent to client:', postings)
+    const postings = projectPostings?.map((posting) => ({
+      id: posting.id,
+      title: posting.title || 'Untitled Project',
+      description: posting.description?.substring(0, 150) + '...',
+      created_at: posting.created_at,
+      frequency: posting.frequency || 'one_time',
+      budget_min: posting.budget_min,
+      budget_max: posting.budget_max,
+      buyer_name: posting.buyer_name || 'Anonymous',
+      project_type: posting.project_type,
+      project_location: posting.project_location,
+      skills: posting.skills || []
+    })) || []
 
     return (
       <DashboardClient

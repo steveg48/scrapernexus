@@ -18,14 +18,13 @@ interface JobPosting {
   title: string;
   description: string;
   created_at: string;
-  status: string;
-  data_fields: Record<string, any>;
   frequency: string;
-  budget: number;
+  budget_min?: number;
+  budget_max?: number;
   buyer_name: string;
-  project_scope?: string;
   project_type?: string;
   project_location?: string;
+  skills?: string[];
 }
 
 const carouselItems = [
@@ -187,7 +186,11 @@ export default function DashboardClient({
                     <div key={posting.id} className="border-t pt-6">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-medium text-gray-900">{posting.title}</h3>
-                        <span className="text-lg font-medium text-gray-900">{formatBudget(posting.budget)}</span>
+                        {posting.budget_min !== undefined && posting.budget_max !== undefined ? (
+                          <span className="text-lg font-medium text-gray-900">${posting.budget_min} - ${posting.budget_max}</span>
+                        ) : (
+                          <span className="text-lg font-medium text-gray-900">{formatBudget(posting.budget_min || posting.budget_max)}</span>
+                        )}
                       </div>
                       <div className="flex items-center text-sm text-gray-500 mb-2">
                         <span>Posted by {posting.buyer_name}</span>
@@ -201,16 +204,16 @@ export default function DashboardClient({
                             {posting.project_type}
                           </span>
                         )}
-                        {posting.frequency && (
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
-                            {posting.frequency}
-                          </span>
-                        )}
                         {posting.project_location && (
                           <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-sm">
                             {posting.project_location}
                           </span>
                         )}
+                        {posting.skills && posting.skills.map((skill) => (
+                          <span key={skill} className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
+                            {skill}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   ))
