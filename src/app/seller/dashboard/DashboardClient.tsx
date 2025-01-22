@@ -24,7 +24,13 @@ interface JobPosting {
   buyer_name: string;
   project_type?: string;
   project_location?: string;
-  skills?: string[];
+  skills: string[];
+}
+
+interface DashboardClientProps {
+  initialProfile: Profile;
+  jobPostings: JobPosting[];
+  totalPostings: number;
 }
 
 const carouselItems = [
@@ -51,11 +57,24 @@ const carouselItems = [
   }
 ];
 
-interface DashboardClientProps {
-  initialProfile: Profile;
-  jobPostings: JobPosting[];
-  totalPostings: number;
-}
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(date);
+};
+
+const formatBudget = (budget: number | undefined) => {
+  if (!budget) return 'Budget not specified';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(budget);
+};
 
 export default function DashboardClient({ 
   initialProfile,
@@ -78,36 +97,14 @@ export default function DashboardClient({
   // Debug logs
   console.log('DashboardClient received jobPostings:', jobPostings)
 
-  // Calculate pagination
+  // Calculate pagination values
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = jobPostings.slice(indexOfFirstPost, indexOfLastPost);
-
-  console.log('DashboardClient pagination:', {
-    currentPage,
-    postsPerPage,
-    totalPosts: jobPostings.length,
-    currentPosts
-  })
-
   const totalPages = Math.ceil(totalPostings / postsPerPage);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    }).format(date);
-  };
-
-  const formatBudget = (budget: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(budget);
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
   };
 
   return (
@@ -179,7 +176,7 @@ export default function DashboardClient({
               
               {/* Job Listings */}
               <div className="space-y-6">
-                {jobPostings.length === 0 ? (
+                {currentPosts.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500">No job postings available</p>
                   </div>
@@ -188,11 +185,18 @@ export default function DashboardClient({
                     <div key={posting.id} className="border-t pt-6">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-medium text-gray-900">{posting.title}</h3>
-                        {posting.budget_min !== undefined && posting.budget_max !== undefined ? (
-                          <span className="text-lg font-medium text-gray-900">${posting.budget_min} - ${posting.budget_max}</span>
-                        ) : (
-                          <span className="text-lg font-medium text-gray-900">{formatBudget(posting.budget_min || posting.budget_max)}</span>
-                        )}
+                        <div className="text-right">
+                          <div className="text-lg font-medium text-gray-900">
+                            {posting.budget_min && posting.budget_max ? (
+                              <>
+                                {formatBudget(posting.budget_min)} - {formatBudget(posting.budget_max)}
+                              </>
+                            ) : (
+                              formatBudget(posting.budget_min || posting.budget_max)
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500">{posting.frequency}</div>
+                        </div>
                       </div>
                       <div className="flex items-center text-sm text-gray-500 mb-2">
                         <span>Posted by {posting.buyer_name}</span>
@@ -200,7 +204,9 @@ export default function DashboardClient({
                         <span>{formatDate(posting.created_at)}</span>
                       </div>
                       <p className="text-gray-600 mb-3">{posting.description}</p>
-                      <div className="flex flex-wrap gap-2">
+                      
+                      {/* Project Type and Location */}
+                      <div className="flex flex-wrap gap-2 mb-3">
                         {posting.project_type && (
                           <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
                             {posting.project_type}
@@ -211,47 +217,70 @@ export default function DashboardClient({
                             {posting.project_location}
                           </span>
                         )}
-                        {posting.skills && posting.skills.map((skill) => (
-                          <span key={skill} className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
-                            {skill}
-                          </span>
-                        ))}
                       </div>
+
+                      {/* Skills */}
+                      {posting.skills && posting.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {posting.skills.map((skill, index) => (
+                            <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
               </div>
 
-              {/* Pagination */}
+              {/* Pagination - Matching buyer dashboard style */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center space-x-4 mt-8">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <div className="px-4 py-3 flex items-center justify-between mt-6">
+                  <div className="flex-1 flex justify-between sm:hidden">
                     <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 rounded-md ${
-                        currentPage === page
-                          ? 'bg-blue-600 text-white'
-                          : 'hover:bg-gray-100'
-                      }`}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                     >
-                      {page}
+                      Previous
                     </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{indexOfFirstPost + 1}</span> to{' '}
+                        <span className="font-medium">
+                          {Math.min(indexOfLastPost, totalPostings)}
+                        </span>{' '}
+                        of <span className="font-medium">{totalPostings}</span> results
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              pageNum === currentPage
+                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+                      </nav>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
