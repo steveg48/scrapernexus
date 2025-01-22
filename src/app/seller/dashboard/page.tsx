@@ -19,33 +19,45 @@ export default async function DashboardPage() {
       redirect('/auth/login')
     }
 
-    const [profileResult, jobPostingsResult] = await Promise.all([
+    const [profileResult, buyerProfilesResult] = await Promise.all([
       supabase
         .from('profiles')
         .select('id, display_name, member_type, created_at')
         .eq('id', session.user.id)
         .single(),
       supabase
-        .from('project_postings')
-        .select(`
-          project_postings_id,
-          title,
-          description,
-          created_at,
-          status,
-          data_fields,
-          frequency,
-          budget,
-          buyer_id,
-          profiles:buyer_id (display_name)
-        `)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
+        .from('profiles')
+        .select('id')
+        .eq('member_type', 'buyer')
     ])
 
     if (profileResult.data?.member_type !== 'seller') {
       redirect('/buyer/dashboard')
     }
+
+    // Get buyer IDs
+    const buyerIds = buyerProfilesResult.data?.map(profile => profile.id) || []
+
+    // Get job postings from buyers
+    const jobPostingsResult = await supabase
+      .from('project_postings')
+      .select(`
+        project_postings_id,
+        title,
+        description,
+        created_at,
+        status,
+        data_fields,
+        frequency,
+        budget,
+        buyer_id,
+        profiles:buyer_id (display_name)
+      `)
+      .in('buyer_id', buyerIds)
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+
+    console.log('Job Postings:', jobPostingsResult.data) // Debug log
 
     return (
       <DashboardClient
