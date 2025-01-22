@@ -39,7 +39,7 @@ export default async function DashboardPage() {
           project_type,
           project_location,
           buyer_id,
-          profiles:buyer_id (display_name)
+          buyer:profiles!project_postings_buyer_id_fkey (display_name)
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
     }
 
     // Debug logs
-    console.log('Number of postings found:', projectPostingsResult.data?.length || 0)
+    console.log('Project Postings Result:', projectPostingsResult)
 
     const postings = projectPostingsResult.data?.map((posting) => ({
       id: posting.project_postings_id,
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
       created_at: posting.created_at,
       frequency: posting.frequency || 'one_time',
       budget: posting.budget_max || posting.budget_min || 0,
-      buyer_name: posting.profiles?.display_name || 'Anonymous',
+      buyer_name: posting.buyer?.display_name || 'Anonymous',
       project_type: posting.project_type,
       project_location: posting.project_location
     })) || []
