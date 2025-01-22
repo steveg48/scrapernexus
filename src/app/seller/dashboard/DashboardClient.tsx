@@ -25,6 +25,20 @@ interface Project {
 
 const carouselItems = [
   {
+    title: "Freelancer Plus with new perks",
+    description: "100 monthly Connects and full access to\nUma, Upwork's Mindful AI.",
+    buttonText: "Learn more",
+    icon: Crown,
+    bgColor: "#1d4354"
+  },
+  {
+    title: "Boost your earning potential",
+    description: "Get certified in top skills to stand out\nand win more projects.",
+    buttonText: "Get certified",
+    icon: Award,
+    bgColor: "#108a00"
+  },
+  {
     title: "Upgrade your profile",
     description: "Add your portfolio and skills to attract\nmore clients and opportunities.",
     buttonText: "Upgrade now",
@@ -44,6 +58,14 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % carouselItems.length);
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,18 +90,34 @@ export default function DashboardClient({
           {/* Left Column */}
           <div className="col-span-8">
             {/* Upgrade Profile Card */}
-            <div className="bg-[#3c8dd5] rounded-lg p-6 mb-6 text-white">
+            <div 
+              className="rounded-lg p-6 mb-6 text-white"
+              style={{ backgroundColor: carouselItems[currentSlide].bgColor }}
+            >
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Upgrade your profile</h2>
-                  <p className="mb-4">Add your portfolio and skills to attract<br />more clients and opportunities.</p>
+                  <h2 className="text-xl font-semibold mb-2">{carouselItems[currentSlide].title}</h2>
+                  <p className="mb-4 whitespace-pre-line">{carouselItems[currentSlide].description}</p>
                   <button className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-100">
-                    Upgrade now
+                    {carouselItems[currentSlide].buttonText}
                   </button>
                 </div>
                 <div>
-                  <UserCircle2 className="h-24 w-24 text-white/80" />
+                  {React.createElement(carouselItems[currentSlide].icon, {
+                    className: "h-24 w-24 text-white/80"
+                  })}
                 </div>
+              </div>
+              <div className="flex justify-center space-x-2 mt-4">
+                {carouselItems.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-2 h-2 rounded-full ${
+                      index === currentSlide ? 'bg-white' : 'bg-white/50'
+                    }`}
+                  />
+                ))}
               </div>
             </div>
 
