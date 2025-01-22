@@ -54,11 +54,13 @@ const carouselItems = [
 interface DashboardClientProps {
   initialProfile: Profile;
   jobPostings: JobPosting[];
+  totalPostings: number;
 }
 
 export default function DashboardClient({ 
   initialProfile,
-  jobPostings
+  jobPostings,
+  totalPostings
 }: DashboardClientProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
@@ -88,7 +90,7 @@ export default function DashboardClient({
     currentPosts
   })
 
-  const totalPages = Math.ceil(jobPostings.length / postsPerPage);
+  const totalPages = Math.ceil(totalPostings / postsPerPage);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
