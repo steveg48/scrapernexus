@@ -291,9 +291,11 @@ export default function DashboardClient({
             {/* Profile Section */}
             <div className="bg-white rounded-lg p-6 mb-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                  {initialProfile.display_name.charAt(0).toUpperCase()}
-                </div>
+                <img
+                  src="/images/default-avatar.svg"
+                  alt="Profile"
+                  className="w-12 h-12 rounded-full"
+                />
                 <div>
                   <h2 className="text-xl font-semibold">{initialProfile.display_name}</h2>
                   <p className="text-gray-600">Seller</p>
