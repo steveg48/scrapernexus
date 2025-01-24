@@ -35,18 +35,22 @@ export default async function DashboardPage() {
       .from('project_postings_with_skills')
       .select('*', { count: 'exact', head: true })
 
-    // Get latest 3 project postings with skills for current page
+    // Get all project postings with skills
     const { data: projectPostings } = await supabase
       .from('project_postings_with_skills')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(3)
 
     console.log('Profile:', profileResult.data)
     console.log('Project Postings with Skills:', projectPostings)
     console.log('Total postings:', count)
 
-    const postings = projectPostings?.map((posting) => ({
+    // Filter out duplicate jobs
+    const uniquePostings = projectPostings?.filter((posting, index, self) =>
+      index === self.findIndex((p) => p.project_postings_id === posting.project_postings_id)
+    );
+
+    const postings = uniquePostings?.map((posting) => ({
       id: posting.id,
       title: posting.title || 'Untitled Project',
       description: posting.description?.substring(0, 150) + '...',
