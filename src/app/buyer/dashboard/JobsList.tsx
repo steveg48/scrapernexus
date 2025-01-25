@@ -1,7 +1,8 @@
 'use client';
 
-import { File } from 'lucide-react';
+import { File, Heart, ThumbsDown } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 
 interface Job {
   id: number;
@@ -31,6 +32,29 @@ const formatDate = (dateString: string) => {
 };
 
 export default function JobsList({ jobs, loading }: JobsListProps) {
+  const [likedJobs, setLikedJobs] = useState<number[]>([]);
+  const [dislikedJobs, setDislikedJobs] = useState<number[]>([]);
+
+  const handleLike = (e: React.MouseEvent, jobId: number) => {
+    e.preventDefault();
+    setLikedJobs(prev => 
+      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
+    );
+    if (dislikedJobs.includes(jobId)) {
+      setDislikedJobs(prev => prev.filter(id => id !== jobId));
+    }
+  };
+
+  const handleDislike = (e: React.MouseEvent, jobId: number) => {
+    e.preventDefault();
+    setDislikedJobs(prev => 
+      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
+    );
+    if (likedJobs.includes(jobId)) {
+      setLikedJobs(prev => prev.filter(id => id !== jobId));
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -67,8 +91,22 @@ export default function JobsList({ jobs, loading }: JobsListProps) {
                 </div>
               </div>
 
-              <div className="px-4 py-2 bg-[#59baea] text-white rounded-md text-sm font-medium">
-                {job.status === 'open' ? 'Open Job Posting' : job.status}
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={(e) => handleLike(e, job.id)}
+                  className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${likedJobs.includes(job.id) ? 'text-red-500' : 'text-gray-400'}`}
+                >
+                  <Heart className="w-5 h-5" fill={likedJobs.includes(job.id) ? "currentColor" : "none"} />
+                </button>
+                <button 
+                  onClick={(e) => handleDislike(e, job.id)}
+                  className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${dislikedJobs.includes(job.id) ? 'text-blue-500' : 'text-gray-400'}`}
+                >
+                  <ThumbsDown className="w-5 h-5" />
+                </button>
+                <div className="px-4 py-2 bg-[#59baea] text-white rounded-md text-sm font-medium">
+                  {job.status === 'open' ? 'Open Job Posting' : job.status}
+                </div>
               </div>
             </div>
           </div>

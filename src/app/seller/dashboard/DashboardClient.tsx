@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft } from 'lucide-react';
+import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft, Heart, ThumbsDown } from 'lucide-react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
+import supabaseClient from '@/lib/supabaseClient';
 
 interface Profile {
   id?: string;
@@ -84,6 +85,8 @@ export default function DashboardClient({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [likedJobs, setLikedJobs] = useState<string[]>([]);
+  const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
   const postsPerPage = 5;
 
   useEffect(() => {
@@ -105,6 +108,51 @@ export default function DashboardClient({
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
+  };
+
+  const handleLike = async (jobId: string) => {
+    try {
+      if (!likedJobs.includes(jobId)) {
+        // Insert into favorites
+        const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/insert_seller_favorite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          },
+          body: JSON.stringify({
+            job_id: jobId,
+            user_id: initialProfile.id,
+            created_at: new Date().toISOString()
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save favorite');
+        }
+
+        setLikedJobs(prev => [...prev, jobId]);
+        if (dislikedJobs.includes(jobId)) {
+          setDislikedJobs(prev => prev.filter(id => id !== jobId));
+        }
+      } else {
+        // Remove from favorites (you might want to add an API endpoint for this)
+        setLikedJobs(prev => prev.filter(id => id !== jobId));
+      }
+    } catch (error) {
+      console.error('Error handling favorite:', error);
+      // You might want to add error handling UI here
+    }
+  };
+
+  const handleDislike = (jobId: string) => {
+    setDislikedJobs(prev => 
+      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
+    );
+    if (likedJobs.includes(jobId)) {
+      setLikedJobs(prev => prev.filter(id => id !== jobId));
+    }
   };
 
   return (
@@ -204,7 +252,7 @@ export default function DashboardClient({
                         <span>{formatDate(posting.created_at)}</span>
                       </div>
                       <p className="text-gray-600 mb-3">{posting.description}</p>
-                      
+
                       {/* Project Type */}
                       <div className="flex flex-wrap gap-2 mb-3">
                         {posting.project_type === 'US only' && (
@@ -216,7 +264,7 @@ export default function DashboardClient({
 
                       {/* Skills */}
                       {posting.skills && posting.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 mb-3">
                           {posting.skills.map((skill: string, index: number) => (
                             <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
                               {skill}
@@ -224,6 +272,22 @@ export default function DashboardClient({
                           ))}
                         </div>
                       )}
+
+                      {/* Interaction buttons */}
+                      <div className="flex items-center justify-end space-x-4 mt-4">
+                        <button 
+                          onClick={() => handleLike(posting.id)}
+                          className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${likedJobs.includes(posting.id) ? 'text-red-500' : 'text-gray-400'}`}
+                        >
+                          <Heart className="w-5 h-5" fill={likedJobs.includes(posting.id) ? "currentColor" : "none"} />
+                        </button>
+                        <button 
+                          onClick={() => handleDislike(posting.id)}
+                          className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${dislikedJobs.includes(posting.id) ? 'text-blue-500' : 'text-gray-400'}`}
+                        >
+                          <ThumbsDown className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
