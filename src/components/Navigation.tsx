@@ -21,6 +21,7 @@ export default function Navigation() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
   const router = useRouter();
   
   const hireDropdownRef = useRef<HTMLDivElement>(null);
@@ -30,6 +31,21 @@ export default function Navigation() {
 
   useEffect(() => {
     setIsClient(true);
+    // Fetch user type from profiles table
+    const fetchUserType = async () => {
+      const client = supabaseClient;
+      const { data: { session } } = await client.auth.getSession();
+      if (session) {
+        const { data: profile } = await client
+          .from('profiles')
+          .select('member_type')
+          .eq('id', session.user.id)
+          .single();
+        
+        setUserType(profile?.member_type || null);
+      }
+    };
+    fetchUserType();
   }, []);
 
   const notifications = [
@@ -130,7 +146,7 @@ export default function Navigation() {
             {/* Left side */}
             <div className="flex items-center">
               {/* Logo */}
-              <Link href="/buyer/dashboard" className="flex items-center">
+              <Link href={userType === 'seller' ? '/seller/dashboard' : '/buyer/dashboard'} className="flex items-center">
                 <span className="text-[24px] font-semibold text-[#3c8dd5]">
                   ScrapeNexus
                 </span>
