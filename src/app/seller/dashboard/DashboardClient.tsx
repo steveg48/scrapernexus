@@ -509,11 +509,7 @@ export default function DashboardClient({
                             e.stopPropagation();
                             handleFavoriteClick(posting.id);
                           }}
-                          className={`p-2 rounded-full border-2 transition-all ${
-                            likedJobs.includes(Number(posting.id))
-                              ? 'border-pink-400'
-                              : 'border-gray-300 hover:border-pink-400'
-                          }`}
+                          className="p-2 rounded-full hover:bg-gray-100 transition-all"
                         >
                           <Heart 
                             className={`w-5 h-5 ${likedJobs.includes(Number(posting.id)) ? 'text-red-500' : 'text-gray-400'}`}
