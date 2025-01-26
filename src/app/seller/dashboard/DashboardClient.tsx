@@ -362,16 +362,23 @@ export default function DashboardClient({
     
     if (filter === activeFilter) {
       // If clicking active filter, remove filter
-      setCurrentPosts(jobPostings);
+      setCurrentPosts(currentPosts.map(post => ({
+        ...post,
+        associated_skills: post.associated_skills || []
+      })));
       return;
     }
 
     switch (filter) {
       case 'us_only':
         console.log('All jobs:', jobPostings);
-        setCurrentPosts(jobPostings.filter(job => 
-          job.project_location?.toLowerCase() === 'us only'
-        ));
+        setCurrentPosts(jobPostings
+          .filter(job => job.project_location?.toLowerCase() === 'us only')
+          .map(post => ({
+            ...post,
+            associated_skills: post.associated_skills || []
+          }))
+        );
         break;
       case 'saved':
         const { data: savedJobs } = await supabase
@@ -380,10 +387,19 @@ export default function DashboardClient({
           .eq('seller_id', user?.id);
         
         const savedIds = savedJobs?.map(job => job.project_posting_id) || [];
-        setCurrentPosts(jobPostings.filter(job => savedIds.includes(job.id)));
+        setCurrentPosts(jobPostings
+          .filter(job => savedIds.includes(job.id))
+          .map(post => ({
+            ...post,
+            associated_skills: post.associated_skills || []
+          }))
+        );
         break;
       default:
-        setCurrentPosts(jobPostings);
+        setCurrentPosts(jobPostings.map(post => ({
+          ...post,
+          associated_skills: post.associated_skills || []
+        })));
     }
   };
 
