@@ -340,7 +340,7 @@ export default function DashboardClient({
     }
   };
 
-  const handleDislike = (jobId: string | number | undefined) => {
+  const handleDislikeClick = (jobId: string | number | undefined) => {
     if (!jobId) return;
     const jobIdStr = String(jobId);
     
@@ -519,31 +519,32 @@ export default function DashboardClient({
                   currentPosts.slice(indexOfFirstPost, indexOfLastPost).map((posting) => (
                     <div 
                       key={posting.id} 
-                      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative h-[320px] flex flex-col"
                       onClick={() => handleJobClick(posting.id)}
                     >
                       {/* Interaction buttons */}
                       <div className="absolute right-6 top-6 flex items-center space-x-4">
-                        <button 
-                          onClick={() => posting?.id && handleFavoriteClick(posting.id)}
-                          className={`p-2 rounded-full border-2 transition-all ${
-                            likedJobs.includes(Number(posting?.id))
-                              ? 'border-pink-400'
-                              : 'border-gray-300 hover:border-pink-400'
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFavoriteClick(posting.id);
+                          }}
+                          className={`p-2 rounded-full hover:bg-gray-100 ${
+                            likedJobs.includes(Number(posting.id)) ? 'text-red-500' : 'text-gray-400'
                           }`}
                         >
-                          <Heart 
-                            className={`w-5 h-5 ${likedJobs.includes(Number(posting?.id)) ? 'text-red-500' : 'text-gray-400'}`}
-                            fill={likedJobs.includes(Number(posting?.id)) ? "currentColor" : "none"}
-                          />
+                          <Heart className="h-5 w-5" />
                         </button>
-                        <button 
-                          onClick={() => posting?.id && handleDislike(posting.id)}
-                          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDislikeClick(posting.id);
+                          }}
+                          className={`p-2 rounded-full hover:bg-gray-100 ${
+                            dislikedJobs.includes(posting.id) ? 'text-gray-900' : 'text-gray-400'
+                          }`}
                         >
-                          <ThumbsDown 
-                            className={`w-5 h-5 ${dislikedJobs.includes(String(posting?.id)) ? 'text-blue-500' : 'text-gray-400'}`}
-                          />
+                          <ThumbsDown className="h-5 w-5" />
                         </button>
                       </div>
 
