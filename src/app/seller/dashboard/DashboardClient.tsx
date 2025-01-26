@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface Profile {
   id?: string;
@@ -88,10 +89,13 @@ export default function DashboardClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [likedJobs, setLikedJobs] = useState<number[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
-  const [currentPosts, setCurrentPosts] = useState<JobPosting[]>([]);
+  const [currentPosts, setCurrentPosts] = useState<JobPosting[]>(jobPostings);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [savedJobsCount, setSavedJobsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const postsPerPage = 5;
   const { user } = useAuth();
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -141,6 +145,26 @@ export default function DashboardClient({
 
     fetchJobsWithSkills();
   }, [jobPostings]);
+
+  useEffect(() => {
+    const fetchSavedJobsCount = async () => {
+      const { data: savedJobs, error } = await supabase
+        .from('seller_favorites')
+        .select('*')
+        .eq('seller_id', user?.id);
+
+      if (error) {
+        console.error('Error fetching saved jobs:', error);
+        return;
+      }
+
+      setSavedJobsCount(savedJobs?.length || 0);
+    };
+
+    if (user?.id) {
+      fetchSavedJobsCount();
+    }
+  }, [user?.id]);
 
   // Load initial favorites from localStorage first, then API
   useEffect(() => {
@@ -327,6 +351,36 @@ export default function DashboardClient({
     }
   };
 
+  const handleFilterClick = async (filter: string) => {
+    setActiveFilter(filter === activeFilter ? null : filter);
+    
+    if (filter === activeFilter) {
+      // If clicking active filter, remove filter
+      setCurrentPosts(jobPostings);
+      return;
+    }
+
+    switch (filter) {
+      case 'us_only':
+        console.log('All jobs:', jobPostings);
+        setCurrentPosts(jobPostings.filter(job => 
+          job.project_location?.toLowerCase() === 'us only'
+        ));
+        break;
+      case 'saved':
+        const { data: savedJobs } = await supabase
+          .from('seller_favorites')
+          .select('project_posting_id')
+          .eq('seller_id', user?.id);
+        
+        const savedIds = savedJobs?.map(job => job.project_posting_id) || [];
+        setCurrentPosts(jobPostings.filter(job => savedIds.includes(job.id)));
+        break;
+      default:
+        setCurrentPosts(jobPostings);
+    }
+  };
+
   // Calculate pagination values
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
@@ -395,11 +449,25 @@ export default function DashboardClient({
               <h2 className="text-lg font-semibold mb-4">Jobs you might like</h2>
               <div className="flex items-center justify-between mb-4">
                 <div></div>
-                <div className="flex space-x-4">
-                  <button className="text-blue-600 font-medium">Be the 1st to apply</button>
-                  <button className="text-gray-600">Most Recent</button>
-                  <button className="text-gray-600">U.S. Only</button>
-                  <button className="text-gray-600">Saved Jobs (1)</button>
+                <div className="flex space-x-6">
+                  <button 
+                    className={`text-sm font-medium ${activeFilter === 'be_first' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                    onClick={() => handleFilterClick('be_first')}
+                  >
+                    Be the 1st to apply
+                  </button>
+                  <button 
+                    className={`text-sm font-medium ${activeFilter === 'us_only' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                    onClick={() => handleFilterClick('us_only')}
+                  >
+                    U.S. Only
+                  </button>
+                  <button 
+                    className={`text-sm font-medium ${activeFilter === 'saved' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                    onClick={() => handleFilterClick('saved')}
+                  >
+                    Saved Jobs ({savedJobsCount})
+                  </button>
                 </div>
               </div>
               <div className="border-t border-gray-200"></div>
