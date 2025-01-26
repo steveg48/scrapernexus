@@ -51,7 +51,7 @@ export default async function DashboardPage() {
     );
 
     const postings = uniquePostings?.map((posting) => ({
-      id: posting.id,
+      id: posting.project_postings_id,
       title: posting.title || 'Untitled Project',
       description: posting.description?.substring(0, 150) + '...',
       created_at: posting.created_at,

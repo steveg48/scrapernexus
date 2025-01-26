@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft, Heart, ThumbsDown } from 'lucide-react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
@@ -88,6 +88,7 @@ export default function DashboardClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [likedJobs, setLikedJobs] = useState<string[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
+  const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
   const postsPerPage = 5;
   const { user } = useAuth();
 
@@ -99,142 +100,178 @@ export default function DashboardClient({
     return () => clearInterval(timer);
   }, []);
 
-  // Debug useEffect to log state changes
+  // Load initial favorites from localStorage first, then API
   useEffect(() => {
-    console.log('Liked jobs state changed:', likedJobs);
-  }, [likedJobs]);
+    if (!user?.id) return;
 
-  // Load initial favorites from localStorage
-  useEffect(() => {
-    if (user?.id) {
-      const storedLikedJobs = localStorage.getItem(`likedJobs_${user.id}`);
-      if (storedLikedJobs) {
-        try {
-          const parsedJobs = JSON.parse(storedLikedJobs);
-          setLikedJobs(Array.isArray(parsedJobs) ? parsedJobs : []);
-        } catch (error) {
-          console.error('Error parsing stored liked jobs:', error);
-          setLikedJobs([]);
+    // Try to load from localStorage first
+    const savedLikedJobs = localStorage.getItem(`liked_jobs_${user.id}`);
+    if (savedLikedJobs) {
+      try {
+        const parsed = JSON.parse(savedLikedJobs);
+        if (Array.isArray(parsed)) {
+          console.log('Loading liked jobs from localStorage:', parsed);
+          setLikedJobs(parsed.map(String));
         }
+      } catch (e) {
+        console.error('Error parsing localStorage liked jobs:', e);
       }
     }
-  }, [user?.id]);
 
-  // Fetch favorites from API
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (!user?.id) return;
-
+    // Then load from API
+    const loadFavorites = async () => {
+      console.log('Loading favorites for user:', user.id);
       try {
         const response = await fetch(
-          `https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?select=project_posting_id&seller_id=eq.${user.id}`,
+          `https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?seller_id=eq.${user.id}&select=project_posting_id`,
           {
             headers: {
-              'Content-Type': 'application/json',
               'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
             }
           }
         );
 
-        if (response.ok) {
-          const favorites = await response.json();
-          const favoriteJobIds = favorites.map((fav: any) => fav.project_posting_id.toString());
-          console.log('Fetched favorites:', favoriteJobIds);
+        const data = await response.json();
+        console.log('Fetched favorites from API:', data);
+
+        if (Array.isArray(data)) {
+          const favoriteJobIds = data.map(fav => String(fav.project_posting_id));
+          console.log('Setting liked jobs from API:', favoriteJobIds);
           setLikedJobs(favoriteJobIds);
-          localStorage.setItem(`likedJobs_${user.id}`, JSON.stringify(favoriteJobIds));
+          // Save to localStorage
+          localStorage.setItem(`liked_jobs_${user.id}`, JSON.stringify(favoriteJobIds));
         }
       } catch (error) {
-        console.error('Error fetching favorites:', error);
+        console.error('Error loading favorites from API:', error);
       }
     };
 
-    fetchFavorites();
+    loadFavorites();
   }, [user?.id]);
 
-  const isJobLiked = (jobId: string | number) => {
-    const jobIdStr = jobId?.toString() || '';
-    return Array.isArray(likedJobs) && likedJobs.includes(jobIdStr);
-  };
-
-  // Debug logs
-  console.log('DashboardClient received jobPostings:', jobPostings);
-  console.log('Current likedJobs state:', likedJobs);
-
-  const handleLike = async (jobId: string | number) => {
-    if (!user?.id) return;
-
-    const jobIdStr = jobId?.toString() || '';
-    const isCurrentlyLiked = isJobLiked(jobIdStr);
-
+  const handleLike = async (jobId: string | number | undefined) => {
+    if (!user?.id || !jobId) {
+      console.error('No user ID or job ID available');
+      return;
+    }
+    
+    const jobIdStr = String(jobId);
+    console.log('Handling like for job:', jobIdStr, 'User:', user.id);
+    
+    if (isUpdating[jobIdStr]) {
+      console.log('Already updating this job');
+      return;
+    }
+    
+    setIsUpdating(prev => ({ ...prev, [jobIdStr]: true }));
+    
     try {
-      if (isCurrentlyLiked) {
-        // Remove from liked jobs
-        setLikedJobs(prev => Array.isArray(prev) ? prev.filter(id => id !== jobIdStr) : []);
-        localStorage.setItem(
-          `likedJobs_${user.id}`, 
-          JSON.stringify(Array.isArray(likedJobs) ? likedJobs.filter(id => id !== jobIdStr) : [])
-        );
+      const isCurrentlyLiked = likedJobs.includes(jobIdStr);
+      console.log('Is currently liked:', isCurrentlyLiked);
+      
+      // Update UI first for optimistic update
+      const newLikedJobs = isCurrentlyLiked 
+        ? likedJobs.filter(id => id !== jobIdStr)
+        : [...likedJobs, jobIdStr];
+      
+      console.log('Setting new liked jobs:', newLikedJobs);
+      setLikedJobs(newLikedJobs);
+      // Save to localStorage immediately
+      localStorage.setItem(`liked_jobs_${user.id}`, JSON.stringify(newLikedJobs));
 
-        // Remove from API
-        await fetch(
-          `https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?project_posting_id=eq.${jobIdStr}&seller_id=eq.${user.id}`,
+      if (isCurrentlyLiked) {
+        // Delete favorite
+        const response = await fetch(
+          'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites',
           {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
               'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`
-            }
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+            },
+            body: JSON.stringify({
+              seller_id: user.id,
+              project_posting_id: jobIdStr
+            })
           }
         );
-      } else {
-        // Add to liked jobs
-        setLikedJobs(prev => Array.isArray(prev) ? [...prev, jobIdStr] : [jobIdStr]);
-        localStorage.setItem(
-          `likedJobs_${user.id}`, 
-          JSON.stringify(Array.isArray(likedJobs) ? [...likedJobs, jobIdStr] : [jobIdStr])
-        );
 
-        // Add to API
-        await fetch(
+        const responseText = await response.text();
+        console.log('Delete response:', responseText);
+
+        if (!response.ok) {
+          console.error('Delete response:', response.status, responseText);
+          throw new Error('Failed to remove favorite');
+        }
+        
+        console.log('Successfully removed favorite');
+      } else {
+        // Add favorite
+        const response = await fetch(
           'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites',
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+              'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
-              project_posting_id: jobIdStr,
               seller_id: user.id,
-              created_at: new Date().toISOString()
+              project_posting_id: jobIdStr
             })
           }
         );
+
+        const responseText = await response.text();
+        console.log('Insert response:', responseText);
+
+        if (!response.ok) {
+          console.error('Insert response:', response.status, responseText);
+          throw new Error('Failed to add favorite');
+        }
+        
+        console.log('Successfully added favorite');
       }
+
     } catch (error) {
       console.error('Error handling like:', error);
-      // Revert on error using the isJobLiked check
-      setLikedJobs(prev => 
-        Array.isArray(prev) 
-          ? (isCurrentlyLiked ? prev.filter(id => id !== jobIdStr) : [...prev, jobIdStr])
-          : []
-      );
+      // Revert UI state on error
+      const revertedLikedJobs = isCurrentlyLiked 
+        ? [...likedJobs, jobIdStr] 
+        : likedJobs.filter(id => id !== jobIdStr);
+      setLikedJobs(revertedLikedJobs);
+      // Also revert localStorage
+      localStorage.setItem(`liked_jobs_${user.id}`, JSON.stringify(revertedLikedJobs));
+    } finally {
+      setIsUpdating(prev => ({ ...prev, [jobIdStr]: false }));
     }
 
-    if (Array.isArray(dislikedJobs) && dislikedJobs.includes(jobIdStr)) {
-      setDislikedJobs(prev => Array.isArray(prev) ? prev.filter(id => id !== jobIdStr) : []);
+    // Remove from disliked if necessary
+    if (dislikedJobs.includes(jobIdStr)) {
+      setDislikedJobs(prev => prev.filter(id => id !== jobIdStr));
     }
   };
 
-  const handleDislike = (jobId: string) => {
-    setDislikedJobs(prev => 
-      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
-    );
-    if (Array.isArray(likedJobs) && likedJobs.includes(jobId)) {
-      setLikedJobs(prev => Array.isArray(prev) ? prev.filter(id => id !== jobId) : []);
+  const handleDislike = (jobId: string | number | undefined) => {
+    if (!jobId) return;
+    const jobIdStr = String(jobId);
+    
+    setDislikedJobs(prev => {
+      const isDisliked = prev.includes(jobIdStr);
+      if (isDisliked) {
+        return prev.filter(id => id !== jobIdStr);
+      } else {
+        return [...prev, jobIdStr];
+      }
+    });
+
+    // Remove from liked if necessary
+    if (likedJobs.includes(jobIdStr)) {
+      setLikedJobs(prev => prev.filter(id => id !== jobIdStr));
     }
   };
 
@@ -369,20 +406,27 @@ export default function DashboardClient({
                       {/* Interaction buttons */}
                       <div className="flex items-center justify-end space-x-4 mt-4">
                         <button 
-                          onClick={() => handleLike(posting.id)}
-                          className="p-2 rounded-full border-2 border-gray-300 transition-all hover:border-pink-400"
+                          onClick={() => posting?.id && handleLike(posting.id)}
+                          className={`p-2 rounded-full border-2 transition-all ${
+                            posting?.id && isUpdating[String(posting.id)]
+                              ? 'opacity-50 cursor-not-allowed'
+                              : likedJobs.includes(String(posting?.id))
+                                ? 'border-pink-400'
+                                : 'border-gray-300 hover:border-pink-400'
+                          }`}
+                          disabled={posting?.id ? isUpdating[String(posting.id)] : false}
                         >
                           <Heart 
-                            className={isJobLiked(posting.id) ? "w-5 h-5 text-red-500" : "w-5 h-5 text-gray-400"}
-                            fill={isJobLiked(posting.id) ? "currentColor" : "none"}
+                            className={`w-5 h-5 ${likedJobs.includes(String(posting?.id)) ? 'text-red-500' : 'text-gray-400'}`}
+                            fill={likedJobs.includes(String(posting?.id)) ? "currentColor" : "none"}
                           />
                         </button>
                         <button 
-                          onClick={() => handleDislike(posting.id)}
+                          onClick={() => posting?.id && handleDislike(posting.id)}
                           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                         >
                           <ThumbsDown 
-                            className={Array.isArray(dislikedJobs) && dislikedJobs.includes(posting.id) ? "w-5 h-5 text-blue-500" : "w-5 h-5 text-gray-400"}
+                            className={`w-5 h-5 ${dislikedJobs.includes(String(posting?.id)) ? 'text-blue-500' : 'text-gray-400'}`}
                           />
                         </button>
                       </div>
