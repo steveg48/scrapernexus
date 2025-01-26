@@ -349,8 +349,9 @@ export default function DashboardClient({
 
             {/* Jobs Section */}
             <div className="bg-white rounded-lg p-6">
+              <h2 className="text-lg font-semibold mb-4">Jobs you might like</h2>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Jobs you might like</h2>
+                <div></div>
                 <div className="flex space-x-4">
                   <button className="text-blue-600 font-medium">Be the 1st to apply</button>
                   <button className="text-gray-600">Most Recent</button>
@@ -358,8 +359,7 @@ export default function DashboardClient({
                   <button className="text-gray-600">Saved Jobs (1)</button>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mb-4">Browse jobs that match your experience to a client's hiring preferences. Ordered by most relevant.</p>
-              
+              <div className="border-t border-gray-200"></div>
               {/* Job Listings */}
               <div className="space-y-6">
                 {currentPosts.length === 0 ? (
