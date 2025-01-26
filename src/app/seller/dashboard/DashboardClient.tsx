@@ -149,194 +149,67 @@ export default function DashboardClient({
   }, [jobPostings]);
 
   useEffect(() => {
-    const fetchSavedJobsCount = async () => {
-      const { data: savedJobs, error } = await supabase
+    const loadFavorites = async () => {
+      if (!user) return;
+
+      const { data: favorites, error } = await supabase
         .from('seller_favorites')
-        .select('*')
-        .eq('seller_id', user?.id);
+        .select('project_postings_id')
+        .eq('seller_id', user.id);
 
       if (error) {
-        console.error('Error fetching saved jobs:', error);
+        console.error('Error loading favorites:', error);
         return;
       }
 
-      setSavedJobsCount(savedJobs?.length || 0);
-    };
-
-    if (user?.id) {
-      fetchSavedJobsCount();
-    }
-  }, [user?.id]);
-
-  // Load initial favorites from localStorage first, then API
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const loadFavorites = async () => {
-      console.log('Loading favorites for user:', user.id);
-      try {
-        const response = await fetch(`/api/favorites?seller_id=${user.id}`, {
-          credentials: 'include'
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error('Error loading favorites from API:', data);
-          return;
-        }
-
-        // Keep project_posting_id as numbers
-        const favoriteIds = data.map((fav: any) => fav.project_posting_id);
-        console.log('Loaded favorite IDs:', favoriteIds);
-        setLikedJobs(favoriteIds);
-      } catch (error) {
-        console.error('Error loading favorites:', error);
-      }
+      const favoriteIds = favorites.map(fav => Number(fav.project_postings_id));
+      setLikedJobs(favoriteIds);
+      setSavedJobsCount(favoriteIds.length);
     };
 
     loadFavorites();
-  }, [user?.id]);
+  }, [user, supabase]);
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
-      console.log('No user logged in');
+      console.log('No user found');
       return;
     }
 
-    // Convert jobId to number since that's what the database expects
-    const projectPostingId = parseInt(jobId);
-    if (isNaN(projectPostingId)) {
-      console.error('Invalid job ID:', jobId);
-      return;
-    }
-
-    const isCurrentlyLiked = likedJobs.includes(projectPostingId);
-    console.log('Handling favorite click:', {
-      jobId,
-      projectPostingId,
-      isCurrentlyLiked,
-      currentLikedJobs: likedJobs
-    });
+    const jobIdNum = Number(jobId);
+    const isCurrentlyLiked = likedJobs.includes(jobIdNum);
 
     try {
       if (isCurrentlyLiked) {
-        console.log('Attempting to delete favorite:', {
-          seller_id: user.id,
-          project_posting_id: projectPostingId
-        });
+        // Remove from favorites
+        const { error } = await supabase
+          .from('seller_favorites')
+          .delete()
+          .eq('seller_id', user.id)
+          .eq('project_postings_id', jobId);
 
-        // Optimistically update UI
-        setLikedJobs(prev => {
-          const newLikedJobs = prev.filter(id => id !== projectPostingId);
-          console.log('Optimistically removing from liked jobs:', {
-            prev,
-            newLikedJobs,
-            projectPostingId
-          });
-          return newLikedJobs;
-        });
-        setSavedJobsCount(prev => prev - 1); // Decrement saved jobs count
+        if (error) throw error;
 
-        const response = await fetch(
-          `/api/favorites`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              seller_id: user.id,
-              project_posting_id: projectPostingId
-            })
-          }
-        );
-
-        const responseData = await response.text();
-        console.log('Delete response:', {
-          ok: response.ok,
-          status: response.status,
-          data: responseData
-        });
-
-        if (!response.ok) {
-          // Revert UI on error
-          setLikedJobs(prev => {
-            const newLikedJobs = [...prev, projectPostingId];
-            console.log('Reverting liked jobs after error:', {
-              prev,
-              newLikedJobs,
-              projectPostingId
-            });
-            return newLikedJobs;
-          });
-          setSavedJobsCount(prev => prev + 1); // Revert saved jobs count on error
-          console.error('Error deleting favorite:', responseData);
-          return;
-        }
+        setLikedJobs(prev => prev.filter(id => id !== jobIdNum));
+        setSavedJobsCount(prev => prev - 1);
       } else {
-        console.log('Attempting to insert favorite:', {
-          seller_id: user.id,
-          project_posting_id: projectPostingId
-        });
+        // Add to favorites
+        const { error } = await supabase
+          .from('seller_favorites')
+          .insert([
+            {
+              seller_id: user.id,
+              project_postings_id: jobId
+            }
+          ]);
 
-        // Optimistically update UI
-        setLikedJobs(prev => {
-          const newLikedJobs = [...prev, projectPostingId];
-          console.log('Optimistically adding to liked jobs:', {
-            prev,
-            newLikedJobs,
-            projectPostingId
-          });
-          return newLikedJobs;
-        });
-        setSavedJobsCount(prev => prev + 1); // Increment saved jobs count
+        if (error) throw error;
 
-        const response = await fetch('/api/favorites', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            seller_id: user.id,
-            project_posting_id: projectPostingId
-          })
-        });
-
-        const responseData = await response.text();
-        console.log('Post response:', {
-          ok: response.ok,
-          status: response.status,
-          data: responseData
-        });
-
-        if (!response.ok) {
-          // Revert UI on error
-          setLikedJobs(prev => {
-            const newLikedJobs = prev.filter(id => id !== projectPostingId);
-            console.log('Reverting liked jobs after error:', {
-              prev,
-              newLikedJobs,
-              projectPostingId
-            });
-            return newLikedJobs;
-          });
-          setSavedJobsCount(prev => prev - 1); // Revert saved jobs count on error
-          console.error('Error adding favorite:', responseData);
-          return;
-        }
+        setLikedJobs(prev => [...prev, jobIdNum]);
+        setSavedJobsCount(prev => prev + 1);
       }
     } catch (error) {
-      console.error('Error updating favorite:', error);
-      // Revert UI on error
-      if (isCurrentlyLiked) {
-        setLikedJobs(prev => [...prev, projectPostingId]);
-        setSavedJobsCount(prev => prev + 1); // Revert saved jobs count on error
-      } else {
-        setLikedJobs(prev => prev.filter(id => id !== projectPostingId));
-        setSavedJobsCount(prev => prev - 1); // Revert saved jobs count on error
-      }
+      console.error('Error updating favorites:', error);
     }
   };
 
