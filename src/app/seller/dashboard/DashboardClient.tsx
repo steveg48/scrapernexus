@@ -186,9 +186,12 @@ export default function DashboardClient({
           .from('seller_favorites')
           .delete()
           .eq('seller_id', user.id)
-          .eq('project_postings_id', jobId);
+          .eq('project_posting_id', jobIdNum);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error removing favorite:', error);
+          return;
+        }
 
         setLikedJobs(prev => prev.filter(id => id !== jobIdNum));
         setSavedJobsCount(prev => prev - 1);
@@ -199,11 +202,14 @@ export default function DashboardClient({
           .insert([
             {
               seller_id: user.id,
-              project_postings_id: jobId
+              project_posting_id: jobIdNum
             }
           ]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error adding favorite:', error);
+          return;
+        }
 
         setLikedJobs(prev => [...prev, jobIdNum]);
         setSavedJobsCount(prev => prev + 1);
@@ -406,7 +412,7 @@ export default function DashboardClient({
                             likedJobs.includes(Number(posting.id)) ? 'text-red-500' : 'text-gray-400'
                           }`}
                         >
-                          <Heart className="h-5 w-5" />
+                          <Heart className="h-5 w-5" fill={likedJobs.includes(Number(posting.id)) ? "currentColor" : "none"} />
                         </button>
                         <button
                           onClick={(e) => {
