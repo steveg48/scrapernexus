@@ -233,6 +233,7 @@ export default function DashboardClient({
           });
           return newLikedJobs;
         });
+        setSavedJobsCount(prev => prev - 1); // Decrement saved jobs count
 
         const response = await fetch(
           `/api/favorites`,
@@ -267,6 +268,7 @@ export default function DashboardClient({
             });
             return newLikedJobs;
           });
+          setSavedJobsCount(prev => prev + 1); // Revert saved jobs count on error
           console.error('Error deleting favorite:', responseData);
           return;
         }
@@ -286,6 +288,7 @@ export default function DashboardClient({
           });
           return newLikedJobs;
         });
+        setSavedJobsCount(prev => prev + 1); // Increment saved jobs count
 
         const response = await fetch('/api/favorites', {
           method: 'POST',
@@ -317,6 +320,7 @@ export default function DashboardClient({
             });
             return newLikedJobs;
           });
+          setSavedJobsCount(prev => prev - 1); // Revert saved jobs count on error
           console.error('Error adding favorite:', responseData);
           return;
         }
@@ -326,8 +330,10 @@ export default function DashboardClient({
       // Revert UI on error
       if (isCurrentlyLiked) {
         setLikedJobs(prev => [...prev, projectPostingId]);
+        setSavedJobsCount(prev => prev + 1); // Revert saved jobs count on error
       } else {
         setLikedJobs(prev => prev.filter(id => id !== projectPostingId));
+        setSavedJobsCount(prev => prev - 1); // Revert saved jobs count on error
       }
     }
   };
