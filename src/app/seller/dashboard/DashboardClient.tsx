@@ -489,7 +489,7 @@ export default function DashboardClient({
                   </div>
                 ) : (
                   currentPosts.slice(indexOfFirstPost, indexOfLastPost).map((posting) => (
-                    <div key={posting.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative">
+                    <div key={posting.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col">
                       {/* Interaction buttons */}
                       <div className="absolute right-6 top-6 flex items-center space-x-4">
                         <button 
@@ -515,8 +515,8 @@ export default function DashboardClient({
                         </button>
                       </div>
 
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
+                      <div>
+                        <div className="mb-2">
                           <h3 className="text-lg font-medium text-gray-900 mb-1">{posting.title}</h3>
                           <div className="text-sm font-medium text-gray-900">
                             {posting.budget_min && posting.budget_max ? (
@@ -529,43 +529,29 @@ export default function DashboardClient({
                             <span className="text-xs text-gray-500 ml-2">{posting.frequency}</span>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Location row */}
-                      {posting.project_location && (
-                        <div className="flex items-center text-sm text-gray-500 mb-2">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span>{posting.project_location}</span>
-                        </div>
-                      )}
-
-                      {/* Posted by and date */}
-                      <div className="flex items-center text-sm text-gray-500 mb-2">
-                        <span>Posted by {posting.buyer_name}</span>
-                        <span className="mx-2">•</span>
-                        <span>{formatDate(posting.created_at)}</span>
-                      </div>
-
-                      <p className="text-gray-600 mb-4">{posting.description}</p>
-
-                      {/* Skills and interaction buttons */}
-                      <div className="flex flex-wrap items-center gap-2 max-w-[80%]">
-                        {posting.skills && posting.skills.map((skill, index) => (
-                          <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Project Type and Associated Skills */}
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {posting.project_type === 'US only' && (
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
-                            US only
-                          </span>
+                        {/* Location row */}
+                        {posting.project_location && (
+                          <div className="flex items-center text-sm text-gray-500 mb-2">
+                            <MapPin className="h-4 w-4 mr-1" />
+                            <span>{posting.project_location}</span>
+                          </div>
                         )}
-                        {posting.associated_skills && posting.associated_skills.map((skill: string, index: number) => (
-                          <span key={index} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-sm">
+
+                        {/* Posted by and date */}
+                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                          <span>Posted by {posting.buyer_name}</span>
+                          <span className="mx-2">•</span>
+                          <span>{formatDate(posting.created_at)}</span>
+                        </div>
+
+                        <p className="text-gray-600 mb-8 line-clamp-2 min-h-[48px]">{posting.description}</p>
+                      </div>
+
+                      {/* Skills */}
+                      <div className="flex flex-wrap items-center gap-2 mt-auto">
+                        {posting.associated_skills && posting.associated_skills.map((skill, index) => (
+                          <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
                             {skill}
                           </span>
                         ))}
