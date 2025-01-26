@@ -361,14 +361,14 @@ export default function DashboardClient({
               </div>
               <div className="border-t border-gray-200"></div>
               {/* Job Listings */}
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {currentPosts.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500">No job postings available</p>
                   </div>
                 ) : (
                   currentPosts.map((posting) => (
-                    <div key={posting.id} className="border-t pt-6">
+                    <div key={posting.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-medium text-gray-900">{posting.title}</h3>
                         <div className="text-right">
@@ -412,7 +412,7 @@ export default function DashboardClient({
                       )}
 
                       {/* Interaction buttons */}
-                      <div className="flex items-center justify-end space-x-4 mt-4">
+                      <div className="flex items-center justify-end space-x-4">
                         <button 
                           onClick={() => posting?.id && handleFavoriteClick(posting.id)}
                           className={`p-2 rounded-full border-2 transition-all ${
