@@ -26,6 +26,7 @@ interface JobPosting {
   project_type?: string;
   project_location?: string;
   skills: string[];
+  associated_skills?: string[];
 }
 
 interface DashboardClientProps {
@@ -87,6 +88,8 @@ export default function DashboardClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [likedJobs, setLikedJobs] = useState<number[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
+  const [currentPosts, setCurrentPosts] = useState<JobPosting[]>([]);
+  const [loading, setLoading] = useState(true);
   const postsPerPage = 5;
   const { user } = useAuth();
 
@@ -97,6 +100,47 @@ export default function DashboardClient({
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const fetchJobsWithSkills = async () => {
+      try {
+        const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/project_postings_with_skills', {
+          headers: {
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          }
+        });
+        
+        if (response.ok) {
+          const jobsWithSkills = await response.json();
+          // Create a map of job IDs to their associated skills
+          const skillsMap = jobsWithSkills.reduce((acc: {[key: string]: string[]}, job: any) => {
+            if (!acc[job.project_postings_id]) {
+              acc[job.project_postings_id] = [];
+            }
+            if (job.skill_name) {
+              acc[job.project_postings_id].push(job.skill_name);
+            }
+            return acc;
+          }, {});
+          
+          // Update the current posts with associated skills
+          const updatedPosts = jobPostings.map(post => ({
+            ...post,
+            associated_skills: skillsMap[post.id] || []
+          }));
+          
+          setCurrentPosts(updatedPosts);
+        }
+      } catch (error) {
+        console.error('Error fetching skills:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobsWithSkills();
+  }, [jobPostings]);
 
   // Load initial favorites from localStorage first, then API
   useEffect(() => {
@@ -286,8 +330,7 @@ export default function DashboardClient({
   // Calculate pagination values
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = jobPostings.slice(indexOfFirstPost, indexOfLastPost);
-  const totalPages = Math.ceil(jobPostings.length / postsPerPage);
+  const totalPages = Math.ceil(currentPosts.length / postsPerPage);
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -367,7 +410,7 @@ export default function DashboardClient({
                     <p className="text-gray-500">No job postings available</p>
                   </div>
                 ) : (
-                  currentPosts.map((posting) => (
+                  currentPosts.slice(indexOfFirstPost, indexOfLastPost).map((posting) => (
                     <div key={posting.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-medium text-gray-900">{posting.title}</h3>
@@ -391,16 +434,21 @@ export default function DashboardClient({
                       </div>
                       <p className="text-gray-600 mb-3">{posting.description}</p>
 
-                      {/* Project Type */}
+                      {/* Project Type and Associated Skills */}
                       <div className="flex flex-wrap gap-2 mb-3">
                         {posting.project_type === 'US only' && (
                           <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
                             US only
                           </span>
                         )}
+                        {posting.associated_skills && posting.associated_skills.map((skill: string, index: number) => (
+                          <span key={index} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-sm">
+                            {skill}
+                          </span>
+                        ))}
                       </div>
 
-                      {/* Skills */}
+                      {/* Original Skills */}
                       {posting.skills && posting.skills.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-3">
                           {posting.skills.map((skill: string, index: number) => (
@@ -464,9 +512,9 @@ export default function DashboardClient({
                       <p className="text-sm text-gray-700">
                         Showing <span className="font-medium">{indexOfFirstPost + 1}</span> to{' '}
                         <span className="font-medium">
-                          {Math.min(indexOfLastPost, jobPostings.length)}
+                          {Math.min(indexOfLastPost, currentPosts.length)}
                         </span>{' '}
-                        of <span className="font-medium">{jobPostings.length}</span> results
+                        of <span className="font-medium">{currentPosts.length}</span> results
                       </p>
                     </div>
                     <div>
