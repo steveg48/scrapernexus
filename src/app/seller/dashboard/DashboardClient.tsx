@@ -545,13 +545,13 @@ export default function DashboardClient({
                           <span>{formatDate(posting.created_at)}</span>
                         </div>
 
-                        <p className="text-gray-600 mb-8 line-clamp-2 min-h-[48px]">{posting.description}</p>
+                        <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{posting.description}</p>
                       </div>
 
                       {/* Skills */}
                       <div className="flex flex-wrap items-center gap-2 mt-auto">
                         {posting.associated_skills && posting.associated_skills.map((skill, index) => (
-                          <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
+                          <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
                             {skill}
                           </span>
                         ))}
