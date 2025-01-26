@@ -32,7 +32,7 @@ const formatDate = (dateString: string) => {
   });
 };
 
-export default function JobsList({ jobs }: JobsListProps) {
+export default function JobsList({ jobs, loading = false }: JobsListProps) {
   const [likedJobs, setLikedJobs] = useState<string[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
   const { user } = useAuth();
