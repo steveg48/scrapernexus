@@ -449,29 +449,39 @@ export default function DashboardClient({
               <h2 className="text-lg font-semibold mb-4">Jobs you might like</h2>
               <div className="flex items-center justify-between mb-4">
                 <div></div>
-                <div className="flex space-x-6">
+                <div className="inline-flex rounded-lg border border-gray-200 bg-white">
                   <button 
-                    className={`text-sm font-medium ${activeFilter === 'be_first' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                    className={`px-4 py-2 text-sm font-medium ${
+                      activeFilter === 'be_first' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    } ${activeFilter === 'be_first' ? '' : 'hover:bg-gray-50'} first:rounded-l-lg last:rounded-r-lg`}
                     onClick={() => handleFilterClick('be_first')}
                   >
                     Be the 1st to apply
                   </button>
                   <button 
-                    className={`text-sm font-medium ${activeFilter === 'us_only' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                    className={`px-4 py-2 text-sm font-medium border-l ${
+                      activeFilter === 'us_only' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    } ${activeFilter === 'us_only' ? '' : 'hover:bg-gray-50'}`}
                     onClick={() => handleFilterClick('us_only')}
                   >
                     U.S. Only
                   </button>
                   <button 
-                    className={`text-sm font-medium ${activeFilter === 'saved' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                    className={`px-4 py-2 text-sm font-medium border-l ${
+                      activeFilter === 'saved' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    } ${activeFilter === 'saved' ? '' : 'hover:bg-gray-50'} rounded-r-lg`}
                     onClick={() => handleFilterClick('saved')}
                   >
                     Saved Jobs ({savedJobsCount})
                   </button>
                 </div>
               </div>
-              <div className="border-t border-gray-200"></div>
-              {/* Job Listings */}
               <div className="space-y-4">
                 {currentPosts.length === 0 ? (
                   <div className="text-center py-8">
@@ -479,10 +489,35 @@ export default function DashboardClient({
                   </div>
                 ) : (
                   currentPosts.slice(indexOfFirstPost, indexOfLastPost).map((posting) => (
-                    <div key={posting.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={posting.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative">
+                      {/* Interaction buttons */}
+                      <div className="absolute right-6 top-6 flex items-center space-x-4">
+                        <button 
+                          onClick={() => posting?.id && handleFavoriteClick(posting.id)}
+                          className={`p-2 rounded-full border-2 transition-all ${
+                            likedJobs.includes(Number(posting?.id))
+                              ? 'border-pink-400'
+                              : 'border-gray-300 hover:border-pink-400'
+                          }`}
+                        >
+                          <Heart 
+                            className={`w-5 h-5 ${likedJobs.includes(Number(posting?.id)) ? 'text-red-500' : 'text-gray-400'}`}
+                            fill={likedJobs.includes(Number(posting?.id)) ? "currentColor" : "none"}
+                          />
+                        </button>
+                        <button 
+                          onClick={() => posting?.id && handleDislike(posting.id)}
+                          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                        >
+                          <ThumbsDown 
+                            className={`w-5 h-5 ${dislikedJobs.includes(String(posting?.id)) ? 'text-blue-500' : 'text-gray-400'}`}
+                          />
+                        </button>
+                      </div>
+
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-medium text-gray-900">{posting.title}</h3>
-                        <div className="text-right">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900 mb-1">{posting.title}</h3>
                           <div className="text-sm font-medium text-gray-900">
                             {posting.budget_min && posting.budget_max ? (
                               <>
@@ -491,8 +526,8 @@ export default function DashboardClient({
                             ) : (
                               formatBudget(posting.budget_min || posting.budget_max)
                             )}
+                            <span className="text-xs text-gray-500 ml-2">{posting.frequency}</span>
                           </div>
-                          <div className="text-xs text-gray-500">{posting.frequency}</div>
                         </div>
                       </div>
 
@@ -504,47 +539,22 @@ export default function DashboardClient({
                         </div>
                       )}
 
+                      {/* Posted by and date */}
                       <div className="flex items-center text-sm text-gray-500 mb-2">
                         <span>Posted by {posting.buyer_name}</span>
                         <span className="mx-2">•</span>
                         <span>{formatDate(posting.created_at)}</span>
                       </div>
-                      <p className="text-gray-600 mb-3">{posting.description}</p>
+
+                      <p className="text-gray-600 mb-4">{posting.description}</p>
 
                       {/* Skills and interaction buttons */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex flex-wrap gap-2">
-                          {posting.skills && posting.skills.map((skill, index) => (
-                            <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Interaction buttons */}
-                        <div className="flex items-center space-x-4">
-                          <button 
-                            onClick={() => posting?.id && handleFavoriteClick(posting.id)}
-                            className={`p-2 rounded-full border-2 transition-all ${
-                              likedJobs.includes(Number(posting?.id))
-                                ? 'border-pink-400'
-                                : 'border-gray-300 hover:border-pink-400'
-                            }`}
-                          >
-                            <Heart 
-                              className={`w-5 h-5 ${likedJobs.includes(Number(posting?.id)) ? 'text-red-500' : 'text-gray-400'}`}
-                              fill={likedJobs.includes(Number(posting?.id)) ? "currentColor" : "none"}
-                            />
-                          </button>
-                          <button 
-                            onClick={() => posting?.id && handleDislike(posting.id)}
-                            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                          >
-                            <ThumbsDown 
-                              className={`w-5 h-5 ${dislikedJobs.includes(String(posting?.id)) ? 'text-blue-500' : 'text-gray-400'}`}
-                            />
-                          </button>
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2 max-w-[80%]">
+                        {posting.skills && posting.skills.map((skill, index) => (
+                          <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
+                            {skill}
+                          </span>
+                        ))}
                       </div>
 
                       {/* Project Type and Associated Skills */}
