@@ -17,36 +17,34 @@ export const supabaseServer = createClient(
   }
 )
 
-// Use this in client components
-export const createBrowserClient = () => {
-  return createClientComponentClient({
-    supabaseUrl,
-    supabaseKey: supabaseAnonKey,
-    options: {
-      auth: {
-        flowType: 'pkce',
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storageKey: 'sb:token',
-        debug: true
-      },
-      global: {
-        headers: {
-          'X-Client-Info': '@supabase/auth-helpers-nextjs'
-        },
-      },
-    },
-  })
-}
-
 // Create a singleton instance for the browser client
 let browserInstance: ReturnType<typeof createClientComponentClient> | null = null
 
-export const getBrowserClient = () => {
+// Use this in client components
+export const createBrowserClient = () => {
   if (typeof window === 'undefined') return null
   if (!browserInstance) {
-    browserInstance = createBrowserClient()
+    browserInstance = createClientComponentClient({
+      supabaseUrl,
+      supabaseKey: supabaseAnonKey,
+      options: {
+        auth: {
+          flowType: 'pkce',
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storageKey: 'sb:token',
+          debug: false
+        },
+        global: {
+          headers: {
+            'X-Client-Info': '@supabase/auth-helpers-nextjs'
+          },
+        },
+      },
+    })
   }
   return browserInstance
 }
+
+export const getBrowserClient = createBrowserClient

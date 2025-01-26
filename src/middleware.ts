@@ -17,7 +17,34 @@ export async function middleware(request: NextRequest) {
 
   try {
     const supabase = createMiddlewareClient({ req: request, res })
-    await supabase.auth.getSession()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    // Handle API routes
+    if (pathname.startsWith('/api/')) {
+      if (!session) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { 
+            status: 401,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+      }
+      // Add user info to request headers
+      const requestHeaders = new Headers(request.headers)
+      requestHeaders.set('x-user-id', session.user.id)
+      
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      })
+    }
+
     return res
   } catch (e) {
     console.error('Middleware error:', e)

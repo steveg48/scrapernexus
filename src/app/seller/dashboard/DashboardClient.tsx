@@ -5,7 +5,6 @@ import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft, Hea
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
-import supabaseClient from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Profile {
@@ -86,9 +85,8 @@ export default function DashboardClient({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [likedJobs, setLikedJobs] = useState<string[]>([]);
+  const [likedJobs, setLikedJobs] = useState<number[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
-  const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
   const postsPerPage = 5;
   const { user } = useAuth();
 
@@ -104,155 +102,165 @@ export default function DashboardClient({
   useEffect(() => {
     if (!user?.id) return;
 
-    // Try to load from localStorage first
-    const savedLikedJobs = localStorage.getItem(`liked_jobs_${user.id}`);
-    if (savedLikedJobs) {
-      try {
-        const parsed = JSON.parse(savedLikedJobs);
-        if (Array.isArray(parsed)) {
-          console.log('Loading liked jobs from localStorage:', parsed);
-          setLikedJobs(parsed.map(String));
-        }
-      } catch (e) {
-        console.error('Error parsing localStorage liked jobs:', e);
-      }
-    }
-
-    // Then load from API
     const loadFavorites = async () => {
       console.log('Loading favorites for user:', user.id);
       try {
-        const response = await fetch(
-          `https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?seller_id=eq.${user.id}&select=project_posting_id`,
-          {
-            headers: {
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
-            }
-          }
-        );
-
+        const response = await fetch(`/api/favorites?seller_id=${user.id}`, {
+          credentials: 'include'
+        });
         const data = await response.json();
-        console.log('Fetched favorites from API:', data);
 
-        if (Array.isArray(data)) {
-          const favoriteJobIds = data.map(fav => String(fav.project_posting_id));
-          console.log('Setting liked jobs from API:', favoriteJobIds);
-          setLikedJobs(favoriteJobIds);
-          // Save to localStorage
-          localStorage.setItem(`liked_jobs_${user.id}`, JSON.stringify(favoriteJobIds));
+        if (!response.ok) {
+          console.error('Error loading favorites from API:', data);
+          return;
         }
+
+        // Keep project_posting_id as numbers
+        const favoriteIds = data.map((fav: any) => fav.project_posting_id);
+        console.log('Loaded favorite IDs:', favoriteIds);
+        setLikedJobs(favoriteIds);
       } catch (error) {
-        console.error('Error loading favorites from API:', error);
+        console.error('Error loading favorites:', error);
       }
     };
 
     loadFavorites();
   }, [user?.id]);
 
-  const handleLike = async (jobId: string | number | undefined) => {
-    if (!user?.id || !jobId) {
-      console.error('No user ID or job ID available');
+  const handleFavoriteClick = async (jobId: string) => {
+    if (!user) {
+      console.log('No user logged in');
       return;
     }
-    
-    const jobIdStr = String(jobId);
-    console.log('Handling like for job:', jobIdStr, 'User:', user.id);
-    
-    if (isUpdating[jobIdStr]) {
-      console.log('Already updating this job');
-      return;
-    }
-    
-    setIsUpdating(prev => ({ ...prev, [jobIdStr]: true }));
-    
-    try {
-      const isCurrentlyLiked = likedJobs.includes(jobIdStr);
-      console.log('Is currently liked:', isCurrentlyLiked);
-      
-      // Update UI first for optimistic update
-      const newLikedJobs = isCurrentlyLiked 
-        ? likedJobs.filter(id => id !== jobIdStr)
-        : [...likedJobs, jobIdStr];
-      
-      console.log('Setting new liked jobs:', newLikedJobs);
-      setLikedJobs(newLikedJobs);
-      // Save to localStorage immediately
-      localStorage.setItem(`liked_jobs_${user.id}`, JSON.stringify(newLikedJobs));
 
+    // Convert jobId to number since that's what the database expects
+    const projectPostingId = parseInt(jobId);
+    if (isNaN(projectPostingId)) {
+      console.error('Invalid job ID:', jobId);
+      return;
+    }
+
+    const isCurrentlyLiked = likedJobs.includes(projectPostingId);
+    console.log('Handling favorite click:', {
+      jobId,
+      projectPostingId,
+      isCurrentlyLiked,
+      currentLikedJobs: likedJobs
+    });
+
+    try {
       if (isCurrentlyLiked) {
-        // Delete favorite
+        console.log('Attempting to delete favorite:', {
+          seller_id: user.id,
+          project_posting_id: projectPostingId
+        });
+
+        // Optimistically update UI
+        setLikedJobs(prev => {
+          const newLikedJobs = prev.filter(id => id !== projectPostingId);
+          console.log('Optimistically removing from liked jobs:', {
+            prev,
+            newLikedJobs,
+            projectPostingId
+          });
+          return newLikedJobs;
+        });
+
         const response = await fetch(
-          'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites',
+          `/api/favorites`,
           {
             method: 'DELETE',
             headers: {
-              'Content-Type': 'application/json',
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+              'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({
               seller_id: user.id,
-              project_posting_id: jobIdStr
+              project_posting_id: projectPostingId
             })
           }
         );
 
-        const responseText = await response.text();
-        console.log('Delete response:', responseText);
+        const responseData = await response.text();
+        console.log('Delete response:', {
+          ok: response.ok,
+          status: response.status,
+          data: responseData
+        });
 
         if (!response.ok) {
-          console.error('Delete response:', response.status, responseText);
-          throw new Error('Failed to remove favorite');
+          // Revert UI on error
+          setLikedJobs(prev => {
+            const newLikedJobs = [...prev, projectPostingId];
+            console.log('Reverting liked jobs after error:', {
+              prev,
+              newLikedJobs,
+              projectPostingId
+            });
+            return newLikedJobs;
+          });
+          console.error('Error deleting favorite:', responseData);
+          return;
         }
-        
-        console.log('Successfully removed favorite');
       } else {
-        // Add favorite
-        const response = await fetch(
-          'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-              seller_id: user.id,
-              project_posting_id: jobIdStr
-            })
-          }
-        );
+        console.log('Attempting to insert favorite:', {
+          seller_id: user.id,
+          project_posting_id: projectPostingId
+        });
 
-        const responseText = await response.text();
-        console.log('Insert response:', responseText);
+        // Optimistically update UI
+        setLikedJobs(prev => {
+          const newLikedJobs = [...prev, projectPostingId];
+          console.log('Optimistically adding to liked jobs:', {
+            prev,
+            newLikedJobs,
+            projectPostingId
+          });
+          return newLikedJobs;
+        });
+
+        const response = await fetch('/api/favorites', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            seller_id: user.id,
+            project_posting_id: projectPostingId
+          })
+        });
+
+        const responseData = await response.text();
+        console.log('Post response:', {
+          ok: response.ok,
+          status: response.status,
+          data: responseData
+        });
 
         if (!response.ok) {
-          console.error('Insert response:', response.status, responseText);
-          throw new Error('Failed to add favorite');
+          // Revert UI on error
+          setLikedJobs(prev => {
+            const newLikedJobs = prev.filter(id => id !== projectPostingId);
+            console.log('Reverting liked jobs after error:', {
+              prev,
+              newLikedJobs,
+              projectPostingId
+            });
+            return newLikedJobs;
+          });
+          console.error('Error adding favorite:', responseData);
+          return;
         }
-        
-        console.log('Successfully added favorite');
       }
-
     } catch (error) {
-      console.error('Error handling like:', error);
-      // Revert UI state on error
-      const revertedLikedJobs = isCurrentlyLiked 
-        ? [...likedJobs, jobIdStr] 
-        : likedJobs.filter(id => id !== jobIdStr);
-      setLikedJobs(revertedLikedJobs);
-      // Also revert localStorage
-      localStorage.setItem(`liked_jobs_${user.id}`, JSON.stringify(revertedLikedJobs));
-    } finally {
-      setIsUpdating(prev => ({ ...prev, [jobIdStr]: false }));
-    }
-
-    // Remove from disliked if necessary
-    if (dislikedJobs.includes(jobIdStr)) {
-      setDislikedJobs(prev => prev.filter(id => id !== jobIdStr));
+      console.error('Error updating favorite:', error);
+      // Revert UI on error
+      if (isCurrentlyLiked) {
+        setLikedJobs(prev => [...prev, projectPostingId]);
+      } else {
+        setLikedJobs(prev => prev.filter(id => id !== projectPostingId));
+      }
     }
   };
 
@@ -270,8 +278,8 @@ export default function DashboardClient({
     });
 
     // Remove from liked if necessary
-    if (likedJobs.includes(jobIdStr)) {
-      setLikedJobs(prev => prev.filter(id => id !== jobIdStr));
+    if (likedJobs.includes(Number(jobId))) {
+      setLikedJobs(prev => prev.filter(id => id !== Number(jobId)));
     }
   };
 
@@ -406,19 +414,16 @@ export default function DashboardClient({
                       {/* Interaction buttons */}
                       <div className="flex items-center justify-end space-x-4 mt-4">
                         <button 
-                          onClick={() => posting?.id && handleLike(posting.id)}
+                          onClick={() => posting?.id && handleFavoriteClick(posting.id)}
                           className={`p-2 rounded-full border-2 transition-all ${
-                            posting?.id && isUpdating[String(posting.id)]
-                              ? 'opacity-50 cursor-not-allowed'
-                              : likedJobs.includes(String(posting?.id))
-                                ? 'border-pink-400'
-                                : 'border-gray-300 hover:border-pink-400'
+                            likedJobs.includes(Number(posting?.id))
+                              ? 'border-pink-400'
+                              : 'border-gray-300 hover:border-pink-400'
                           }`}
-                          disabled={posting?.id ? isUpdating[String(posting.id)] : false}
                         >
                           <Heart 
-                            className={`w-5 h-5 ${likedJobs.includes(String(posting?.id)) ? 'text-red-500' : 'text-gray-400'}`}
-                            fill={likedJobs.includes(String(posting?.id)) ? "currentColor" : "none"}
+                            className={`w-5 h-5 ${likedJobs.includes(Number(posting?.id)) ? 'text-red-500' : 'text-gray-400'}`}
+                            fill={likedJobs.includes(Number(posting?.id)) ? "currentColor" : "none"}
                           />
                         </button>
                         <button 

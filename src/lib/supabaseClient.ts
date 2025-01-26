@@ -1,6 +1,6 @@
-import { createBrowserClient } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase'
 
 // Create a single instance of the Supabase client
-const supabaseClient = createBrowserClient()
+const supabaseClient = getBrowserClient()
 
 export default supabaseClient
