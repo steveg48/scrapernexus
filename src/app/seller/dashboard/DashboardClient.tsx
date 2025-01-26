@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft, Heart, ThumbsDown, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
@@ -96,6 +97,7 @@ export default function DashboardClient({
   const postsPerPage = 5;
   const { user } = useAuth();
   const supabase = createClientComponentClient();
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -403,6 +405,10 @@ export default function DashboardClient({
     }
   };
 
+  const handleJobClick = (jobId: string) => {
+    router.push(`/seller/jobs/${jobId}`);
+  };
+
   // Calculate pagination values
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
@@ -511,7 +517,11 @@ export default function DashboardClient({
                   </div>
                 ) : (
                   currentPosts.slice(indexOfFirstPost, indexOfLastPost).map((posting) => (
-                    <div key={posting.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col">
+                    <div 
+                      key={posting.id} 
+                      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handleJobClick(posting.id)}
+                    >
                       {/* Interaction buttons */}
                       <div className="absolute right-6 top-6 flex items-center space-x-4">
                         <button 
