@@ -2,7 +2,7 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import Navigation from '@/components/Navigation';
+import SellerNavigation from '@/components/SellerNavigation';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -28,7 +28,7 @@ export default async function JobsPage() {
 
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+        <SellerNavigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-2xl font-semibold text-gray-900 mb-6">Available Jobs</h1>
           <div className="grid gap-6">
@@ -61,7 +61,7 @@ export default async function JobsPage() {
     console.error('Error in jobs page:', error);
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+        <SellerNavigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white shadow rounded-lg p-6">
             <div className="text-red-500">Error loading jobs</div>

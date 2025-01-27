@@ -1,12 +1,13 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import SellerNavigation from '@/components/SellerNavigation'
 import DashboardClient from './DashboardClient'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function DashboardPage() {
+export default async function SellerDashboardPage() {
   try {
     const cookieStore = cookies()
     const supabase = createServerComponentClient({
@@ -25,7 +26,19 @@ export default async function DashboardPage() {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      redirect('/auth/login')
+      return (
+        <div className="bg-gray-50">
+          <SellerNavigation />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="text-red-500">Please log in to view your dashboard</div>
+              <a href="/auth/login" className="text-blue-500 hover:underline mt-4 inline-block">
+                Go to Login
+              </a>
+            </div>
+          </div>
+        </div>
+      )
     }
 
     // Get profile
@@ -74,11 +87,16 @@ export default async function DashboardPage() {
     })) || []
 
     return (
-      <DashboardClient
-        initialProfile={profileResult.data || { display_name: session.user.email }}
-        jobPostings={postings}
-        totalPostings={count || 0}
-      />
+      <div className="min-h-screen bg-gray-50">
+        <SellerNavigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <DashboardClient
+            initialProfile={profileResult.data || { display_name: session.user.email }}
+            jobPostings={postings}
+            totalPostings={count || 0}
+          />
+        </div>
+      </div>
     )
   } catch (error) {
     console.error('Error in seller dashboard:', error)
