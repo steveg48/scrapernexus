@@ -1,6 +1,5 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import JobDetailsClient from './JobDetailsClient';
 
@@ -12,15 +11,21 @@ export default async function JobDetailsPage({ params }: { params: { id: string 
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
   // Check authentication
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
-  if (sessionError) {
-    console.error('Session error:', sessionError);
-  }
-
+  const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    const returnUrl = `/seller/jobs/${params.id}`;
-    return redirect(`/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+    return (
+      <div className="bg-gray-50">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="text-red-500">Please log in to view job details</div>
+            <a href="/auth/login" className="text-blue-500 hover:underline mt-4 inline-block">
+              Go to Login
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   try {
@@ -30,27 +35,14 @@ export default async function JobDetailsPage({ params }: { params: { id: string 
       throw new Error('Invalid project ID');
     }
 
-    // Get a fresh session token
-    const { data: { session: freshSession }, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError) {
-      console.error('Error refreshing session:', refreshError);
-      return redirect('/auth/login');
-    }
-
-    if (!freshSession) {
-      console.error('No fresh session available');
-      return redirect('/auth/login');
-    }
-
     // Fetch job details from the REST endpoint
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/project_postings_with_skills?project_postings_id=eq.${projectId}`,
       {
         headers: {
           'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-          'Authorization': `Bearer ${freshSession.access_token}`,
-        },
-        cache: 'no-store'
+          'Authorization': `Bearer ${session.access_token}`,
+        }
       }
     );
 

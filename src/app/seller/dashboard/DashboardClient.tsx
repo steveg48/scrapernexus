@@ -179,144 +179,47 @@ export default function DashboardClient({
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
-      console.log('No user logged in');
+      router.push('/auth/login');
       return;
     }
-
-    // Convert jobId to number since that's what the database expects
-    const projectPostingId = parseInt(jobId);
-    if (isNaN(projectPostingId)) {
-      console.error('Invalid job ID:', jobId);
-      return;
-    }
-
-    const isCurrentlyLiked = likedJobs.includes(projectPostingId);
-    console.log('Handling favorite click:', {
-      jobId,
-      projectPostingId,
-      isCurrentlyLiked,
-      currentLikedJobs: likedJobs
-    });
 
     try {
-      if (isCurrentlyLiked) {
-        console.log('Attempting to delete favorite:', {
-          seller_id: user.id,
-          project_posting_id: projectPostingId
-        });
-
-        // Optimistically update UI
-        setLikedJobs(prev => {
-          const newLikedJobs = prev.filter(id => id !== projectPostingId);
-          console.log('Optimistically removing from liked jobs:', {
-            prev,
-            newLikedJobs,
-            projectPostingId
-          });
-          return newLikedJobs;
-        });
-        setSavedJobsCount(prev => prev - 1); // Decrement saved jobs count
-
-        const response = await fetch(
-          `/api/favorites`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              seller_id: user.id,
-              project_posting_id: projectPostingId
-            })
-          }
-        );
-
-        const responseData = await response.text();
-        console.log('Delete response:', {
-          ok: response.ok,
-          status: response.status,
-          data: responseData
+      if (likedJobs.includes(Number(jobId))) {
+        // Remove from favorites
+        const response = await fetch(`/api/favorites?project_id=${jobId}`, {
+          method: 'DELETE',
+          credentials: 'include'
         });
 
         if (!response.ok) {
-          // Revert UI on error
-          setLikedJobs(prev => {
-            const newLikedJobs = [...prev, projectPostingId];
-            console.log('Reverting liked jobs after error:', {
-              prev,
-              newLikedJobs,
-              projectPostingId
-            });
-            return newLikedJobs;
-          });
-          setSavedJobsCount(prev => prev + 1); // Revert saved jobs count on error
-          console.error('Error deleting favorite:', responseData);
-          return;
+          throw new Error('Failed to remove favorite');
         }
+
+        setLikedJobs(prev => prev.filter(id => id !== Number(jobId)));
+        setSavedJobsCount(prev => prev - 1);
       } else {
-        console.log('Attempting to insert favorite:', {
-          seller_id: user.id,
-          project_posting_id: projectPostingId
-        });
-
-        // Optimistically update UI
-        setLikedJobs(prev => {
-          const newLikedJobs = [...prev, projectPostingId];
-          console.log('Optimistically adding to liked jobs:', {
-            prev,
-            newLikedJobs,
-            projectPostingId
-          });
-          return newLikedJobs;
-        });
-        setSavedJobsCount(prev => prev + 1); // Increment saved jobs count
-
+        // Add to favorites
         const response = await fetch('/api/favorites', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          credentials: 'include',
           body: JSON.stringify({
-            seller_id: user.id,
-            project_posting_id: projectPostingId
-          })
-        });
-
-        const responseData = await response.text();
-        console.log('Post response:', {
-          ok: response.ok,
-          status: response.status,
-          data: responseData
+            project_posting_id: Number(jobId)
+          }),
+          credentials: 'include'
         });
 
         if (!response.ok) {
-          // Revert UI on error
-          setLikedJobs(prev => {
-            const newLikedJobs = prev.filter(id => id !== projectPostingId);
-            console.log('Reverting liked jobs after error:', {
-              prev,
-              newLikedJobs,
-              projectPostingId
-            });
-            return newLikedJobs;
-          });
-          setSavedJobsCount(prev => prev - 1); // Revert saved jobs count on error
-          console.error('Error adding favorite:', responseData);
-          return;
+          throw new Error('Failed to add favorite');
         }
+
+        const data = await response.json();
+        setLikedJobs(prev => [...prev, Number(jobId)]);
+        setSavedJobsCount(prev => prev + 1);
       }
     } catch (error) {
-      console.error('Error updating favorite:', error);
-      // Revert UI on error
-      if (isCurrentlyLiked) {
-        setLikedJobs(prev => [...prev, projectPostingId]);
-        setSavedJobsCount(prev => prev + 1); // Revert saved jobs count on error
-      } else {
-        setLikedJobs(prev => prev.filter(id => id !== projectPostingId));
-        setSavedJobsCount(prev => prev - 1); // Revert saved jobs count on error
-      }
+      console.error('Error handling favorite:', error);
     }
   };
 
@@ -386,7 +289,7 @@ export default function DashboardClient({
   };
 
   const handleJobClick = (jobId: string) => {
-    router.push(`/seller/jobs/${jobId}`);
+    router.push(`/seller/jobs/details/${jobId}`);
   };
 
   // Calculate pagination values

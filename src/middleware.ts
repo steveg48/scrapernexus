@@ -45,6 +45,16 @@ export async function middleware(request: NextRequest) {
       })
     }
 
+    // Check auth for protected routes
+    if (!session && (
+      pathname.startsWith('/seller/') ||
+      pathname.startsWith('/buyer/')
+    )) {
+      const redirectUrl = new URL('/auth/login', request.url)
+      redirectUrl.searchParams.set('returnUrl', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
     return res
   } catch (e) {
     console.error('Middleware error:', e)

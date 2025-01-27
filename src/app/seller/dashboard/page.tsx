@@ -9,7 +9,16 @@ export const revalidate = 0
 export default async function DashboardPage() {
   try {
     const cookieStore = cookies()
-    const supabase = createServerComponentClient({ cookies: () => cookieStore })
+    const supabase = createServerComponentClient({
+      cookies: () => cookieStore,
+      options: {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      }
+    })
 
     const {
       data: { session },
