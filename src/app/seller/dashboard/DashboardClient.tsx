@@ -454,8 +454,14 @@ export default function DashboardClient({
 
             <div className="flex-1">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">{job.title}</h3>
-                <div className="text-sm font-medium text-gray-900">
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
+                {job.project_location && (
+                  <div className="text-sm text-gray-500 mb-2">
+                    <MapPin className="h-4 w-4 inline-block mr-1" />
+                    {job.project_location}
+                  </div>
+                )}
+                <div className="text-sm font-medium text-gray-900 mb-4">
                   {job.budget_min && job.budget_max ? (
                     <>
                       {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
@@ -466,14 +472,6 @@ export default function DashboardClient({
                   <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
                 </div>
               </div>
-
-              {/* Location row */}
-              {job.project_location && (
-                <div className="flex items-center text-sm text-gray-500 mb-2">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  {job.project_location}
-                </div>
-              )}
 
               <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
 
@@ -489,8 +487,7 @@ export default function DashboardClient({
 
             {/* Footer */}
             <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-              <div>Posted by {job.buyer_name}</div>
-              <div>{formatDate(job.created_at)}</div>
+              <div>Posted {formatDate(job.created_at)}</div>
             </div>
           </div>
         ))}
@@ -623,8 +620,14 @@ export default function DashboardClient({
 
                       <div className="flex-1">
                         <div>
-                          <h3 className="text-lg font-medium text-gray-700 mb-1">{job.title}</h3>
-                          <div className="text-sm font-medium text-gray-700">
+                          <h3 className="text-xl font-semibold text-gray-700 mb-1">{job.title}</h3>
+                          {job.project_location && (
+                            <div className="text-sm text-gray-500 mb-2">
+                              <MapPin className="h-4 w-4 inline-block mr-1" />
+                              {job.project_location}
+                            </div>
+                          )}
+                          <div className="text-sm font-medium text-gray-700 mb-4">
                             {job.budget_min && job.budget_max ? (
                               <>
                                 {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
@@ -635,14 +638,6 @@ export default function DashboardClient({
                             <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
                           </div>
                         </div>
-
-                        {/* Location row */}
-                        {job.project_location && (
-                          <div className="flex items-center text-sm text-gray-500 mb-2">
-                            <MapPin className="h-4 w-4 mr-1" />
-                            {job.project_location}
-                          </div>
-                        )}
 
                         <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
 
@@ -658,11 +653,45 @@ export default function DashboardClient({
 
                       {/* Footer */}
                       <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                        <div>Posted by {job.buyer_name}</div>
-                        <div>{formatDate(job.created_at)}</div>
+                        <div>Posted {formatDate(job.created_at)}</div>
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-8">
+                  <div className="flex justify-center gap-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1 border rounded-md text-sm ${
+                          pageNum === currentPage
+                            ? 'bg-blue-50 border-blue-500 text-blue-600'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
