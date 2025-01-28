@@ -50,18 +50,35 @@ export default async function SellerDashboardPage() {
       redirect('/buyer/dashboard')
     }
 
-    // Get total count for pagination
-    const { count } = await supabase
-      .from('project_postings_with_skills')
-      .select('*', { count: 'exact', head: true })
+    // Get a fresh session token
+    const { data: { session: freshSession }, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      console.error('Error refreshing session:', refreshError);
+      return redirect('/auth/login');
+    }
 
-    // Get all project postings with skills
-    const { data: projectPostings } = await supabase
-      .from('project_postings_with_skills')
-      .select('*')
-      .order('created_at', { ascending: false })
+    if (!freshSession) {
+      console.error('No fresh session available');
+      return redirect('/auth/login');
+    }
 
-    console.log('Project Postings with Skills:', projectPostings)
+    // Fetch job listings from the REST endpoint
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/project_postings_with_skills`,
+      {
+        headers: {
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${freshSession.access_token}`,
+        },
+        cache: 'no-store'
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch job listings');
+    }
+
+    const projectPostings = await response.json();
 
     // Filter out duplicate jobs
     const uniquePostings = projectPostings?.filter((posting, index, self) =>
@@ -88,7 +105,7 @@ export default async function SellerDashboardPage() {
           <DashboardClient
             initialProfile={profileResult.data || { display_name: session.user.email }}
             jobPostings={postings}
-            totalPostings={count || 0}
+            totalPostings={postings.length}
           />
         </div>
       </div>
