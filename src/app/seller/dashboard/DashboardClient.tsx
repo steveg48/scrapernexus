@@ -406,51 +406,47 @@ export default function DashboardClient({
   };
 
   // Calculate pagination values
+  const regularJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
+  const dislikedJobsList = jobPostings.filter(job => dislikedJobs.includes(String(job.id)));
+  
+  const totalRegularPages = Math.ceil(regularJobs.length / postsPerPage);
+  const showingDislikedPage = currentPage > totalRegularPages;
+  
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const totalPages = Math.ceil(currentPosts.length / postsPerPage);
+  
+  const totalPages = Math.ceil((regularJobs.length + (dislikedJobs.length > 0 ? postsPerPage : 0)) / postsPerPage);
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
   };
 
   const renderJobList = () => {
-    const paginatedPosts = currentPosts.slice(indexOfFirstPost, indexOfLastPost);
-    const regularJobs = paginatedPosts.filter(job => !dislikedJobs.includes(String(job.id)));
+    const paginatedPosts = showingDislikedPage 
+      ? dislikedJobsList.slice(0, postsPerPage)
+      : regularJobs.slice(indexOfFirstPost, indexOfLastPost);
 
     return (
       <>
-        {/* Regular Jobs */}
-        {regularJobs.map((job) => (
+        {paginatedPosts.map((job) => (
           <div 
             key={job.id} 
-            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
+            className={`bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col ${showingDislikedPage ? 'bg-gray-50' : ''}`}
             onClick={() => handleJobClick(job.id)}
           >
-            {/* Interaction buttons */}
-            <div className="absolute right-6 top-6 flex items-center gap-4">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFavoriteClick(job.id);
-                }}
-                className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <Heart className={`w-5 h-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
-              </button>
-              {/* Only show dislike button if job is not favorited */}
-              {!likedJobs.includes(Number(job.id)) && (
+            {showingDislikedPage && (
+              <div className="absolute right-6 top-6">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDislikeClick(job.id);
                   }}
-                  className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
+                  className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  <ThumbsDown className={`w-5 h-5 ${dislikedJobs.includes(String(job.id)) ? 'fill-gray-500' : ''}`} />
+                  Restore
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="flex-1">
               <div>
@@ -478,7 +474,7 @@ export default function DashboardClient({
               {/* Skills */}
               <div className="flex flex-wrap items-center gap-2 mt-auto">
                 {job.associated_skills && job.associated_skills.map((skill, index) => (
-                  <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
+                  <span key={index} className={`bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm ${showingDislikedPage ? 'bg-gray-200 text-gray-700' : ''}`}>
                     {skill}
                   </span>
                 ))}
@@ -600,7 +596,7 @@ export default function DashboardClient({
               {dislikedJobs.length > 0 && (
                 <div className="mt-8">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Not Interested</h2>
-                  {currentPosts.filter(job => dislikedJobs.includes(String(job.id))).map((job) => (
+                  {jobPostings.filter(job => dislikedJobs.includes(String(job.id))).map((job) => (
                     <div 
                       key={job.id} 
                       className="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col mb-4"
