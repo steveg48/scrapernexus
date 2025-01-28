@@ -85,6 +85,8 @@ export default function DashboardClient({
   jobPostings,
   totalPostings
 }: DashboardClientProps) {
+  console.log('DashboardClient jobPostings:', jobPostings);
+  console.log('Sample job skills:', jobPostings[0]?.skills);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -497,6 +499,7 @@ export default function DashboardClient({
 
               {/* Skills */}
               <div className="flex flex-wrap items-center gap-2 mt-auto">
+                {console.log('Rendering skills for job:', job.id, job.skills)}
                 {job.skills && job.skills.map((skill, index) => (
                   <span 
                     key={index}
