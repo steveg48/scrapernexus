@@ -394,6 +394,134 @@ export default function DashboardClient({
     setCurrentPage(pageNumber);
   };
 
+  const renderJobList = () => {
+    const regularJobs = currentPosts.filter(job => !dislikedJobs.includes(String(job.id)));
+    const dislikedJobsList = currentPosts.filter(job => dislikedJobs.includes(String(job.id)));
+
+    return (
+      <>
+        {/* Regular Jobs */}
+        {regularJobs.map((job) => (
+          <div 
+            key={job.id} 
+            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
+            onClick={() => handleJobClick(job.id)}
+          >
+            {/* Add "Not Interested" label for disliked jobs */}
+            {dislikedJobs.includes(job.id) && (
+              <div className="absolute top-0 right-0 bg-gray-100 text-gray-600 px-3 py-1 text-sm rounded-tr-lg rounded-bl-lg">
+                Not Interested
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRestoreJob(job.id);
+                  }}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  Restore
+                </button>
+              </div>
+            )}
+
+            {/* Interaction buttons */}
+            <div className="absolute right-6 top-6 flex items-center gap-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFavoriteClick(job.id);
+                }}
+                className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <Heart className={`w-5 h-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
+              </button>
+              {/* Only show dislike button if job is not favorited */}
+              {!likedJobs.includes(Number(job.id)) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDislikeClick(job.id);
+                  }}
+                  className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <ThumbsDown className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">{job.title}</h3>
+                <div className="text-sm font-medium text-gray-900">
+                  {job.budget_min && job.budget_max ? (
+                    <>
+                      {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
+                    </>
+                  ) : (
+                    formatBudget(job.budget_min || job.budget_max)
+                  )}
+                  <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
+                </div>
+              </div>
+
+              {/* Location row */}
+              {job.project_location && (
+                <div className="flex items-center text-sm text-gray-500 mb-2">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span>{job.project_location}</span>
+                </div>
+              )}
+
+              {/* Posted by and date */}
+              <div className="flex items-center text-sm text-gray-500 mb-2">
+                <span>Posted by {job.buyer_name}</span>
+                <span className="mx-2">•</span>
+                <span>{formatDate(job.created_at)}</span>
+              </div>
+
+              <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
+
+              {/* Skills */}
+              <div className="flex flex-wrap items-center gap-2 mt-auto">
+                {job.associated_skills && job.associated_skills.map((skill, index) => (
+                  <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Not Interested Section - only show if there are disliked jobs */}
+        {dislikedJobsList.length > 0 && (
+          <>
+            <div className="mt-8 mb-4 border-t pt-4">
+              <h3 className="text-lg font-semibold text-gray-900">Not Interested</h3>
+              <p className="text-sm text-gray-600">Jobs you've marked as not interested</p>
+            </div>
+            {dislikedJobsList.map((job) => (
+              <div key={job.id} className="bg-white shadow rounded-lg p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
+                    <p className="mt-1 text-sm text-gray-500">Posted {formatDate(job.created_at)}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRestoreJob(job.id)}
+                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    Restore
+                  </button>
+                </div>
+                {/* ... rest of job card content without the heart icon ... */}
+              </div>
+            ))}
+          </>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -491,96 +619,7 @@ export default function DashboardClient({
                     <p className="text-gray-500">No job postings available</p>
                   </div>
                 ) : (
-                  currentPosts.slice(indexOfFirstPost, indexOfLastPost).map((posting) => (
-                    <div 
-                      key={posting.id} 
-                      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
-                      onClick={() => handleJobClick(posting.id)}
-                    >
-                      {/* Add "Not Interested" label for disliked jobs */}
-                      {dislikedJobs.includes(posting.id) && (
-                        <div className="absolute top-0 right-0 bg-gray-100 text-gray-600 px-3 py-1 text-sm rounded-tr-lg rounded-bl-lg">
-                          Not Interested
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRestoreJob(posting.id);
-                            }}
-                            className="ml-2 text-blue-600 hover:text-blue-800"
-                          >
-                            Restore
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Interaction buttons */}
-                      <div className="absolute right-6 top-6 flex items-center gap-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFavoriteClick(posting.id);
-                          }}
-                          className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                          <Heart className={`w-5 h-5 ${likedJobs.includes(Number(posting.id)) ? 'fill-red-500 text-red-500' : ''}`} />
-                        </button>
-                        {/* Only show dislike button if job is not favorited */}
-                        {!likedJobs.includes(Number(posting.id)) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDislikeClick(posting.id);
-                            }}
-                            className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
-                          >
-                            <ThumbsDown className="w-5 h-5" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex-1">
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900 mb-1">{posting.title}</h3>
-                          <div className="text-sm font-medium text-gray-900">
-                            {posting.budget_min && posting.budget_max ? (
-                              <>
-                                {formatBudget(posting.budget_min)} - {formatBudget(posting.budget_max)}
-                              </>
-                            ) : (
-                              formatBudget(posting.budget_min || posting.budget_max)
-                            )}
-                            <span className="text-xs text-gray-500 ml-2">{posting.frequency}</span>
-                          </div>
-                        </div>
-
-                        {/* Location row */}
-                        {posting.project_location && (
-                          <div className="flex items-center text-sm text-gray-500 mb-2">
-                            <MapPin className="h-4 w-4 mr-1" />
-                            <span>{posting.project_location}</span>
-                          </div>
-                        )}
-
-                        {/* Posted by and date */}
-                        <div className="flex items-center text-sm text-gray-500 mb-2">
-                          <span>Posted by {posting.buyer_name}</span>
-                          <span className="mx-2">•</span>
-                          <span>{formatDate(posting.created_at)}</span>
-                        </div>
-
-                        <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{posting.description}</p>
-
-                        {/* Skills */}
-                        <div className="flex flex-wrap items-center gap-2 mt-auto">
-                          {posting.associated_skills && posting.associated_skills.map((skill, index) => (
-                            <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  renderJobList()
                 )}
               </div>
 
