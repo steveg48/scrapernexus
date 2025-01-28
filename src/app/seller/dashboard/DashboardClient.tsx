@@ -181,21 +181,18 @@ export default function DashboardClient({
       if (!user?.id) return;
       
       try {
-        const response = await fetch(
-          `https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes?seller_id=eq.${user.id}&select=project_posting_id`,
-          {
-            headers: {
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
-            }
-          }
-        );
+        const { data, error } = await supabase
+          .from('seller_dislikes')
+          .select('project_posting_id')
+          .eq('seller_id', user.id);
 
-        if (response.ok) {
-          const dislikes = await response.json();
-          const dislikedIds = dislikes.map((d: any) => String(d.project_posting_id));
-          setDislikedJobs(dislikedIds);
+        if (error) {
+          console.error('Error fetching disliked jobs:', error);
+          return;
         }
+
+        const dislikedIds = data.map((d: any) => String(d.project_posting_id));
+        setDislikedJobs(dislikedIds);
       } catch (error) {
         console.error('Error fetching disliked jobs:', error);
       }
@@ -259,77 +256,68 @@ export default function DashboardClient({
     console.log('Disliking job:', jobId);
     
     try {
-      const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          seller_id: user.id,
-          project_posting_id: Number(jobId)
-        })
-      });
-
-      console.log('Dislike response status:', response.status);
-      const responseText = await response.text();
-      console.log('Dislike response text:', responseText);
-
-      if (response.ok) {
-        console.log('Successfully disliked job');
-        setDislikedJobs(prev => [...prev, String(jobId)]);
-        
-        // Move disliked job to end of list
-        setCurrentPosts(prev => {
-          const updatedPosts = [...prev];
-          const dislikedPost = updatedPosts.find(p => p.id === jobId);
-          if (dislikedPost) {
-            const otherPosts = updatedPosts.filter(p => p.id !== jobId);
-            return [...otherPosts, dislikedPost];
+      const { data, error } = await supabase
+        .from('seller_dislikes')
+        .insert([
+          {
+            seller_id: user.id,
+            project_posting_id: Number(jobId)
           }
-          return updatedPosts;
-        });
+        ])
+        .select();
+
+      if (error) {
+        console.error('Error adding dislike:', error);
+        return;
       }
+
+      console.log('Successfully disliked job:', data);
+      setDislikedJobs(prev => [...prev, String(jobId)]);
+      
+      // Move disliked job to end of list
+      setCurrentPosts(prev => {
+        const updatedPosts = [...prev];
+        const dislikedPost = updatedPosts.find(p => p.id === jobId);
+        if (dislikedPost) {
+          const otherPosts = updatedPosts.filter(p => p.id !== jobId);
+          return [...otherPosts, dislikedPost];
+        }
+        return updatedPosts;
+      });
     } catch (error) {
       console.error('Error in handleDislikeClick:', error);
     }
   };
 
-  const handleRestoreJob = async (jobId: string) => {
-    if (!user?.id) return;
+  const handleRestoreJob = async (jobId: string | number | undefined) => {
+    if (!jobId || !user?.id) return;
     
     try {
-      const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/remove_seller_dislike', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
-        },
-        body: JSON.stringify({
-          seller_id: user.id,
-          project_posting_id: jobId
-        })
-      });
+      const { error } = await supabase
+        .from('seller_dislikes')
+        .delete()
+        .eq('seller_id', user.id)
+        .eq('project_posting_id', Number(jobId));
 
-      if (response.ok) {
-        setDislikedJobs(prev => prev.filter(id => id !== jobId));
-        
-        // Re-sort posts to move restored job back to main section
-        setCurrentPosts(prev => {
-          return [...prev].sort((a, b) => {
-            const aDisliked = dislikedJobs.filter(id => id !== jobId).includes(a.id);
-            const bDisliked = dislikedJobs.filter(id => id !== jobId).includes(b.id);
-            if (aDisliked && !bDisliked) return 1;
-            if (!aDisliked && bDisliked) return -1;
-            return 0;
-          });
-        });
+      if (error) {
+        console.error('Error removing dislike:', error);
+        return;
       }
+
+      setDislikedJobs(prev => prev.filter(id => id !== String(jobId)));
+      
+      // Move restored job back to main list
+      setCurrentPosts(prev => {
+        const updatedPosts = [...prev];
+        const restoredPost = updatedPosts.find(p => p.id === jobId);
+        if (restoredPost) {
+          const otherPosts = updatedPosts.filter(p => p.id !== jobId);
+          return [restoredPost, ...otherPosts];
+        }
+        return updatedPosts;
+      });
     } catch (error) {
-      console.error('Error removing dislike:', error);
+      console.error('Error in handleRestoreJob:', error);
     }
   };
 
