@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 
 interface Profile {
   id?: string;
@@ -96,7 +96,16 @@ export default function DashboardClient({
   const [loading, setLoading] = useState(true);
   const postsPerPage = 5;
   const { user } = useAuth();
-  const supabase = createClientComponentClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: true,
+        storageKey: 'sb-access-token'
+      }
+    }
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -201,46 +210,50 @@ export default function DashboardClient({
     loadDislikes();
   }, [user?.id]);
 
-  const handleFavoriteClick = async (jobId: string) => {
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
+  const handleFavoriteClick = async (jobId: string | number) => {
+    if (!user?.id) return;
 
     try {
-      if (likedJobs.includes(Number(jobId))) {
+      const jobIdStr = String(jobId);
+      const isCurrentlyLiked = likedJobs.includes(Number(jobIdStr));
+
+      // Update UI immediately
+      setLikedJobs(prev => 
+        isCurrentlyLiked 
+          ? prev.filter(id => id !== Number(jobIdStr))
+          : [...prev, Number(jobIdStr)]
+      );
+
+      if (isCurrentlyLiked) {
         // Remove from favorites
-        const response = await fetch(`/api/favorites?project_id=${jobId}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
+        const { error } = await supabase
+          .from('seller_favorites')
+          .delete()
+          .eq('project_posting_id', jobIdStr)
+          .eq('seller_id', user.id);
 
-        if (!response.ok) {
-          throw new Error('Failed to remove favorite');
+        if (error) {
+          console.error('Error removing from favorites:', error);
+          // Revert UI on error
+          setLikedJobs(prev => [...prev, Number(jobIdStr)]);
         }
-
-        setLikedJobs(prev => prev.filter(id => id !== Number(jobId)));
-        setSavedJobsCount(prev => prev - 1);
       } else {
         // Add to favorites
-        const response = await fetch('/api/favorites', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            project_posting_id: Number(jobId)
-          }),
-          credentials: 'include'
-        });
+        const { error } = await supabase
+          .from('seller_favorites')
+          .insert([
+            {
+              project_posting_id: jobIdStr,
+              seller_id: user.id,
+              created_at: new Date().toISOString()
+            }
+          ]);
 
-        if (!response.ok) {
-          throw new Error('Failed to add favorite');
+        if (error) {
+          console.error('Error adding to favorites:', error);
+          // Revert UI on error
+          setLikedJobs(prev => prev.filter(id => id !== Number(jobIdStr)));
         }
-
-        const data = await response.json();
-        setLikedJobs(prev => [...prev, Number(jobId)]);
-        setSavedJobsCount(prev => prev + 1);
       }
     } catch (error) {
       console.error('Error handling favorite:', error);
