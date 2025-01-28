@@ -17,6 +17,7 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
   const [isLoading, setIsLoading] = useState(false);
   const [job, setJob] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClientComponentClient();
@@ -29,8 +30,12 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
           throw new Error('Invalid project ID');
         }
 
-        // Fetch job details and skills using Supabase client
-        const [{ data: jobData, error: jobError }, { data: skillsData, error: skillsError }] = await Promise.all([
+        // Fetch job details, skills, and favorite status
+        const [
+          { data: jobData, error: jobError }, 
+          { data: skillsData, error: skillsError },
+          { data: favoriteData, error: favoriteError }
+        ] = await Promise.all([
           supabase
             .from('project_postings')
             .select()
@@ -44,17 +49,20 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
                 skill_name
               )
             `)
+            .eq('project_posting_id', projectId),
+          supabase
+            .from('seller_favorites')
+            .select()
             .eq('project_posting_id', projectId)
+            .eq('seller_id', session.user.id)
+            .single()
         ]);
-
-        console.log('Job Data:', jobData);
-        console.log('Job Error:', jobError);
-        console.log('Skills Data:', skillsData);
-        console.log('Skills Error:', skillsError);
 
         if (jobError) throw jobError;
         if (skillsError) throw skillsError;
-        if (!jobData) throw new Error('Job not found');
+        
+        // Set favorite status
+        setIsFavorite(!!favoriteData);
 
         const skills = skillsData?.map(skill => skill.skills.skill_name) || [];
 
@@ -85,7 +93,35 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
     };
 
     fetchJobDetails();
-  }, [projectId, supabase]);
+  }, [projectId, supabase, session.user.id]);
+
+  const handleFavorite = async () => {
+    try {
+      const { data, error } = isFavorite
+        ? await supabase
+            .from('seller_favorites')
+            .delete()
+            .eq('project_posting_id', projectId)
+            .eq('seller_id', session.user.id)
+        : await supabase
+            .from('seller_favorites')
+            .insert([
+              {
+                project_posting_id: projectId,
+                seller_id: session.user.id
+              }
+            ])
+            .select();
+
+      if (error) {
+        console.error('Error toggling favorite:', error);
+        return;
+      }
+      setIsFavorite(!isFavorite);
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -141,8 +177,6 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">{job.title}</h1>
                 <p className="mt-1 text-sm text-gray-500">Posted {formatDate(job.created_at)}</p>
-              </div>
-              <div className="flex flex-col gap-3">
               </div>
             </div>
           </div>
@@ -208,19 +242,19 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
 
             {/* Right column */}
             <div className="flex-1">
-              <div className="flex flex-col items-center gap-3 p-6">
+              <div className="flex flex-col gap-3 items-center p-6">
                 <button 
-                  className="w-full max-w-[200px] px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors w-full max-w-[200px]"
                   onClick={() => router.push(`/seller/jobs/apply/${job.id}`)}
                 >
                   Apply now
                 </button>
                 <button 
-                  className="w-full max-w-[200px] px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                  onClick={() => {/* TODO: Implement save job */}}
+                  className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 w-full max-w-[200px]"
+                  onClick={handleFavorite}
                 >
-                  <Heart className="w-5 h-5" />
-                  Save job
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
+                  {isFavorite ? 'Saved' : 'Save job'}
                 </button>
               </div>
 
