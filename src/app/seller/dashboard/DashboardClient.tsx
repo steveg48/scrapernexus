@@ -26,8 +26,9 @@ interface JobPosting {
   buyer_name: string;
   project_type?: string;
   project_location?: string;
-  skills: string[];
+  project_skills?: string[];
   associated_skills?: string[];
+  skills?: string[];
 }
 
 interface DashboardClientProps {
@@ -118,6 +119,7 @@ export default function DashboardClient({
         
         if (response.ok) {
           const jobsWithSkills = await response.json();
+          
           // Create a map of job IDs to their associated skills
           const skillsMap = jobsWithSkills.reduce((acc: {[key: string]: string[]}, job: any) => {
             if (!acc[job.project_postings_id]) {
@@ -139,8 +141,6 @@ export default function DashboardClient({
         }
       } catch (error) {
         console.error('Error fetching skills:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -179,29 +179,22 @@ export default function DashboardClient({
   useEffect(() => {
     const fetchDislikedJobs = async () => {
       if (!user?.id) return;
+      
       try {
-        const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes', {
-          headers: {
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+        const response = await fetch(
+          `https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes?seller_id=eq.${user.id}&select=project_posting_id`,
+          {
+            headers: {
+              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+            }
           }
-        });
-        
+        );
+
         if (response.ok) {
-          const data = await response.json();
-          const dislikedIds = data.map((item: any) => item.project_posting_id.toString());
+          const dislikes = await response.json();
+          const dislikedIds = dislikes.map((d: any) => String(d.project_posting_id));
           setDislikedJobs(dislikedIds);
-          
-          // Sort posts to put disliked ones at the end
-          const sortedPosts = jobPostings.sort((a, b) => {
-            const aDisliked = dislikedIds.includes(a.id);
-            const bDisliked = dislikedIds.includes(b.id);
-            if (aDisliked && !bDisliked) return 1;
-            if (!aDisliked && bDisliked) return -1;
-            return 0;
-          });
-          
-          setCurrentPosts(sortedPosts);
         }
       } catch (error) {
         console.error('Error fetching disliked jobs:', error);
@@ -209,7 +202,7 @@ export default function DashboardClient({
     };
 
     fetchDislikedJobs();
-  }, [user?.id, jobPostings]);
+  }, [user]);
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
@@ -258,39 +251,49 @@ export default function DashboardClient({
   };
 
   const handleDislikeClick = async (jobId: string | number | undefined) => {
-    if (!jobId || !user?.id) return;
-    const jobIdStr = String(jobId);
+    if (!jobId || !user?.id) {
+      console.log('No jobId or user:', { jobId, userId: user?.id });
+      return;
+    }
+    
+    console.log('Disliking job:', jobId);
     
     try {
-      const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/add_seller_dislike', {
+      const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          'Prefer': 'return=minimal'
         },
         body: JSON.stringify({
           seller_id: user.id,
-          project_posting_id: jobId
+          project_posting_id: Number(jobId)
         })
       });
 
+      console.log('Dislike response status:', response.status);
+      const responseText = await response.text();
+      console.log('Dislike response text:', responseText);
+
       if (response.ok) {
-        setDislikedJobs(prev => [...prev, jobIdStr]);
+        console.log('Successfully disliked job');
+        setDislikedJobs(prev => [...prev, String(jobId)]);
         
-        // Re-sort posts to move disliked ones to end
+        // Move disliked job to end of list
         setCurrentPosts(prev => {
-          return [...prev].sort((a, b) => {
-            const aDisliked = [...dislikedJobs, jobIdStr].includes(a.id);
-            const bDisliked = [...dislikedJobs, jobIdStr].includes(b.id);
-            if (aDisliked && !bDisliked) return 1;
-            if (!aDisliked && bDisliked) return -1;
-            return 0;
-          });
+          const updatedPosts = [...prev];
+          const dislikedPost = updatedPosts.find(p => p.id === jobId);
+          if (dislikedPost) {
+            const otherPosts = updatedPosts.filter(p => p.id !== jobId);
+            return [...otherPosts, dislikedPost];
+          }
+          return updatedPosts;
         });
       }
     } catch (error) {
-      console.error('Error adding dislike:', error);
+      console.error('Error in handleDislikeClick:', error);
     }
   };
 
@@ -507,6 +510,7 @@ export default function DashboardClient({
                           </button>
                         </div>
                       )}
+
                       {/* Interaction buttons */}
                       <div className="absolute right-6 top-6 flex items-center gap-4">
                         <button
@@ -514,7 +518,7 @@ export default function DashboardClient({
                             e.stopPropagation();
                             handleFavoriteClick(posting.id);
                           }}
-                          className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
+                          className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
                         >
                           <Heart className={`w-5 h-5 ${likedJobs.includes(Number(posting.id)) ? 'fill-red-500 text-red-500' : ''}`} />
                         </button>
@@ -525,15 +529,15 @@ export default function DashboardClient({
                               e.stopPropagation();
                               handleDislikeClick(posting.id);
                             }}
-                            className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
+                            className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
                           >
                             <ThumbsDown className="w-5 h-5" />
                           </button>
                         )}
                       </div>
 
-                      <div>
-                        <div className="mb-2">
+                      <div className="flex-1">
+                        <div>
                           <h3 className="text-lg font-medium text-gray-900 mb-1">{posting.title}</h3>
                           <div className="text-sm font-medium text-gray-900">
                             {posting.budget_min && posting.budget_max ? (
@@ -563,15 +567,15 @@ export default function DashboardClient({
                         </div>
 
                         <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{posting.description}</p>
-                      </div>
 
-                      {/* Skills */}
-                      <div className="flex flex-wrap items-center gap-2 mt-auto">
-                        {posting.associated_skills && posting.associated_skills.map((skill, index) => (
-                          <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
-                            {skill}
-                          </span>
-                        ))}
+                        {/* Skills */}
+                        <div className="flex flex-wrap items-center gap-2 mt-auto">
+                          {posting.associated_skills && posting.associated_skills.map((skill, index) => (
+                            <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ))
