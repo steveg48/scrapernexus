@@ -148,35 +148,6 @@ export default function DashboardClient({
   }, [jobPostings]);
 
   useEffect(() => {
-    const loadFavorites = async () => {
-      if (!user?.id) return;
-
-      console.log('Loading favorites for user:', user.id);
-      try {
-        const response = await fetch(`/api/favorites?seller_id=${user.id}`, {
-          credentials: 'include'
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error('Error loading favorites from API:', data);
-          return;
-        }
-
-        // Keep project_posting_id as numbers
-        const favoriteIds = data.map((fav: any) => fav.project_posting_id);
-        console.log('Loaded favorite IDs:', favoriteIds);
-        setLikedJobs(favoriteIds);
-        setSavedJobsCount(favoriteIds.length);
-      } catch (error) {
-        console.error('Error loading favorites:', error);
-      }
-    };
-
-    loadFavorites();
-  }, [user?.id]);
-
-  useEffect(() => {
     const fetchDislikedJobs = async () => {
       if (!user?.id) return;
       
@@ -203,49 +174,72 @@ export default function DashboardClient({
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
-      router.push('/auth/login');
+      console.log('No user found');
       return;
     }
 
     try {
       if (likedJobs.includes(Number(jobId))) {
         // Remove from favorites
-        const response = await fetch(`/api/favorites?project_id=${jobId}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
+        const { error } = await supabase
+          .from('seller_favorites')
+          .delete()
+          .eq('seller_id', user.id)
+          .eq('project_posting_id', jobId);
 
-        if (!response.ok) {
-          throw new Error('Failed to remove favorite');
+        if (error) {
+          console.error('Error removing favorite:', error);
+          return;
         }
 
         setLikedJobs(prev => prev.filter(id => id !== Number(jobId)));
-        setSavedJobsCount(prev => prev - 1);
       } else {
         // Add to favorites
-        const response = await fetch('/api/favorites', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            project_posting_id: Number(jobId)
-          }),
-          credentials: 'include'
-        });
+        const { error } = await supabase
+          .from('seller_favorites')
+          .insert([
+            {
+              seller_id: user.id,
+              project_posting_id: Number(jobId)
+            }
+          ]);
 
-        if (!response.ok) {
-          throw new Error('Failed to add favorite');
+        if (error) {
+          console.error('Error adding favorite:', error);
+          return;
         }
 
-        const data = await response.json();
         setLikedJobs(prev => [...prev, Number(jobId)]);
-        setSavedJobsCount(prev => prev + 1);
       }
     } catch (error) {
-      console.error('Error handling favorite:', error);
+      console.error('Error in handleFavoriteClick:', error);
     }
   };
+
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data: favorites, error } = await supabase
+          .from('seller_favorites')
+          .select('project_posting_id')
+          .eq('seller_id', user.id);
+
+        if (error) {
+          console.error('Error fetching favorites:', error);
+          return;
+        }
+
+        const favoriteIds = favorites.map(f => Number(f.project_posting_id));
+        setLikedJobs(favoriteIds);
+      } catch (error) {
+        console.error('Error in fetchFavorites:', error);
+      }
+    };
+
+    fetchFavorites();
+  }, [user]);
 
   const handleDislikeClick = async (jobId: string | number | undefined) => {
     if (!jobId || !user?.id) {
@@ -467,7 +461,7 @@ export default function DashboardClient({
                     } ${activeFilter === 'saved' ? '' : 'hover:bg-gray-50'} rounded-r-lg`}
                     onClick={() => handleFilterClick('saved')}
                   >
-                    Saved Jobs ({savedJobsCount})
+                    Saved Jobs ({likedJobs.length})
                   </button>
                 </div>
               </div>
