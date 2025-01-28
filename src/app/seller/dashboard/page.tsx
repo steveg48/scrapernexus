@@ -79,25 +79,33 @@ export default async function SellerDashboardPage() {
     }
 
     const projectPostings = await response.json();
+    console.log('Raw project postings:', projectPostings);
+    console.log('Sample posting skills:', projectPostings[0]?.skills);
+    console.log('Sample posting full:', JSON.stringify(projectPostings[0], null, 2));
 
     // Filter out duplicate jobs
     const uniquePostings = projectPostings?.filter((posting, index, self) =>
       index === self.findIndex((p) => p.project_postings_id === posting.project_postings_id)
     );
+    console.log('Unique postings:', uniquePostings);
 
-    const postings = uniquePostings?.map((posting) => ({
-      id: posting.project_postings_id,
-      title: posting.title || 'Untitled Project',
-      description: posting.description?.substring(0, 150) + '...',
-      created_at: posting.created_at,
-      frequency: posting.frequency || 'one_time',
-      budget_min: posting.budget_min,
-      budget_max: posting.budget_max,
-      buyer_name: posting.buyer_name || 'Anonymous',
-      project_type: posting.project_type,
-      project_location: posting.project_location,
-      skills: posting.skills || []
-    })) || []
+    const postings = uniquePostings?.map((posting) => {
+      const job = {
+        id: posting.project_postings_id,
+        title: posting.title || 'Untitled Project',
+        description: posting.description?.substring(0, 150) + '...',
+        created_at: posting.created_at,
+        frequency: posting.frequency || 'one_time',
+        budget_min: posting.budget_min,
+        budget_max: posting.budget_max,
+        buyer_name: posting.buyer_name || 'Anonymous',
+        project_type: posting.project_type,
+        project_location: posting.project_location,
+        skills: posting.skills || []
+      };
+      console.log('Mapped job skills:', job.skills);
+      return job;
+    }) || []
 
     return (
       <div className="min-h-screen bg-gray-50">
