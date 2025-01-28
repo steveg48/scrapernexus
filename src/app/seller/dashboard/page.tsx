@@ -86,9 +86,7 @@ export default async function SellerDashboardPage() {
       buyer_name: posting.buyer_name || 'Anonymous',
       project_type: posting.project_type,
       project_location: posting.project_location,
-      project_skills: posting.project_skills || [],
-      associated_skills: posting.associated_skills || [],
-      skills: posting.skills || []
+      associated_skills: posting.associated_skills || []
     })) || []
 
     return (
