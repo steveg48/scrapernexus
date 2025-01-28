@@ -475,24 +475,16 @@ export default function DashboardClient({
                 </div>
               )}
 
-              <p className="text-sm text-gray-600 mb-4 line-clamp-3">{job.description}</p>
+              <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
 
               {/* Skills */}
-              {job.project_skills && job.project_skills.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {job.project_skills.slice(0, 3).map((skill, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                  {job.project_skills.length > 3 && (
-                    <span className="text-xs text-gray-500">+{job.project_skills.length - 3} more</span>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2 mt-auto">
+                {job.associated_skills && job.associated_skills.map((skill, index) => (
+                  <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Footer */}
@@ -607,19 +599,11 @@ export default function DashboardClient({
                 )}
               </div>
 
-              {/* My Job */}
-              <div className="mt-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">My Job</h2>
-                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm relative">
-                  {/* My Job content */}
-                </div>
-              </div>
-
               {/* Not Interested Section */}
               {dislikedJobs.length > 0 && (
                 <div className="mt-8">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Not Interested</h2>
-                  {currentPosts.filter(post => dislikedJobs.includes(String(post.id))).map((job) => (
+                  {currentPosts.filter(job => dislikedJobs.includes(String(job.id))).map((job) => (
                     <div 
                       key={job.id} 
                       className="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col mb-4"
@@ -660,24 +644,16 @@ export default function DashboardClient({
                           </div>
                         )}
 
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-3">{job.description}</p>
+                        <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
 
                         {/* Skills */}
-                        {job.project_skills && job.project_skills.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {job.project_skills.slice(0, 3).map((skill, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                            {job.project_skills.length > 3 && (
-                              <span className="text-xs text-gray-500">+{job.project_skills.length - 3} more</span>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 mt-auto">
+                          {job.associated_skills && job.associated_skills.map((skill, index) => (
+                            <span key={index} className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Footer */}
