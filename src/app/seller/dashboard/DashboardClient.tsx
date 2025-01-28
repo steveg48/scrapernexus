@@ -148,98 +148,104 @@ export default function DashboardClient({
   }, [jobPostings]);
 
   useEffect(() => {
-    const fetchDislikedJobs = async () => {
+    const loadFavorites = async () => {
       if (!user?.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('seller_dislikes')
-          .select('project_posting_id')
-          .eq('seller_id', user.id);
 
-        if (error) {
-          console.error('Error fetching disliked jobs:', error);
+      console.log('Loading favorites for user:', user.id);
+      try {
+        const response = await fetch(`/api/favorites?seller_id=${user.id}`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error('Error loading favorites from API:', data);
           return;
         }
 
-        const dislikedIds = data.map((d: any) => String(d.project_posting_id));
-        setDislikedJobs(dislikedIds);
+        // Keep project_posting_id as numbers
+        const favoriteIds = data.map((fav: any) => fav.project_posting_id);
+        console.log('Loaded favorite IDs:', favoriteIds);
+        setLikedJobs(favoriteIds);
+        setSavedJobsCount(favoriteIds.length);
       } catch (error) {
-        console.error('Error fetching disliked jobs:', error);
+        console.error('Error loading favorites:', error);
       }
     };
 
-    fetchDislikedJobs();
-  }, [user]);
+    loadFavorites();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const loadDislikes = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await fetch(`/api/dislikes`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error('Error loading dislikes from API:', data);
+          return;
+        }
+
+        const dislikedIds = data.map((dislike: any) => String(dislike.project_posting_id));
+        setDislikedJobs(dislikedIds);
+      } catch (error) {
+        console.error('Error loading dislikes:', error);
+      }
+    };
+
+    loadDislikes();
+  }, [user?.id]);
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
-      console.log('No user found');
+      router.push('/auth/login');
       return;
     }
 
     try {
       if (likedJobs.includes(Number(jobId))) {
         // Remove from favorites
-        const { error } = await supabase
-          .from('seller_favorites')
-          .delete()
-          .eq('seller_id', user.id)
-          .eq('project_posting_id', jobId);
+        const response = await fetch(`/api/favorites?project_id=${jobId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
 
-        if (error) {
-          console.error('Error removing favorite:', error);
-          return;
+        if (!response.ok) {
+          throw new Error('Failed to remove favorite');
         }
 
         setLikedJobs(prev => prev.filter(id => id !== Number(jobId)));
+        setSavedJobsCount(prev => prev - 1);
       } else {
         // Add to favorites
-        const { error } = await supabase
-          .from('seller_favorites')
-          .insert([
-            {
-              seller_id: user.id,
-              project_posting_id: Number(jobId)
-            }
-          ]);
+        const response = await fetch('/api/favorites', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            project_posting_id: Number(jobId)
+          }),
+          credentials: 'include'
+        });
 
-        if (error) {
-          console.error('Error adding favorite:', error);
-          return;
+        if (!response.ok) {
+          throw new Error('Failed to add favorite');
         }
 
+        const data = await response.json();
         setLikedJobs(prev => [...prev, Number(jobId)]);
+        setSavedJobsCount(prev => prev + 1);
       }
     } catch (error) {
-      console.error('Error in handleFavoriteClick:', error);
+      console.error('Error handling favorite:', error);
     }
   };
-
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const { data: favorites, error } = await supabase
-          .from('seller_favorites')
-          .select('project_posting_id')
-          .eq('seller_id', user.id);
-
-        if (error) {
-          console.error('Error fetching favorites:', error);
-          return;
-        }
-
-        const favoriteIds = favorites.map(f => Number(f.project_posting_id));
-        setLikedJobs(favoriteIds);
-      } catch (error) {
-        console.error('Error in fetchFavorites:', error);
-      }
-    };
-
-    fetchFavorites();
-  }, [user]);
 
   const handleDislikeClick = async (jobId: string | number | undefined) => {
     if (!jobId || !user?.id) {
@@ -250,36 +256,50 @@ export default function DashboardClient({
     console.log('Disliking job:', jobId);
     
     try {
-      const { data, error } = await supabase
-        .from('seller_dislikes')
-        .insert([
-          {
-            seller_id: user.id,
-            project_posting_id: Number(jobId)
-          }
-        ])
-        .select();
+      if (dislikedJobs.includes(String(jobId))) {
+        // Remove from dislikes
+        const response = await fetch(`/api/dislikes?project_id=${jobId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
 
-      if (error) {
-        console.error('Error adding dislike:', error);
-        return;
-      }
-
-      console.log('Successfully disliked job:', data);
-      setDislikedJobs(prev => [...prev, String(jobId)]);
-      
-      // Move disliked job to end of list
-      setCurrentPosts(prev => {
-        const updatedPosts = [...prev];
-        const dislikedPost = updatedPosts.find(p => p.id === jobId);
-        if (dislikedPost) {
-          const otherPosts = updatedPosts.filter(p => p.id !== jobId);
-          return [...otherPosts, dislikedPost];
+        if (!response.ok) {
+          throw new Error('Failed to remove dislike');
         }
-        return updatedPosts;
-      });
+
+        setDislikedJobs(prev => prev.filter(id => id !== String(jobId)));
+      } else {
+        // Add to dislikes
+        const response = await fetch('/api/dislikes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            project_posting_id: Number(jobId)
+          }),
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to add dislike');
+        }
+
+        setDislikedJobs(prev => [...prev, String(jobId)]);
+        
+        // Move disliked job to end of list
+        setCurrentPosts(prev => {
+          const updatedPosts = [...prev];
+          const dislikedPost = updatedPosts.find(p => p.id === jobId);
+          if (dislikedPost) {
+            const otherPosts = updatedPosts.filter(p => p.id !== jobId);
+            return [...otherPosts, dislikedPost];
+          }
+          return updatedPosts;
+        });
+      }
     } catch (error) {
-      console.error('Error in handleDislikeClick:', error);
+      console.error('Error handling dislike:', error);
     }
   };
 
