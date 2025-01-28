@@ -426,8 +426,9 @@ export default function DashboardClient({
   };
 
   const renderJobList = () => {
-    const regularJobs = currentPosts.filter(job => !dislikedJobs.includes(String(job.id)));
-    const dislikedJobsList = currentPosts.filter(job => dislikedJobs.includes(String(job.id)));
+    const paginatedPosts = currentPosts.slice(indexOfFirstPost, indexOfLastPost);
+    const regularJobs = paginatedPosts.filter(job => !dislikedJobs.includes(String(job.id)));
+    const dislikedJobsList = paginatedPosts.filter(job => dislikedJobs.includes(String(job.id)));
 
     return (
       <>

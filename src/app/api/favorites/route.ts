@@ -112,11 +112,11 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from('seller_favorites')
-      .upsert({
+      .insert([{
         seller_id: session.user.id,
         project_posting_id,
-        saved_at: new Date().toISOString()
-      })
+        created_at: new Date().toISOString()
+      }])
       .select('*')
       .single();
 
