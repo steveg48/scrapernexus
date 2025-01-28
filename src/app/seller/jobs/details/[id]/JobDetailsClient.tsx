@@ -4,36 +4,90 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, MapPin, Star, ThumbsDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
+import { Session } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface JobDetailsClientProps {
-  job: {
-    id: string;
-    title: string;
-    description: string;
-    created_at: string;
-    budget_min?: number;
-    budget_max?: number;
-    buyer_name: string;
-    project_type?: string;
-    project_location?: string;
-    skills: string[];
-    payment_verified: boolean;
-    rating: number;
-    reviews_count: number;
-    total_spent: number;
-    hire_rate: number;
-    jobs_posted: number;
-    hours_billed: number;
-    connects_required: number;
-  };
+  projectId: string;
+  session: Session;
 }
 
-export default function JobDetailsClient({ job }: JobDetailsClientProps) {
+export default function JobDetailsClient({ projectId, session }: JobDetailsClientProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [job, setJob] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { user } = useAuth();
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    const fetchJobDetails = async () => {
+      try {
+        const id = Number(projectId);
+        if (isNaN(id)) {
+          throw new Error('Invalid project ID');
+        }
+
+        // Fetch job details and skills using Supabase client
+        const [{ data: jobData, error: jobError }, { data: skillsData, error: skillsError }] = await Promise.all([
+          supabase
+            .from('project_postings')
+            .select()
+            .eq('project_postings_id', projectId)
+            .single(),
+          supabase
+            .from('project_skills')
+            .select(`
+              skill_id,
+              skills (
+                skill_name
+              )
+            `)
+            .eq('project_posting_id', projectId)
+        ]);
+
+        console.log('Job Data:', jobData);
+        console.log('Job Error:', jobError);
+        console.log('Skills Data:', skillsData);
+        console.log('Skills Error:', skillsError);
+
+        if (jobError) throw jobError;
+        if (skillsError) throw skillsError;
+        if (!jobData) throw new Error('Job not found');
+
+        const skills = skillsData?.map(skill => skill.skills.skill_name) || [];
+
+        setJob({
+          id: jobData.project_postings_id.toString(),
+          title: jobData.title || 'Untitled',
+          description: jobData.description || '',
+          created_at: jobData.created_at,
+          budget_min: jobData.budget_min,
+          budget_max: jobData.budget_max,
+          buyer_name: jobData.buyer_name || '',
+          project_type: jobData.project_type || '',
+          project_location: jobData.project_location || '',
+          skills: skills,
+          payment_verified: true,
+          rating: 4.5,
+          reviews_count: 10,
+          total_spent: 5000,
+          hire_rate: 80,
+          jobs_posted: 15,
+          hours_billed: 1000,
+          connects_required: 4
+        });
+      } catch (err) {
+        console.error('Error fetching job details:', err);
+        setError(err instanceof Error ? err.message : 'Error loading job details');
+      }
+    };
+
+    fetchJobDetails();
+  }, [projectId, supabase]);
 
   // Check if job is already favorited when component mounts
   useEffect(() => {
@@ -41,22 +95,24 @@ export default function JobDetailsClient({ job }: JobDetailsClientProps) {
       if (!user) return;
       
       try {
-        const response = await fetch(`/api/favorites?seller_id=${user.id}`, {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const favorites = await response.json();
-          const isFavorited = favorites.some((fav: any) => fav.project_posting_id === job.id);
-          setIsLiked(isFavorited);
-        }
+        const { data, error } = await supabase
+          .from('favorites')
+          .select('project_posting_id')
+          .eq('seller_id', user.id);
+
+        if (error) throw error;
+
+        const isFavorited = data.some((fav: any) => fav.project_posting_id === job?.id);
+        setIsLiked(isFavorited);
       } catch (error) {
         console.error('Error checking favorite status:', error);
       }
     };
 
-    checkFavoriteStatus();
-  }, [user, job.id]);
+    if (job) {
+      checkFavoriteStatus();
+    }
+  }, [user, job, supabase]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -76,28 +132,27 @@ export default function JobDetailsClient({ job }: JobDetailsClientProps) {
   };
 
   const handleFavoriteClick = async () => {
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
+    if (!user || isLoading) return;
 
-    if (isLoading) return;
     setIsLoading(true);
-
     try {
-      const response = await fetch('/api/favorites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          project_posting_id: job.id
-        }),
-        credentials: 'include'
-      });
+      if (isLiked) {
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('seller_id', user.id)
+          .eq('project_posting_id', job.id);
 
-      if (!response.ok) {
-        throw new Error('Failed to save job');
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            seller_id: user.id,
+            project_posting_id: job.id
+          });
+
+        if (error) throw error;
       }
 
       setIsLiked(!isLiked);
@@ -113,6 +168,33 @@ export default function JobDetailsClient({ job }: JobDetailsClientProps) {
     setIsDisliked(!isDisliked);
     if (isLiked) setIsLiked(false);
   };
+
+  if (error) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="text-red-500">{error}</div>
+        <Link href="/seller/jobs" className="text-blue-500 hover:underline mt-4 inline-block">
+          Back to Jobs
+        </Link>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white shadow rounded-lg">

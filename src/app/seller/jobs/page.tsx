@@ -16,15 +16,35 @@ export default async function JobsPage() {
       redirect('/auth/login');
     }
 
-    // Fetch jobs from the project_postings_with_skills view
-    const { data: jobs, error: jobsError } = await supabase
-      .from('project_postings_with_skills')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Fetch jobs and their skills
+    const [jobsResponse, skillsResponse] = await Promise.all([
+      supabase
+        .from('project_postings')
+        .select('*')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('project_skills')
+        .select('*')
+    ]);
 
-    if (jobsError) {
-      throw jobsError;
+    if (jobsResponse.error) {
+      throw jobsResponse.error;
     }
+
+    if (skillsResponse.error) {
+      throw skillsResponse.error;
+    }
+
+    // Create a map of project_id to skills
+    const skillsMap = skillsResponse.data.reduce((acc: { [key: string]: string[] }, skill: any) => {
+      if (!acc[skill.project_id]) {
+        acc[skill.project_id] = [];
+      }
+      acc[skill.project_id].push(skill.skill_name);
+      return acc;
+    }, {});
+
+    const jobs = jobsResponse.data;
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -33,17 +53,17 @@ export default async function JobsPage() {
           <div className="grid gap-6">
             {jobs.map((job) => (
               <Link 
-                key={job.project_postings_id} 
-                href={`/seller/jobs/details/${job.project_postings_id}`}
+                key={job.id} 
+                href={`/seller/jobs/details/${job.id}`}
                 className="block bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow"
               >
                 <h2 className="text-xl font-medium text-gray-900 mb-2">{job.title}</h2>
                 <p className="text-gray-600 mb-4 line-clamp-2">{job.description}</p>
                 
                 {/* Skills */}
-                {job.skills && job.skills.length > 0 && (
+                {skillsMap[job.id] && skillsMap[job.id].length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {job.skills.map((skill: string, index: number) => (
+                    {skillsMap[job.id].map((skill: string, index: number) => (
                       <span
                         key={index}
                         className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
