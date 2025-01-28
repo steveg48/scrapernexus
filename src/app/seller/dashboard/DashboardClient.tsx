@@ -190,7 +190,7 @@ export default function DashboardClient({
       if (!user?.id) return;
 
       try {
-        const response = await fetch(`/api/dislikes`, {
+        const response = await fetch(`/api/dislikes?seller_id=${user.id}`, {
           credentials: 'include'
         });
         const data = await response.json();
@@ -210,53 +210,61 @@ export default function DashboardClient({
     loadDislikes();
   }, [user?.id]);
 
-  const handleFavoriteClick = async (jobId: string | number) => {
-    if (!user?.id) return;
+  const handleFavoriteClick = async (jobId: string) => {
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    const isCurrentlyLiked = likedJobs.includes(Number(jobId));
 
     try {
-      const jobIdStr = String(jobId);
-      const isCurrentlyLiked = likedJobs.includes(Number(jobIdStr));
-
       // Update UI immediately
       setLikedJobs(prev => 
-        isCurrentlyLiked 
-          ? prev.filter(id => id !== Number(jobIdStr))
-          : [...prev, Number(jobIdStr)]
+        isCurrentlyLiked
+          ? prev.filter(id => id !== Number(jobId))
+          : [...prev, Number(jobId)]
       );
 
       if (isCurrentlyLiked) {
         // Remove from favorites
-        const { error } = await supabase
-          .from('seller_favorites')
-          .delete()
-          .eq('project_posting_id', jobIdStr)
-          .eq('seller_id', user.id);
+        const response = await fetch(`/api/favorites?project_id=${jobId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
 
-        if (error) {
-          console.error('Error removing from favorites:', error);
-          // Revert UI on error
-          setLikedJobs(prev => [...prev, Number(jobIdStr)]);
+        if (!response.ok) {
+          throw new Error('Failed to remove favorite');
         }
+
+        setSavedJobsCount(prev => prev - 1);
       } else {
         // Add to favorites
-        const { error } = await supabase
-          .from('seller_favorites')
-          .insert([
-            {
-              project_posting_id: jobIdStr,
-              seller_id: user.id,
-              created_at: new Date().toISOString()
-            }
-          ]);
+        const response = await fetch('/api/favorites', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            project_posting_id: Number(jobId)
+          }),
+          credentials: 'include'
+        });
 
-        if (error) {
-          console.error('Error adding to favorites:', error);
-          // Revert UI on error
-          setLikedJobs(prev => prev.filter(id => id !== Number(jobIdStr)));
+        if (!response.ok) {
+          throw new Error('Failed to add favorite');
         }
+
+        setSavedJobsCount(prev => prev + 1);
       }
     } catch (error) {
       console.error('Error handling favorite:', error);
+      // Revert UI on error
+      setLikedJobs(prev => 
+        isCurrentlyLiked
+          ? prev.filter(id => id !== Number(jobId))
+          : [...prev, Number(jobId)]
+      );
     }
   };
 
@@ -267,9 +275,17 @@ export default function DashboardClient({
     }
     
     console.log('Disliking job:', jobId);
+    const isCurrentlyDisliked = dislikedJobs.includes(String(jobId));
     
     try {
-      if (dislikedJobs.includes(String(jobId))) {
+      // Update UI immediately
+      setDislikedJobs(prev => 
+        isCurrentlyDisliked
+          ? prev.filter(id => id !== String(jobId))
+          : [...prev, String(jobId)]
+      );
+
+      if (isCurrentlyDisliked) {
         // Remove from dislikes
         const response = await fetch(`/api/dislikes?project_id=${jobId}`, {
           method: 'DELETE',
@@ -279,8 +295,6 @@ export default function DashboardClient({
         if (!response.ok) {
           throw new Error('Failed to remove dislike');
         }
-
-        setDislikedJobs(prev => prev.filter(id => id !== String(jobId)));
       } else {
         // Add to dislikes
         const response = await fetch('/api/dislikes', {
@@ -298,8 +312,6 @@ export default function DashboardClient({
           throw new Error('Failed to add dislike');
         }
 
-        setDislikedJobs(prev => [...prev, String(jobId)]);
-        
         // Move disliked job to end of list
         setCurrentPosts(prev => {
           const updatedPosts = [...prev];
@@ -313,6 +325,12 @@ export default function DashboardClient({
       }
     } catch (error) {
       console.error('Error handling dislike:', error);
+      // Revert UI on error
+      setDislikedJobs(prev => 
+        isCurrentlyDisliked
+          ? prev.filter(id => id !== String(jobId))
+          : [...prev, String(jobId)]
+      );
     }
   };
 
