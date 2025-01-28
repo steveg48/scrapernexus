@@ -61,14 +61,7 @@ export default async function SellerDashboardPage() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    console.log('First posting:', projectPostings?.[0])
-    console.log('First posting skills:', projectPostings?.[0]?.skills)
-    console.log('First posting skill_name:', projectPostings?.[0]?.skill_name)
-    console.log('First posting project_skills:', projectPostings?.[0]?.project_skills)
-
-    console.log('Profile:', profileResult.data)
     console.log('Project Postings with Skills:', projectPostings)
-    console.log('Total postings:', count)
 
     // Filter out duplicate jobs
     const uniquePostings = projectPostings?.filter((posting, index, self) =>
@@ -86,7 +79,7 @@ export default async function SellerDashboardPage() {
       buyer_name: posting.buyer_name || 'Anonymous',
       project_type: posting.project_type,
       project_location: posting.project_location,
-      associated_skills: posting.associated_skills || []
+      skills: posting.skills || []
     })) || []
 
     return (
