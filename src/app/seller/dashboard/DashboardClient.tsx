@@ -176,6 +176,41 @@ export default function DashboardClient({
     loadFavorites();
   }, [user?.id]);
 
+  useEffect(() => {
+    const fetchDislikedJobs = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes', {
+          headers: {
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const dislikedIds = data.map((item: any) => item.project_posting_id.toString());
+          setDislikedJobs(dislikedIds);
+          
+          // Sort posts to put disliked ones at the end
+          const sortedPosts = jobPostings.sort((a, b) => {
+            const aDisliked = dislikedIds.includes(a.id);
+            const bDisliked = dislikedIds.includes(b.id);
+            if (aDisliked && !bDisliked) return 1;
+            if (!aDisliked && bDisliked) return -1;
+            return 0;
+          });
+          
+          setCurrentPosts(sortedPosts);
+        }
+      } catch (error) {
+        console.error('Error fetching disliked jobs:', error);
+      }
+    };
+
+    fetchDislikedJobs();
+  }, [user?.id, jobPostings]);
+
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
       router.push('/auth/login');
@@ -222,22 +257,76 @@ export default function DashboardClient({
     }
   };
 
-  const handleDislikeClick = (jobId: string | number | undefined) => {
-    if (!jobId) return;
+  const handleDislikeClick = async (jobId: string | number | undefined) => {
+    if (!jobId || !user?.id) return;
     const jobIdStr = String(jobId);
     
-    setDislikedJobs(prev => {
-      const isDisliked = prev.includes(jobIdStr);
-      if (isDisliked) {
-        return prev.filter(id => id !== jobIdStr);
-      } else {
-        return [...prev, jobIdStr];
-      }
-    });
+    try {
+      const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/add_seller_dislike', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+        },
+        body: JSON.stringify({
+          seller_id: user.id,
+          project_posting_id: jobId
+        })
+      });
 
-    // Remove from liked if necessary
-    if (likedJobs.includes(Number(jobId))) {
-      setLikedJobs(prev => prev.filter(id => id !== Number(jobId)));
+      if (response.ok) {
+        setDislikedJobs(prev => [...prev, jobIdStr]);
+        
+        // Re-sort posts to move disliked ones to end
+        setCurrentPosts(prev => {
+          return [...prev].sort((a, b) => {
+            const aDisliked = [...dislikedJobs, jobIdStr].includes(a.id);
+            const bDisliked = [...dislikedJobs, jobIdStr].includes(b.id);
+            if (aDisliked && !bDisliked) return 1;
+            if (!aDisliked && bDisliked) return -1;
+            return 0;
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error adding dislike:', error);
+    }
+  };
+
+  const handleRestoreJob = async (jobId: string) => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/remove_seller_dislike', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+        },
+        body: JSON.stringify({
+          seller_id: user.id,
+          project_posting_id: jobId
+        })
+      });
+
+      if (response.ok) {
+        setDislikedJobs(prev => prev.filter(id => id !== jobId));
+        
+        // Re-sort posts to move restored job back to main section
+        setCurrentPosts(prev => {
+          return [...prev].sort((a, b) => {
+            const aDisliked = dislikedJobs.filter(id => id !== jobId).includes(a.id);
+            const bDisliked = dislikedJobs.filter(id => id !== jobId).includes(b.id);
+            if (aDisliked && !bDisliked) return 1;
+            if (!aDisliked && bDisliked) return -1;
+            return 0;
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error removing dislike:', error);
     }
   };
 
@@ -301,7 +390,7 @@ export default function DashboardClient({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Search Bar */}
         <div className="relative mb-8">
@@ -400,34 +489,47 @@ export default function DashboardClient({
                   currentPosts.slice(indexOfFirstPost, indexOfLastPost).map((posting) => (
                     <div 
                       key={posting.id} 
-                      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative h-[320px] flex flex-col"
+                      className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
                       onClick={() => handleJobClick(posting.id)}
                     >
+                      {/* Add "Not Interested" label for disliked jobs */}
+                      {dislikedJobs.includes(posting.id) && (
+                        <div className="absolute top-0 right-0 bg-gray-100 text-gray-600 px-3 py-1 text-sm rounded-tr-lg rounded-bl-lg">
+                          Not Interested
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRestoreJob(posting.id);
+                            }}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                          >
+                            Restore
+                          </button>
+                        </div>
+                      )}
                       {/* Interaction buttons */}
-                      <div className="absolute right-6 top-6 flex items-center space-x-4">
+                      <div className="absolute right-6 top-6 flex items-center gap-4">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleFavoriteClick(posting.id);
                           }}
-                          className="p-2 rounded-full hover:bg-gray-100 transition-all"
+                          className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
                         >
-                          <Heart 
-                            className={`w-5 h-5 ${likedJobs.includes(Number(posting.id)) ? 'text-red-500' : 'text-gray-400'}`}
-                            fill={likedJobs.includes(Number(posting.id)) ? "currentColor" : "none"}
-                          />
+                          <Heart className={`w-5 h-5 ${likedJobs.includes(Number(posting.id)) ? 'fill-red-500 text-red-500' : ''}`} />
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDislikeClick(posting.id);
-                          }}
-                          className={`p-2 rounded-full hover:bg-gray-100 ${
-                            dislikedJobs.includes(posting.id) ? 'text-gray-900' : 'text-gray-400'
-                          }`}
-                        >
-                          <ThumbsDown className="h-5 w-5" />
-                        </button>
+                        {/* Only show dislike button if job is not favorited */}
+                        {!likedJobs.includes(Number(posting.id)) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDislikeClick(posting.id);
+                            }}
+                            className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
+                          >
+                            <ThumbsDown className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
 
                       <div>
@@ -583,6 +685,31 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
+      {/* Not Interested Section */}
+      {currentPosts.filter(post => dislikedJobs.includes(post.id)).length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Not Interested</h2>
+          <div className="space-y-4">
+            {currentPosts.filter(post => dislikedJobs.includes(post.id)).map((job) => (
+              <div key={job.id} className="bg-white shadow rounded-lg p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
+                    <p className="mt-1 text-sm text-gray-500">Posted {formatDate(job.created_at)}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRestoreJob(job.id)}
+                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    Restore
+                  </button>
+                </div>
+                {/* ... rest of job card content without the heart icon ... */}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
