@@ -1,13 +1,14 @@
-import SupabaseProvider from '@/components/providers/SupabaseProvider'
+import SellerNavigation from '@/components/SellerNavigation';
 
 export default function SellerLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <SupabaseProvider>
-      {children}
-    </SupabaseProvider>
-  )
+    <div className="min-h-screen bg-gray-50">
+      <SellerNavigation />
+      <main>{children}</main>
+    </div>
+  );
 }

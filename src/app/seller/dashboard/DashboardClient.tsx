@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft, Heart, ThumbsDown, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -303,7 +302,6 @@ export default function DashboardClient({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Search Bar */}
         <div className="relative mb-8">

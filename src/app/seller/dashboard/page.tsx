@@ -1,7 +1,6 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import SellerNavigation from '@/components/SellerNavigation'
 import DashboardClient from './DashboardClient'
 
 export const dynamic = 'force-dynamic'
@@ -28,7 +27,6 @@ export default async function SellerDashboardPage() {
     if (!session) {
       return (
         <div className="bg-gray-50">
-          <SellerNavigation />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="bg-white shadow rounded-lg p-6">
               <div className="text-red-500">Please log in to view your dashboard</div>
@@ -88,7 +86,6 @@ export default async function SellerDashboardPage() {
 
     return (
       <div className="min-h-screen bg-gray-50">
-        <SellerNavigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <DashboardClient
             initialProfile={profileResult.data || { display_name: session.user.email }}

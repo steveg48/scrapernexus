@@ -1,7 +1,6 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import JobDetailsClient from './JobDetailsClient';
 
 export const dynamic = 'force-dynamic';
@@ -87,7 +86,6 @@ export default async function JobDetailsPage({ params }: { params: { id: string 
 
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <JobDetailsClient job={job} />
         </div>
@@ -97,7 +95,6 @@ export default async function JobDetailsPage({ params }: { params: { id: string 
     console.error('Error in job details page:', error);
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white shadow rounded-lg p-6">
             <div className="text-red-500">Error loading job details</div>

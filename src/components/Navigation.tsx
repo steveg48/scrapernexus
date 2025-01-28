@@ -155,107 +155,134 @@ export default function Navigation() {
 
               {/* Nav Links */}
               <div className="ml-10 flex items-center space-x-8">
-                <div className="relative" ref={hireDropdownRef}>
-                  <button 
-                    className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
-                    onClick={() => handleDropdownClick('hire')}
-                  >
-                    Hire talent
-                    <ChevronDown className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${activeDropdown === 'hire' ? 'rotate-180' : ''}`} />
-                  </button>
+                {userType === 'seller' ? (
+                  <>
+                    <Link
+                      href="/seller/jobs"
+                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    >
+                      Find work
+                    </Link>
 
-                  {activeDropdown === 'hire' && (
-                    <div className="absolute z-50 left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
-                      <div className="py-2">
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <h3 className="text-sm font-semibold text-gray-900">Manage jobs and offers</h3>
+                    <Link
+                      href="/seller/contracts"
+                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    >
+                      Deliver work
+                    </Link>
+
+                    <Link
+                      href="/seller/finances"
+                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    >
+                      Manage finances
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative" ref={hireDropdownRef}>
+                      <button 
+                        className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                        onClick={() => handleDropdownClick('hire')}
+                      >
+                        Hire talent
+                        <ChevronDown className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${activeDropdown === 'hire' ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {activeDropdown === 'hire' && (
+                        <div className="absolute z-50 left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
+                          <div className="py-2">
+                            <div className="px-4 py-2 border-b border-gray-100">
+                              <h3 className="text-sm font-semibold text-gray-900">Manage jobs and offers</h3>
+                            </div>
+                            <Link
+                              href="/buyer/dashboard"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Job posts and proposals
+                            </Link>
+                            <Link
+                              href="/buyer/offers"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Pending offers
+                            </Link>
+                            
+                            <div className="px-4 py-2 border-b border-t border-gray-100 mt-2">
+                              <h3 className="text-sm font-semibold text-gray-900">Find freelancers</h3>
+                            </div>
+                            <Link
+                              href="/buyer/jobs/post"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Post a job
+                            </Link>
+                            <Link
+                              href="/buyer/search"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Search for talent
+                            </Link>
+                            <Link
+                              href="/buyer/hired"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Talent you've hired
+                            </Link>
+                            <Link
+                              href="/buyer/saved"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Talent you've saved
+                            </Link>
+                          </div>
                         </div>
-                        <Link
-                          href="/buyer/dashboard"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Job posts and proposals
-                        </Link>
-                        <Link
-                          href="/buyer/offers"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Pending offers
-                        </Link>
-                        
-                        <div className="px-4 py-2 border-b border-t border-gray-100 mt-2">
-                          <h3 className="text-sm font-semibold text-gray-900">Find freelancers</h3>
-                        </div>
-                        <Link
-                          href="/buyer/jobs/post"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Post a job
-                        </Link>
-                        <Link
-                          href="/buyer/search"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Search for talent
-                        </Link>
-                        <Link
-                          href="/buyer/hired"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Talent you've hired
-                        </Link>
-                        <Link
-                          href="/buyer/saved"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Talent you've saved
-                        </Link>
-                      </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="relative" ref={manageDropdownRef}>
-                  <button 
-                    className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
-                    onClick={() => handleDropdownClick('manage')}
-                  >
-                    Manage work
-                    <ChevronDown className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${activeDropdown === 'manage' ? 'rotate-180' : ''}`} />
-                  </button>
+                    <div className="relative" ref={manageDropdownRef}>
+                      <button 
+                        className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                        onClick={() => handleDropdownClick('manage')}
+                      >
+                        Manage work
+                        <ChevronDown className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${activeDropdown === 'manage' ? 'rotate-180' : ''}`} />
+                      </button>
 
-                  {activeDropdown === 'manage' && (
-                    <div className="absolute z-50 left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
-                      <div className="py-2">
-                        <div className="px-4 py-2 border-b border-gray-100">
-                          <h3 className="text-sm font-semibold text-gray-900">Current work</h3>
+                      {activeDropdown === 'manage' && (
+                        <div className="absolute z-50 left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200">
+                          <div className="py-2">
+                            <div className="px-4 py-2 border-b border-gray-100">
+                              <h3 className="text-sm font-semibold text-gray-900">Current work</h3>
+                            </div>
+                            <Link
+                              href="/buyer/contracts"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Your contracts
+                            </Link>
+                            <Link
+                              href="/buyer/timesheets"
+                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              Timesheets
+                            </Link>
+                          </div>
                         </div>
-                        <Link
-                          href="/buyer/contracts"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Your contracts
-                        </Link>
-                        <Link
-                          href="/buyer/timesheets"
-                          className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          Timesheets
-                        </Link>
-                      </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <Link
-                  href="/messages"
-                  className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
-                >
-                  Messages
-                  <span className="ml-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                    1
-                  </span>
-                </Link>
+                    <Link
+                      href="/messages"
+                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    >
+                      Messages
+                      <span className="ml-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                        1
+                      </span>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 

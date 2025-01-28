@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, MapPin, Star, ThumbsDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,8 +31,32 @@ interface JobDetailsClientProps {
 export default function JobDetailsClient({ job }: JobDetailsClientProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
+
+  // Check if job is already favorited when component mounts
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const response = await fetch(`/api/favorites?seller_id=${user.id}`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const favorites = await response.json();
+          const isFavorited = favorites.some((fav: any) => fav.project_posting_id === job.id);
+          setIsLiked(isFavorited);
+        }
+      } catch (error) {
+        console.error('Error checking favorite status:', error);
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [user, job.id]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -57,6 +81,9 @@ export default function JobDetailsClient({ job }: JobDetailsClientProps) {
       return;
     }
 
+    if (isLoading) return;
+    setIsLoading(true);
+
     try {
       const response = await fetch('/api/favorites', {
         method: 'POST',
@@ -77,6 +104,8 @@ export default function JobDetailsClient({ job }: JobDetailsClientProps) {
       if (isDisliked) setIsDisliked(false);
     } catch (error) {
       console.error('Error saving job:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -97,9 +126,12 @@ export default function JobDetailsClient({ job }: JobDetailsClientProps) {
           <div className="flex space-x-2">
             <button
               onClick={handleFavoriteClick}
+              disabled={isLoading}
               className={`p-2 rounded-full ${
                 isLiked ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-              } hover:bg-red-100 hover:text-red-600 transition-colors`}
+              } hover:bg-red-100 hover:text-red-600 transition-colors ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               <Heart className="w-5 h-5" />
             </button>
