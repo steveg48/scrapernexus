@@ -497,9 +497,10 @@ export default function DashboardClient({
 
               {/* Skills */}
               <div className="flex flex-wrap items-center gap-2 mt-auto">
-                {job.skills && job.skills.map((skill, index) => (
+                {/* Show project skills first */}
+                {job.project_skills && job.project_skills.map((skill, index) => (
                   <span 
-                    key={index} 
+                    key={`project-${index}`}
                     className={showingDislikedPage ? 
                       "bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm" : 
                       "bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
@@ -507,6 +508,37 @@ export default function DashboardClient({
                   >
                     {skill}
                   </span>
+                ))}
+                {/* Then show associated skills */}
+                {job.associated_skills && job.associated_skills
+                  .filter(skill => !job.project_skills?.includes(skill)) // Only show if not already shown
+                  .map((skill, index) => (
+                    <span 
+                      key={`associated-${index}`}
+                      className={showingDislikedPage ? 
+                        "bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm" : 
+                        "bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
+                      }
+                    >
+                      {skill}
+                    </span>
+                ))}
+                {/* Finally show skills array if it exists */}
+                {job.skills && job.skills
+                  .filter(skill => 
+                    !job.project_skills?.includes(skill) && 
+                    !job.associated_skills?.includes(skill)
+                  )
+                  .map((skill, index) => (
+                    <span 
+                      key={`skill-${index}`}
+                      className={showingDislikedPage ? 
+                        "bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm" : 
+                        "bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
+                      }
+                    >
+                      {skill}
+                    </span>
                 ))}
               </div>
             </div>
@@ -669,10 +701,36 @@ export default function DashboardClient({
 
                         {/* Skills */}
                         <div className="flex flex-wrap items-center gap-2 mt-auto">
-                          {job.skills && job.skills.map((skill, index) => (
-                            <span key={index} className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm">
+                          {job.project_skills && job.project_skills.map((skill, index) => (
+                            <span 
+                              key={`project-${index}`}
+                              className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm"
+                            >
                               {skill}
                             </span>
+                          ))}
+                          {job.associated_skills && job.associated_skills
+                            .filter(skill => !job.project_skills?.includes(skill)) // Only show if not already shown
+                            .map((skill, index) => (
+                              <span 
+                                key={`associated-${index}`}
+                                className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm"
+                              >
+                                {skill}
+                              </span>
+                          ))}
+                          {job.skills && job.skills
+                            .filter(skill => 
+                              !job.project_skills?.includes(skill) && 
+                              !job.associated_skills?.includes(skill)
+                            )
+                            .map((skill, index) => (
+                              <span 
+                                key={`skill-${index}`}
+                                className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm"
+                              >
+                                {skill}
+                              </span>
                           ))}
                         </div>
                       </div>
