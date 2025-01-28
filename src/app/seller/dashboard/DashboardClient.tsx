@@ -269,8 +269,8 @@ export default function DashboardClient({
   };
 
   const handleDislikeClick = async (jobId: string | number | undefined) => {
-    if (!jobId || !user?.id) {
-      console.log('No jobId or user:', { jobId, userId: user?.id });
+    if (!jobId || !user) {
+      router.push('/auth/login');
       return;
     }
     
@@ -311,17 +311,6 @@ export default function DashboardClient({
         if (!response.ok) {
           throw new Error('Failed to add dislike');
         }
-
-        // Move disliked job to end of list
-        setCurrentPosts(prev => {
-          const updatedPosts = [...prev];
-          const dislikedPost = updatedPosts.find(p => p.id === jobId);
-          if (dislikedPost) {
-            const otherPosts = updatedPosts.filter(p => p.id !== jobId);
-            return [...otherPosts, dislikedPost];
-          }
-          return updatedPosts;
-        });
       }
     } catch (error) {
       console.error('Error handling dislike:', error);
@@ -428,7 +417,6 @@ export default function DashboardClient({
   const renderJobList = () => {
     const paginatedPosts = currentPosts.slice(indexOfFirstPost, indexOfLastPost);
     const regularJobs = paginatedPosts.filter(job => !dislikedJobs.includes(String(job.id)));
-    const dislikedJobsList = paginatedPosts.filter(job => dislikedJobs.includes(String(job.id)));
 
     return (
       <>
@@ -439,22 +427,6 @@ export default function DashboardClient({
             className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
             onClick={() => handleJobClick(job.id)}
           >
-            {/* Add "Not Interested" label for disliked jobs */}
-            {dislikedJobs.includes(job.id) && (
-              <div className="absolute top-0 right-0 bg-gray-100 text-gray-600 px-3 py-1 text-sm rounded-tr-lg rounded-bl-lg">
-                Not Interested
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRestoreJob(job.id);
-                  }}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
-                >
-                  Restore
-                </button>
-              </div>
-            )}
-
             {/* Interaction buttons */}
             <div className="absolute right-6 top-6 flex items-center gap-4">
               <button
@@ -475,7 +447,7 @@ export default function DashboardClient({
                   }}
                   className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
                 >
-                  <ThumbsDown className="w-5 h-5" />
+                  <ThumbsDown className={`w-5 h-5 ${dislikedJobs.includes(String(job.id)) ? 'fill-gray-500' : ''}`} />
                 </button>
               )}
             </div>
@@ -499,57 +471,37 @@ export default function DashboardClient({
               {job.project_location && (
                 <div className="flex items-center text-sm text-gray-500 mb-2">
                   <MapPin className="h-4 w-4 mr-1" />
-                  <span>{job.project_location}</span>
+                  {job.project_location}
                 </div>
               )}
 
-              {/* Posted by and date */}
-              <div className="flex items-center text-sm text-gray-500 mb-2">
-                <span>Posted by {job.buyer_name}</span>
-                <span className="mx-2">•</span>
-                <span>{formatDate(job.created_at)}</span>
-              </div>
-
-              <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
+              <p className="text-sm text-gray-600 mb-4 line-clamp-3">{job.description}</p>
 
               {/* Skills */}
-              <div className="flex flex-wrap items-center gap-2 mt-auto">
-                {job.associated_skills && job.associated_skills.map((skill, index) => (
-                  <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
-                    {skill}
-                  </span>
-                ))}
-              </div>
+              {job.project_skills && job.project_skills.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {job.project_skills.slice(0, 3).map((skill, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                  {job.project_skills.length > 3 && (
+                    <span className="text-xs text-gray-500">+{job.project_skills.length - 3} more</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+              <div>Posted by {job.buyer_name}</div>
+              <div>{formatDate(job.created_at)}</div>
             </div>
           </div>
         ))}
-
-        {/* Not Interested Section - only show if there are disliked jobs */}
-        {dislikedJobsList.length > 0 && (
-          <>
-            <div className="mt-8 mb-4 border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-900">Not Interested</h3>
-              <p className="text-sm text-gray-600">Jobs you've marked as not interested</p>
-            </div>
-            {dislikedJobsList.map((job) => (
-              <div key={job.id} className="bg-white shadow rounded-lg p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
-                    <p className="mt-1 text-sm text-gray-500">Posted {formatDate(job.created_at)}</p>
-                  </div>
-                  <button
-                    onClick={() => handleRestoreJob(job.id)}
-                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    Restore
-                  </button>
-                </div>
-                {/* ... rest of job card content without the heart icon ... */}
-              </div>
-            ))}
-          </>
-        )}
       </>
     );
   };
@@ -655,53 +607,86 @@ export default function DashboardClient({
                 )}
               </div>
 
-              {/* Pagination - Matching buyer dashboard style */}
-              {totalPages > 1 && (
-                <div className="px-4 py-3 flex items-center justify-between mt-6">
-                  <div className="flex-1 flex justify-between sm:hidden">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              {/* My Job */}
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">My Job</h2>
+                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm relative">
+                  {/* My Job content */}
+                </div>
+              </div>
+
+              {/* Not Interested Section */}
+              {dislikedJobs.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Not Interested</h2>
+                  {currentPosts.filter(post => dislikedJobs.includes(String(post.id))).map((job) => (
+                    <div 
+                      key={job.id} 
+                      className="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col mb-4"
+                      onClick={() => handleJobClick(job.id)}
                     >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      Next
-                    </button>
-                  </div>
-                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        Showing <span className="font-medium">{indexOfFirstPost + 1}</span> to{' '}
-                        <span className="font-medium">
-                          {Math.min(indexOfLastPost, currentPosts.length)}
-                        </span>{' '}
-                        of <span className="font-medium">{currentPosts.length}</span> results
-                      </p>
+                      <div className="absolute right-6 top-6">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDislikeClick(job.id);
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          Restore
+                        </button>
+                      </div>
+
+                      <div className="flex-1">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-700 mb-1">{job.title}</h3>
+                          <div className="text-sm font-medium text-gray-700">
+                            {job.budget_min && job.budget_max ? (
+                              <>
+                                {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
+                              </>
+                            ) : (
+                              formatBudget(job.budget_min || job.budget_max)
+                            )}
+                            <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
+                          </div>
+                        </div>
+
+                        {/* Location row */}
+                        {job.project_location && (
+                          <div className="flex items-center text-sm text-gray-500 mb-2">
+                            <MapPin className="h-4 w-4 mr-1" />
+                            {job.project_location}
+                          </div>
+                        )}
+
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-3">{job.description}</p>
+
+                        {/* Skills */}
+                        {job.project_skills && job.project_skills.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {job.project_skills.slice(0, 3).map((skill, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                            {job.project_skills.length > 3 && (
+                              <span className="text-xs text-gray-500">+{job.project_skills.length - 3} more</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+                        <div>Posted by {job.buyer_name}</div>
+                        <div>{formatDate(job.created_at)}</div>
+                      </div>
                     </div>
-                    <div>
-                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                          <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              pageNum === currentPage
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        ))}
-                      </nav>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -762,31 +747,6 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
-      {/* Not Interested Section */}
-      {currentPosts.filter(post => dislikedJobs.includes(post.id)).length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Not Interested</h2>
-          <div className="space-y-4">
-            {currentPosts.filter(post => dislikedJobs.includes(post.id)).map((job) => (
-              <div key={job.id} className="bg-white shadow rounded-lg p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
-                    <p className="mt-1 text-sm text-gray-500">Posted {formatDate(job.created_at)}</p>
-                  </div>
-                  <button
-                    onClick={() => handleRestoreJob(job.id)}
-                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    Restore
-                  </button>
-                </div>
-                {/* ... rest of job card content without the heart icon ... */}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
