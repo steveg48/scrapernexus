@@ -404,14 +404,8 @@ export default function DashboardClient({
         );
         break;
       case 'saved':
-        const { data: savedJobs } = await supabase
-          .from('seller_favorites')
-          .select('project_posting_id')
-          .eq('seller_id', user?.id);
-        
-        const savedIds = savedJobs?.map(job => job.project_posting_id) || [];
         setRegularJobs(jobPostings
-          .filter(job => savedIds.includes(job.id))
+          .filter(job => likedJobs.includes(Number(job.id)))
           .map(post => ({
             ...post,
             associated_skills: post.associated_skills || []
