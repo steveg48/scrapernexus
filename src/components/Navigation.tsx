@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import ProfileImage from '@/components/ProfileImage';
 import supabaseClient from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { useOnlineStatus } from '@/contexts/OnlineStatusContext';
 
 interface Notification {
   id: number;
@@ -23,6 +24,7 @@ export default function Navigation() {
   const [isClient, setIsClient] = useState(false);
   const [userType, setUserType] = useState<string | null>(null);
   const router = useRouter();
+  const { isOnline } = useOnlineStatus();
   
   const hireDropdownRef = useRef<HTMLDivElement>(null);
   const manageDropdownRef = useRef<HTMLDivElement>(null);
@@ -351,7 +353,7 @@ export default function Navigation() {
                   onClick={handleProfileMenuClick}
                   className="flex items-center space-x-2"
                 >
-                  <ProfileImage size="sm" isMenuIcon />
+                  <ProfileImage size="sm" isMenuIcon isOnline={isOnline} />
                   <ChevronDown className={`h-4 w-4 text-gray-500 transform transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
                 </button>
 
