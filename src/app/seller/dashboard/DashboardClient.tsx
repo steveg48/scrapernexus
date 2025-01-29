@@ -499,10 +499,9 @@ export default function DashboardClient({
 
               {/* Skills */}
               <div className="flex flex-wrap items-center gap-2 mt-auto">
-                {console.log('Rendering skills for job:', job.id, job.skills)}
-                {job.skills && job.skills.map((skill, index) => (
+                {job.skills?.map((skill) => (
                   <span 
-                    key={index}
+                    key={`${job.id}-${skill}`}
                     className={showingDislikedPage ? 
                       "bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm" : 
                       "bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
@@ -672,9 +671,9 @@ export default function DashboardClient({
 
                         {/* Skills */}
                         <div className="flex flex-wrap items-center gap-2 mt-auto">
-                          {job.skills && job.skills.map((skill, index) => (
+                          {job.skills?.map((skill) => (
                             <span 
-                              key={index}
+                              key={`${job.id}-${skill}`}
                               className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm"
                             >
                               {skill}

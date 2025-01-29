@@ -69,43 +69,57 @@ export default async function SellerDashboardPage() {
         headers: {
           'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
           'Authorization': `Bearer ${freshSession.access_token}`,
+          'Prefer': 'return=representation'
         },
         cache: 'no-store'
       }
     );
 
     if (!response.ok) {
+      console.error('Failed to fetch job listings:', await response.text());
       throw new Error('Failed to fetch job listings');
     }
 
     const projectPostings = await response.json();
-    console.log('Raw project postings:', projectPostings);
-    console.log('Sample posting skills:', projectPostings[0]?.skills);
-    console.log('Sample posting full:', JSON.stringify(projectPostings[0], null, 2));
+    
+    // Group the postings by project_postings_id and collect skills
+    const groupedPostings = projectPostings.reduce((acc, posting) => {
+      const id = posting.project_postings_id;
+      
+      if (!acc[id]) {
+        acc[id] = {
+          ...posting,
+          skills: []
+        };
+      }
+      
+      // Add skill if it exists and isn't already in the array
+      if (posting.skill_name && !acc[id].skills.includes(posting.skill_name)) {
+        acc[id].skills.push(posting.skill_name);
+      }
+      
+      return acc;
+    }, {});
 
-    // Filter out duplicate jobs
-    const uniquePostings = projectPostings?.filter((posting, index, self) =>
-      index === self.findIndex((p) => p.project_postings_id === posting.project_postings_id)
-    );
-    console.log('Unique postings:', uniquePostings);
+    // Convert the grouped object back to an array
+    const uniquePostings = Object.values(groupedPostings);
+    console.log('First grouped posting:', uniquePostings[0]);
 
-    const postings = uniquePostings?.map((posting) => {
-      const job = {
-        id: posting.project_postings_id,
-        title: posting.title || 'Untitled Project',
-        description: posting.description?.substring(0, 150) + '...',
-        created_at: posting.created_at,
-        frequency: posting.frequency || 'one_time',
-        budget_min: posting.budget_min,
-        budget_max: posting.budget_max,
-        buyer_name: posting.buyer_name || 'Anonymous',
-        project_type: posting.project_type,
-        project_location: posting.project_location,
-        skills: posting.skills || []
-      };
-      console.log('Mapped job skills:', job.skills);
-      return job;
-    }) || []
+    const postings = uniquePostings.map((posting) => ({
+      id: posting.project_postings_id,
+      title: posting.title || 'Untitled Project',
+      description: posting.description?.substring(0, 150) + '...',
+      created_at: posting.created_at,
+      frequency: posting.frequency || 'one_time',
+      budget_min: posting.budget_min,
+      budget_max: posting.budget_max,
+      buyer_name: posting.buyer_name || 'Anonymous',
+      project_type: posting.project_type,
+      project_location: posting.project_location,
+      skills: posting.skills || []
+    }));
+
+    console.log('First mapped posting with skills:', postings[0]);
 
     return (
       <div className="min-h-screen bg-gray-50">

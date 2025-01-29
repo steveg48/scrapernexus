@@ -27,10 +27,26 @@ export default async function DashboardPage() {
         .single(),
       supabase
         .from('project_postings')
-        .select('project_postings_id, title, description, created_at, status, data_fields, frequency')
+        .select(`
+          project_postings_id,
+          title,
+          description,
+          created_at,
+          status,
+          data_fields,
+          frequency,
+          project_skills (
+            skill_id,
+            skills (
+              skill_name
+            )
+          )
+        `)
         .eq('buyer_id', session.user.id)
         .order('created_at', { ascending: false }),
     ])
+
+    console.log('Jobs result:', JSON.stringify(jobsResult, null, 2));
 
     return (
       <>
@@ -45,6 +61,10 @@ export default async function DashboardPage() {
               status: job.status || 'open',
               data_fields: job.data_fields || {},
               frequency: job.frequency || 'one_time',
+              skills: job.project_skills?.map((ps: any) => ({
+                skill_id: ps.skill_id,
+                name: ps.skills?.skill_name || 'Unknown Skill'
+              })) || []
             })) || []
           }
         />

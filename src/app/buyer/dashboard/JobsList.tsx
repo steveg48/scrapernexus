@@ -13,6 +13,10 @@ interface Job {
   status: string;
   data_fields: Record<string, any>;
   frequency: string;
+  skills: {
+    skill_id: string;
+    name: string;
+  }[];
 }
 
 interface JobsListProps {
@@ -219,9 +223,21 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
                 <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
                   <File className="w-6 h-6 text-gray-500" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-medium">{job.title || 'Untitled'}</h3>
-                  <p className="text-sm text-gray-500">Created {formatDate(job.created_at)} | {job.status}</p>
+                <div className="flex flex-col flex-grow">
+                  <div>
+                    <h3 className="text-lg font-medium">{job.title}</h3>
+                    <p className="text-sm text-gray-500">Created {formatDate(job.created_at)} | {job.status}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {job.skills?.map((skill) => (
+                        <span
+                          key={skill.skill_id}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm mb-2"
+                        >
+                          {skill.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
