@@ -215,13 +215,21 @@ export default function DashboardClient({
   }, [user?.id]);
 
   useEffect(() => {
-    const newRegularJobs = jobPostings
-      .filter(job => !dislikedJobs.includes(String(job.id)))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    let filteredJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
     
-    setRegularJobs(newRegularJobs);
+    // Apply active filter
+    if (activeFilter === 'us_only') {
+      filteredJobs = filteredJobs.filter(job => job.project_location?.toLowerCase() === 'us only');
+    } else if (activeFilter === 'saved') {
+      filteredJobs = filteredJobs.filter(job => likedJobs.includes(Number(job.id)));
+    }
     
-    const newTotalPages = Math.ceil(newRegularJobs.length / postsPerPage);
+    // Sort by newest first
+    filteredJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    setRegularJobs(filteredJobs);
+    
+    const newTotalPages = Math.ceil(filteredJobs.length / postsPerPage);
     setTotalPages(newTotalPages);
     
     // Adjust current page if necessary
@@ -232,8 +240,8 @@ export default function DashboardClient({
     // Update current page posts
     const startIndex = (currentPage - 1) * postsPerPage;
     const endIndex = startIndex + postsPerPage;
-    setCurrentPagePosts(newRegularJobs.slice(startIndex, endIndex));
-  }, [jobPostings, dislikedJobs, currentPage]);
+    setCurrentPagePosts(filteredJobs.slice(startIndex, endIndex));
+  }, [jobPostings, dislikedJobs, currentPage, activeFilter, likedJobs]);
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
@@ -380,44 +388,8 @@ export default function DashboardClient({
     }
   };
 
-  const handleFilterClick = async (filter: string) => {
+  const handleFilterClick = (filter: string) => {
     setActiveFilter(filter === activeFilter ? null : filter);
-    
-    if (filter === activeFilter) {
-      // If clicking active filter, remove filter
-      setRegularJobs(jobPostings.map(post => ({
-        ...post,
-        associated_skills: post.associated_skills || []
-      })));
-      return;
-    }
-
-    switch (filter) {
-      case 'us_only':
-        console.log('All jobs:', jobPostings);
-        setRegularJobs(jobPostings
-          .filter(job => job.project_location?.toLowerCase() === 'us only')
-          .map(post => ({
-            ...post,
-            associated_skills: post.associated_skills || []
-          }))
-        );
-        break;
-      case 'saved':
-        setRegularJobs(jobPostings
-          .filter(job => likedJobs.includes(Number(job.id)))
-          .map(post => ({
-            ...post,
-            associated_skills: post.associated_skills || []
-          }))
-        );
-        break;
-      default:
-        setRegularJobs(jobPostings.map(post => ({
-          ...post,
-          associated_skills: post.associated_skills || []
-        })));
-    }
   };
 
   const handleJobClick = (jobId: string) => {
