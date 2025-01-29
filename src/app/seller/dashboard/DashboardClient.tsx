@@ -215,7 +215,10 @@ export default function DashboardClient({
   }, [user?.id]);
 
   useEffect(() => {
-    const newRegularJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
+    const newRegularJobs = jobPostings
+      .filter(job => !dislikedJobs.includes(String(job.id)))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
     setRegularJobs(newRegularJobs);
     
     const newTotalPages = Math.ceil(newRegularJobs.length / postsPerPage);
