@@ -223,20 +223,18 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
                 <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
                   <File className="w-6 h-6 text-gray-500" />
                 </div>
-                <div className="flex flex-col flex-grow">
-                  <div>
-                    <h3 className="text-lg font-medium">{job.title}</h3>
-                    <p className="text-sm text-gray-500">Created {formatDate(job.created_at)} | {job.status}</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {job.skills?.map((skill) => (
-                        <span
-                          key={skill.skill_id}
-                          className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm mb-2"
-                        >
-                          {skill.name}
-                        </span>
-                      ))}
-                    </div>
+                <div>
+                  <h3 className="text-lg font-medium">{job.title}</h3>
+                  <p className="text-sm text-gray-500">Created {formatDate(job.created_at)}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {job.skills?.map((skill) => (
+                      <span
+                        key={skill.skill_id}
+                        className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm"
+                      >
+                        {skill.name}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -244,7 +242,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
               <div className="flex items-center space-x-4">
                 <button 
                   onClick={(e) => handleLike(e, job.id)}
-                  className={`p-2 rounded-full border-2 border-gray-300 transition-all ${
+                  className={`w-10 h-10 flex items-center justify-center rounded-full border-2 border-gray-300 transition-all ${
                     likedJobs.includes(job.id.toString()) 
                       ? 'text-red-500' 
                       : 'text-gray-400 hover:text-pink-400 hover:border-pink-400'
@@ -255,7 +253,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
                     fill={likedJobs.includes(job.id.toString()) ? "currentColor" : "none"} 
                   />
                 </button>
-                <div className="px-4 py-2 bg-[#59baea] text-white rounded-md text-sm font-medium">
+                <div className="h-10 px-6 flex items-center bg-[#59baea] text-white rounded-md text-sm font-medium whitespace-nowrap">
                   {job.status === 'open' ? 'Open Job Posting' : job.status}
                 </div>
               </div>

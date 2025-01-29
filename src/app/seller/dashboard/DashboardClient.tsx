@@ -92,10 +92,12 @@ export default function DashboardClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [likedJobs, setLikedJobs] = useState<number[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
-  const [currentPosts, setCurrentPosts] = useState<JobPosting[]>(jobPostings);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [savedJobsCount, setSavedJobsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [regularJobs, setRegularJobs] = useState<JobPosting[]>([]);
+  const [currentPagePosts, setCurrentPagePosts] = useState<JobPosting[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
   const postsPerPage = 5;
   const { user } = useAuth();
   const supabase = createClient(
@@ -148,7 +150,7 @@ export default function DashboardClient({
             associated_skills: skillsMap[post.id] || []
           }));
           
-          setCurrentPosts(updatedPosts);
+          setRegularJobs(updatedPosts);
         }
       } catch (error) {
         console.error('Error fetching skills:', error);
@@ -211,6 +213,24 @@ export default function DashboardClient({
 
     loadDislikes();
   }, [user?.id]);
+
+  useEffect(() => {
+    const newRegularJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
+    setRegularJobs(newRegularJobs);
+    
+    const newTotalPages = Math.ceil(newRegularJobs.length / postsPerPage);
+    setTotalPages(newTotalPages);
+    
+    // Adjust current page if necessary
+    if (currentPage > newTotalPages) {
+      setCurrentPage(Math.max(1, newTotalPages));
+    }
+    
+    // Update current page posts
+    const startIndex = (currentPage - 1) * postsPerPage;
+    const endIndex = startIndex + postsPerPage;
+    setCurrentPagePosts(newRegularJobs.slice(startIndex, endIndex));
+  }, [jobPostings, dislikedJobs, currentPage]);
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
@@ -343,7 +363,7 @@ export default function DashboardClient({
       setDislikedJobs(prev => prev.filter(id => id !== String(jobId)));
       
       // Move restored job back to main list
-      setCurrentPosts(prev => {
+      setRegularJobs(prev => {
         const updatedPosts = [...prev];
         const restoredPost = updatedPosts.find(p => p.id === jobId);
         if (restoredPost) {
@@ -362,7 +382,7 @@ export default function DashboardClient({
     
     if (filter === activeFilter) {
       // If clicking active filter, remove filter
-      setCurrentPosts(currentPosts.map(post => ({
+      setRegularJobs(jobPostings.map(post => ({
         ...post,
         associated_skills: post.associated_skills || []
       })));
@@ -372,7 +392,7 @@ export default function DashboardClient({
     switch (filter) {
       case 'us_only':
         console.log('All jobs:', jobPostings);
-        setCurrentPosts(jobPostings
+        setRegularJobs(jobPostings
           .filter(job => job.project_location?.toLowerCase() === 'us only')
           .map(post => ({
             ...post,
@@ -387,7 +407,7 @@ export default function DashboardClient({
           .eq('seller_id', user?.id);
         
         const savedIds = savedJobs?.map(job => job.project_posting_id) || [];
-        setCurrentPosts(jobPostings
+        setRegularJobs(jobPostings
           .filter(job => savedIds.includes(job.id))
           .map(post => ({
             ...post,
@@ -396,7 +416,7 @@ export default function DashboardClient({
         );
         break;
       default:
-        setCurrentPosts(jobPostings.map(post => ({
+        setRegularJobs(jobPostings.map(post => ({
           ...post,
           associated_skills: post.associated_skills || []
         })));
@@ -407,72 +427,41 @@ export default function DashboardClient({
     router.push(`/seller/jobs/details/${jobId}`);
   };
 
-  // Calculate pagination values
-  const regularJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
-  const dislikedJobsList = jobPostings.filter(job => dislikedJobs.includes(String(job.id)));
-  
-  const totalRegularPages = Math.ceil(regularJobs.length / postsPerPage);
-  const showingDislikedPage = currentPage > totalRegularPages;
-  
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  
-  const totalPages = Math.ceil((regularJobs.length + (dislikedJobs.length > 0 ? postsPerPage : 0)) / postsPerPage);
-
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
   };
 
   const renderJobList = () => {
-    const paginatedPosts = showingDislikedPage 
-      ? dislikedJobsList.slice(0, postsPerPage)
-      : regularJobs.slice(indexOfFirstPost, indexOfLastPost);
-
     return (
       <>
-        {paginatedPosts.map((job) => (
+        {currentPagePosts.map((job) => (
           <div 
             key={job.id} 
-            className={`bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col ${showingDislikedPage ? 'bg-gray-50' : ''}`}
+            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
             onClick={() => handleJobClick(job.id)}
           >
-            {showingDislikedPage ? (
-              <div className="absolute right-6 top-6">
+            <div className="absolute right-6 top-6 flex items-center gap-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFavoriteClick(job.id);
+                }}
+                className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <Heart className={`w-5 h-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
+              </button>
+              {!likedJobs.includes(Number(job.id)) && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDislikeClick(job.id);
                   }}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Restore
-                </button>
-              </div>
-            ) : (
-              <div className="absolute right-6 top-6 flex items-center gap-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFavoriteClick(job.id);
-                  }}
                   className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
                 >
-                  <Heart className={`w-5 h-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
+                  <ThumbsDown className="w-5 h-5" />
                 </button>
-                {/* Only show dislike button if job is not favorited */}
-                {!likedJobs.includes(Number(job.id)) && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDislikeClick(job.id);
-                    }}
-                    className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    <ThumbsDown className={`w-5 h-5 ${dislikedJobs.includes(String(job.id)) ? 'fill-gray-500' : ''}`} />
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="flex-1">
               <div>
@@ -502,10 +491,7 @@ export default function DashboardClient({
                 {job.skills?.map((skill) => (
                   <span 
                     key={`${job.id}-${skill}`}
-                    className={showingDislikedPage ? 
-                      "bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm" : 
-                      "bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
-                    }
+                    className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
                   >
                     {skill}
                   </span>
@@ -615,7 +601,7 @@ export default function DashboardClient({
                 </div>
               </div>
               <div className="space-y-4">
-                {currentPosts.length === 0 ? (
+                {regularJobs.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500">No job postings available</p>
                   </div>
@@ -624,76 +610,9 @@ export default function DashboardClient({
                 )}
               </div>
 
-              {/* Not Interested Section */}
-              {dislikedJobs.length > 0 && (
-                <div className="mt-8">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Not Interested</h2>
-                  {jobPostings.filter(job => dislikedJobs.includes(String(job.id))).map((job) => (
-                    <div 
-                      key={job.id} 
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col mb-4"
-                      onClick={() => handleJobClick(job.id)}
-                    >
-                      <div className="absolute right-6 top-6">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDislikeClick(job.id);
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Restore
-                        </button>
-                      </div>
-
-                      <div className="flex-1">
-                        <div>
-                          <h3 className="text-xl font-semibold text-gray-700 mb-1">{job.title}</h3>
-                          {job.project_location && (
-                            <div className="text-sm text-gray-500 mb-2">
-                              <MapPin className="h-4 w-4 inline-block mr-1" />
-                              {job.project_location}
-                            </div>
-                          )}
-                          <div className="text-sm font-medium text-gray-700 mb-4">
-                            {job.budget_min && job.budget_max ? (
-                              <>
-                                {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
-                              </>
-                            ) : (
-                              formatBudget(job.budget_min || job.budget_max)
-                            )}
-                            <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
-                          </div>
-                        </div>
-
-                        <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
-
-                        {/* Skills */}
-                        <div className="flex flex-wrap items-center gap-2 mt-auto">
-                          {job.skills?.map((skill) => (
-                            <span 
-                              key={`${job.id}-${skill}`}
-                              className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                        <div>Posted {formatDate(job.created_at)}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-8">
+                <div className="mt-8 mb-8">
                   <div className="flex justify-center gap-2">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
@@ -726,6 +645,73 @@ export default function DashboardClient({
                 </div>
               )}
             </div>
+
+            {/* Not Interested Section */}
+            {dislikedJobs.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Not Interested</h2>
+                {jobPostings.filter(job => dislikedJobs.includes(String(job.id))).map((job) => (
+                  <div 
+                    key={job.id} 
+                    className="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col mb-4"
+                    onClick={() => handleJobClick(job.id)}
+                  >
+                    <div className="absolute right-6 top-6">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDislikeClick(job.id);
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Restore
+                      </button>
+                    </div>
+
+                    <div className="flex-1">
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-1">{job.title}</h3>
+                        {job.project_location && (
+                          <div className="text-sm text-gray-500 mb-2">
+                            <MapPin className="h-4 w-4 inline-block mr-1" />
+                            {job.project_location}
+                          </div>
+                        )}
+                        <div className="text-sm font-medium text-gray-700 mb-4">
+                          {job.budget_min && job.budget_max ? (
+                            <>
+                              {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
+                            </>
+                          ) : (
+                            formatBudget(job.budget_min || job.budget_max)
+                          )}
+                          <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
+
+                      {/* Skills */}
+                      <div className="flex flex-wrap items-center gap-2 mt-auto">
+                        {job.skills?.map((skill) => (
+                          <span 
+                            key={`${job.id}-${skill}`}
+                            className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+                      <div>Posted {formatDate(job.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right Column */}

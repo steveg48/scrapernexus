@@ -48,6 +48,9 @@ export default function Navigation() {
     fetchUserType();
   }, []);
 
+  // Check if we're on a buyer page
+  const isBuyerPage = pathname.startsWith('/buyer');
+
   const notifications = [
     {
       id: 1,
@@ -155,30 +158,7 @@ export default function Navigation() {
 
               {/* Nav Links */}
               <div className="ml-10 flex items-center space-x-8">
-                {userType === 'seller' ? (
-                  <>
-                    <Link
-                      href="/seller/jobs"
-                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
-                    >
-                      Find work
-                    </Link>
-
-                    <Link
-                      href="/seller/contracts"
-                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
-                    >
-                      Deliver work
-                    </Link>
-
-                    <Link
-                      href="/seller/finances"
-                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
-                    >
-                      Manage finances
-                    </Link>
-                  </>
-                ) : (
+                {isBuyerPage ? (
                   <>
                     <div className="relative" ref={hireDropdownRef}>
                       <button 
@@ -280,6 +260,29 @@ export default function Navigation() {
                       <span className="ml-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                         1
                       </span>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/seller/jobs"
+                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    >
+                      Find work
+                    </Link>
+
+                    <Link
+                      href="/seller/contracts"
+                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    >
+                      Deliver work
+                    </Link>
+
+                    <Link
+                      href="/seller/finances"
+                      className="flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
+                    >
+                      Manage finances
                     </Link>
                   </>
                 )}
