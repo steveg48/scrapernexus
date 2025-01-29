@@ -64,7 +64,7 @@ export default async function SellerDashboardPage() {
 
     // Fetch job listings from the REST endpoint
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/project_postings_with_skills`,
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/project_postings_with_skills?order=created_at.desc`,
       {
         headers: {
           'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
