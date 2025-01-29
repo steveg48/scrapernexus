@@ -11,35 +11,42 @@ interface OnlineStatusContextType {
 const OnlineStatusContext = createContext<OnlineStatusContextType | undefined>(undefined);
 
 export function OnlineStatusProvider({ children }: { children: React.ReactNode }) {
-  const [isOnline, setIsOnline] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    const updateOnlineStatus = async () => {
+    const updateLastSeen = async () => {
       const client = supabaseClient;
       const { data: { session } } = await client.auth.getSession();
       
       if (session) {
-        // Update the online status in the profiles table
         await client
           .from('profiles')
-          .update({ last_seen: new Date().toISOString(), is_online: true })
+          .update({ last_seen: new Date().toISOString() })
           .eq('id', session.user.id);
+
+        // Fetch current status from the view
+        const { data } = await client
+          .from('user_status')
+          .select('is_online')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (data) {
+          setIsOnline(data.is_online);
+        }
       }
     };
 
     // Update status when component mounts
-    updateOnlineStatus();
+    updateLastSeen();
 
     // Set up interval to update status periodically
-    const interval = setInterval(updateOnlineStatus, 60000); // Every minute
+    const interval = setInterval(updateLastSeen, 60000); // Every minute
 
     // Set up visibility change handler
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        setIsOnline(true);
-        updateOnlineStatus();
-      } else {
-        setIsOnline(false);
+        updateLastSeen();
       }
     };
 
@@ -47,8 +54,7 @@ export function OnlineStatusProvider({ children }: { children: React.ReactNode }
 
     // Set up online/offline handlers
     const handleOnline = () => {
-      setIsOnline(true);
-      updateOnlineStatus();
+      updateLastSeen();
     };
 
     const handleOffline = () => {
@@ -57,9 +63,6 @@ export function OnlineStatusProvider({ children }: { children: React.ReactNode }
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Set initial online status
-    setIsOnline(navigator.onLine);
 
     // Cleanup
     return () => {

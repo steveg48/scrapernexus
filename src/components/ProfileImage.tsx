@@ -23,10 +23,10 @@ export default function ProfileImage({
   };
 
   const statusDotSizes = {
-    sm: 'w-2.5 h-2.5',
-    md: 'w-3 h-3',
-    mlg: 'w-3.5 h-3.5',
-    lg: 'w-4 h-4'
+    sm: 'w-3 h-3',
+    md: 'w-3.5 h-3.5',
+    mlg: 'w-4 h-4',
+    lg: 'w-4.5 h-4.5'
   };
 
   const borderClasses = isMenuIcon ? 'border-[1px]' : 'border-2';
@@ -52,11 +52,11 @@ export default function ProfileImage({
   };
 
   return (
-    <div className="relative">
+    <div className="relative inline-block">
       <ImageComponent />
       {isOnline !== undefined && (
         <div
-          className={`absolute bottom-0 right-0 ${statusDotSizes[size]} rounded-full border-2 border-white ${
+          className={`absolute -bottom-0.5 -right-0.5 ${statusDotSizes[size]} rounded-full border-2 border-white shadow-sm ${
             isOnline ? 'bg-green-500' : 'bg-gray-400'
           }`}
         />
