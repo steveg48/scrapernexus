@@ -569,20 +569,14 @@ export default function DashboardClient({
                   </button>
                 </div>
               </div>
-              <div className="space-y-4">
-                {regularJobs.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No job postings available</p>
-                  </div>
-                ) : (
-                  renderJobList()
-                )}
+              <div className="grid grid-cols-1 gap-6 mb-6">
+                {renderJobList()}
               </div>
-
+              
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-8 mb-8">
-                  <div className="flex justify-center gap-2">
+                <div className="flex justify-center mt-6">
+                  <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
@@ -595,8 +589,8 @@ export default function DashboardClient({
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
                         className={`px-3 py-1 border rounded-md text-sm ${
-                          pageNum === currentPage
-                            ? 'bg-blue-50 border-blue-500 text-blue-600'
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white border-blue-600'
                             : 'text-gray-600 hover:bg-gray-50'
                         }`}
                       >
@@ -616,7 +610,7 @@ export default function DashboardClient({
             </div>
 
             {/* Not Interested Section */}
-            {dislikedJobs.length > 0 && (
+            {dislikedJobs.length > 0 && activeFilter !== 'saved' && (
               <div className="mt-8">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Not Interested</h2>
                 {jobPostings.filter(job => dislikedJobs.includes(String(job.id))).map((job) => (
