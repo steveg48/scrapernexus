@@ -24,10 +24,9 @@ export function OnlineStatusProvider({ children }: { children: React.ReactNode }
           .update({ last_seen: new Date().toISOString() })
           .eq('id', session.user.id);
 
-        // Fetch current status from the view
+        // Fetch current status from the RPC function
         const { data } = await client
-          .from('user_status')
-          .select('is_online')
+          .rpc('user_activity_status_view')
           .eq('id', session.user.id)
           .single();
         
