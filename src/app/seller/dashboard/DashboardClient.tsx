@@ -93,11 +93,12 @@ export default function DashboardClient({
   const [likedJobs, setLikedJobs] = useState<number[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [notInterestedCount, setNotInterestedCount] = useState(0);
   const [savedJobsCount, setSavedJobsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [regularJobs, setRegularJobs] = useState<JobPosting[]>([]);
   const [currentPagePosts, setCurrentPagePosts] = useState<JobPosting[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages, setTotalPages] = useState(Math.ceil(jobPostings.length / 9));
   const [dislikedCurrentPage, setDislikedCurrentPage] = useState(1);
   const [dislikedTotalPages, setDislikedTotalPages] = useState(1);
   const [currentDislikedPosts, setCurrentDislikedPosts] = useState<JobPosting[]>([]);
@@ -317,58 +318,76 @@ export default function DashboardClient({
     }
   };
 
-  const handleDislikeClick = async (jobId: string | number | undefined) => {
-    if (!jobId || !user) {
+  const handleDislikeClick = async (jobId: string) => {
+    console.log('Dislike clicked:', jobId);
+    if (!user) {
       router.push('/auth/login');
       return;
     }
-    
-    console.log('Disliking job:', jobId);
+
     const isCurrentlyDisliked = dislikedJobs.includes(String(jobId));
-    
+    console.log('Is currently disliked:', isCurrentlyDisliked);
+
     try {
-      // Update UI immediately
-      setDislikedJobs(prev => 
-        isCurrentlyDisliked
-          ? prev.filter(id => id !== String(jobId))
-          : [...prev, String(jobId)]
-      );
+      // Make API call
+      const endpoint = isCurrentlyDisliked 
+        ? 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/remove_seller_dislike'
+        : 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/add_seller_dislike';
 
+      console.log('Making API call to:', endpoint);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          project_posting_id: Number(jobId),
+          seller_id: user.id
+        })
+      });
+
+      console.log('API Response:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(isCurrentlyDisliked ? 'Failed to remove dislike' : 'Failed to add dislike');
+      }
+
+      // Update UI after successful API call
       if (isCurrentlyDisliked) {
-        // Remove from dislikes
-        const response = await fetch(`/api/dislikes?project_id=${jobId}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to remove dislike');
-        }
+        console.log('Removing dislike');
+        setDislikedJobs(prev => prev.filter(id => id !== String(jobId)));
+        setNotInterestedCount(prev => prev - 1);
       } else {
-        // Add to dislikes
-        const response = await fetch('/api/dislikes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            project_posting_id: Number(jobId)
-          }),
-          credentials: 'include'
-        });
+        console.log('Adding dislike');
+        setDislikedJobs(prev => [...prev, String(jobId)]);
+        setNotInterestedCount(prev => prev + 1);
+      }
 
-        if (!response.ok) {
-          throw new Error('Failed to add dislike');
+      // Update filtered jobs based on current tab
+      if (activeFilter === 'all') {
+        if (!isCurrentlyDisliked) {
+          setRegularJobs(prev => prev.filter(job => job.id !== jobId));
+          setCurrentPagePosts(prev => prev.filter(job => job.id !== jobId));
+        }
+      } else if (activeFilter === 'not_interested') {
+        if (isCurrentlyDisliked) {
+          setRegularJobs(prev => prev.filter(job => job.id !== jobId));
+          setCurrentPagePosts(prev => prev.filter(job => job.id !== jobId));
+        } else {
+          const job = jobPostings.find(j => j.id === jobId);
+          if (job) {
+            setRegularJobs(prev => [...prev, job]);
+            setCurrentPagePosts(prev => [...prev, job]);
+          }
         }
       }
+
     } catch (error) {
       console.error('Error handling dislike:', error);
-      // Revert UI on error
-      setDislikedJobs(prev => 
-        isCurrentlyDisliked
-          ? prev.filter(id => id !== String(jobId))
-          : [...prev, String(jobId)]
-      );
     }
   };
 
@@ -445,9 +464,11 @@ export default function DashboardClient({
                     e.stopPropagation();
                     handleDislikeClick(job.id);
                   }}
-                  className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
+                  className={`p-2 rounded-full transition-colors ${
+                    dislikedJobs.includes(String(job.id)) ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-gray-500'
+                  }`}
                 >
-                  <ThumbsDown className="w-5 h-5" />
+                  <ThumbsDown className={`h-6 w-6 ${dislikedJobs.includes(String(job.id)) ? 'fill-current' : ''}`} />
                 </button>
               )}
             </div>
@@ -562,7 +583,7 @@ export default function DashboardClient({
                       activeFilter === 'be_first' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-gray-600 hover:text-gray-900'
-                    } ${activeFilter === 'be_first' ? '' : 'hover:bg-gray-50'} first:rounded-l-lg last:rounded-r-lg`}
+                    } ${activeFilter === 'be_first' ? '' : 'hover:bg-gray-50'} first:rounded-l-lg`}
                     onClick={() => handleFilterClick('be_first')}
                   >
                     Be the 1st to apply
@@ -582,10 +603,20 @@ export default function DashboardClient({
                       activeFilter === 'saved' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-gray-600 hover:text-gray-900'
-                    } ${activeFilter === 'saved' ? '' : 'hover:bg-gray-50'} rounded-r-lg`}
+                    } ${activeFilter === 'saved' ? '' : 'hover:bg-gray-50'}`}
                     onClick={() => handleFilterClick('saved')}
                   >
-                    Saved Jobs ({likedJobs.length})
+                    Saved Jobs ({savedJobsCount})
+                  </button>
+                  <button 
+                    className={`px-4 py-2 text-sm font-medium border-l ${
+                      activeFilter === 'not_interested' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    } ${activeFilter === 'not_interested' ? '' : 'hover:bg-gray-50'} rounded-r-lg`}
+                    onClick={() => handleFilterClick('not_interested')}
+                  >
+                    Not Interested ({dislikedJobs.length})
                   </button>
                 </div>
               </div>
