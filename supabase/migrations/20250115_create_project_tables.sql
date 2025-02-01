@@ -27,15 +27,15 @@ CREATE TABLE IF NOT EXISTS project_skills (
 
 -- Create function to add project skills
 CREATE OR REPLACE FUNCTION add_project_skill(
-    p_project_posting_id BIGINT,
+    p_project_postings_id BIGINT,
     p_skill_id BIGINT
-) RETURNS BOOLEAN AS $$
+) RETURNS VOID AS $$
 BEGIN
     INSERT INTO project_skills (project_id, skill_id)
-    VALUES (p_project_posting_id, p_skill_id);
-    RETURN TRUE;
+    VALUES (p_project_postings_id, p_skill_id);
+    RETURN;
 EXCEPTION
     WHEN OTHERS THEN
-        RETURN FALSE;
+        RETURN;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     console.log('GET /api/favorites - Querying database...');
     const { data, error } = await supabase
       .from('seller_favorites')
-      .select('project_posting_id')
+      .select('project_postings_id')
       .eq('seller_id', sellerId);
 
     if (error) {
@@ -96,10 +96,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { project_posting_id } = body;
+    const { project_postings_id } = body;
 
-    if (!project_posting_id) {
-      return NextResponse.json({ error: 'project_posting_id is required' }, { 
+    if (!project_postings_id) {
+      return NextResponse.json({ error: 'project_postings_id is required' }, { 
         status: 400,
         headers: corsHeaders()
       });
@@ -107,14 +107,14 @@ export async function POST(request: Request) {
 
     console.log('POST /api/favorites - Adding favorite:', {
       seller_id: session.user.id,
-      project_posting_id
+      project_postings_id
     });
 
     const { data, error } = await supabase
       .from('seller_favorites')
       .insert([{
         seller_id: session.user.id,
-        project_posting_id,
+        project_postings_id,
         created_at: new Date().toISOString()
       }])
       .select('*')
@@ -173,7 +173,7 @@ export async function DELETE(request: Request) {
       .from('seller_favorites')
       .delete()
       .eq('seller_id', session.user.id)
-      .eq('project_posting_id', projectId);
+      .eq('project_postings_id', projectId);
 
     if (error) {
       console.error('DELETE /api/favorites - Database error:', error);

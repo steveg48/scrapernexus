@@ -135,7 +135,7 @@ export async function POST(request: Request) {
                         () => supabase
                             .from('project_skills')
                             .insert({
-                                project_posting_id: projectPosting.project_postings_id,
+                                project_postings_id: projectPosting.project_postings_id,
                                 skill_id: skillId
                             })
                     );

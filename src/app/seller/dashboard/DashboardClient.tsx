@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@supabase/supabase-js';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface Profile {
   id?: string;
@@ -104,16 +104,7 @@ export default function DashboardClient({
   const [currentDislikedPosts, setCurrentDislikedPosts] = useState<JobPosting[]>([]);
   const postsPerPage = 5;
   const { user } = useAuth();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession: true,
-        storageKey: 'sb-access-token'
-      }
-    }
-  );
+  const supabase = createClientComponentClient();
   const router = useRouter();
 
   useEffect(() => {
@@ -180,8 +171,8 @@ export default function DashboardClient({
           return;
         }
 
-        // Keep project_posting_id as numbers
-        const favoriteIds = data.map((fav: any) => fav.project_posting_id);
+        // Keep project_postings_id as numbers
+        const favoriteIds = data.map((fav: any) => fav.project_postings_id);
         console.log('Loaded favorite IDs:', favoriteIds);
         setLikedJobs(favoriteIds);
         setSavedJobsCount(favoriteIds.length);
@@ -198,25 +189,32 @@ export default function DashboardClient({
       if (!user?.id) return;
 
       try {
-        const response = await fetch(`/api/dislikes?seller_id=${user.id}`, {
-          credentials: 'include'
-        });
-        const data = await response.json();
+        const { data, error } = await supabase
+          .from('seller_dislikes')
+          .select('project_postings_id')
+          .eq('seller_id', user.id);
 
-        if (!response.ok) {
-          console.error('Error loading dislikes from API:', data);
+        if (error) {
+          console.error('Error loading dislikes:', error);
           return;
         }
 
-        const dislikedIds = data.map((dislike: any) => String(dislike.project_posting_id));
+        const dislikedIds = data.map(dislike => String(dislike.project_postings_id));
+        console.log('Loaded disliked IDs:', dislikedIds);
         setDislikedJobs(dislikedIds);
+        setNotInterestedCount(dislikedIds.length);
+
+        // Update regular jobs list to exclude disliked jobs
+        const filteredJobs = jobPostings.filter(job => !dislikedIds.includes(job.id));
+        setRegularJobs(filteredJobs);
+        setCurrentPagePosts(filteredJobs.slice(0, postsPerPage));
       } catch (error) {
         console.error('Error loading dislikes:', error);
       }
     };
 
     loadDislikes();
-  }, [user?.id]);
+  }, [user?.id, jobPostings, postsPerPage]);
 
   useEffect(() => {
     let filteredJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
@@ -296,7 +294,7 @@ export default function DashboardClient({
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            project_posting_id: Number(jobId)
+            project_postings_id: Number(jobId)
           }),
           credentials: 'include'
         });
@@ -318,32 +316,6 @@ export default function DashboardClient({
     }
   };
 
-  const handleDislike = async (jobId: string) => {
-    try {
-      if (!user?.id) return;
-
-      const { error } = await supabase
-        .from('seller_dislikes')
-        .insert([{
-          seller_id: user.id,
-          project_posting_id: jobId
-        }]);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // Update state to reflect the change
-      setDislikedJobs([...dislikedJobs, jobId]);
-      setNotInterestedCount(notInterestedCount + 1);
-
-      // Remove the job from the regular jobs list
-      setRegularJobs(regularJobs.filter(job => job.id !== jobId));
-    } catch (error) {
-      console.error('Error disliking job:', error);
-    }
-  };
-
   const handleDislikeClick = async (jobId: string) => {
     console.log('Dislike clicked:', jobId);
     if (!user) {
@@ -352,68 +324,66 @@ export default function DashboardClient({
     }
 
     const isCurrentlyDisliked = dislikedJobs.includes(String(jobId));
-    console.log('Is currently disliked:', isCurrentlyDisliked);
+    const oldDislikedJobs = [...dislikedJobs];
+    const oldRegularJobs = [...regularJobs];
+    const oldCurrentPagePosts = [...currentPagePosts];
+    const oldNotInterestedCount = notInterestedCount;
 
     try {
-      // Make API call
-      const endpoint = isCurrentlyDisliked 
-      ? 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes'
-      : 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes';
+      // Update UI immediately
+      const newDislikedJobs = isCurrentlyDisliked
+        ? dislikedJobs.filter(id => id !== String(jobId))
+        : [...dislikedJobs, String(jobId)];
+      
+      setDislikedJobs(newDislikedJobs);
+      setNotInterestedCount(newDislikedJobs.length);
 
-      console.log('Making API call to:', endpoint);
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          project_posting_id: Number(jobId),
-          seller_id: user.id
-        })
-      });
-
-      console.log('API Response:', response.status);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error(isCurrentlyDisliked ? 'Failed to remove dislike' : 'Failed to add dislike');
-      }
-
-      // Update UI after successful API call
+      // Update job lists based on active filter
       if (isCurrentlyDisliked) {
-        console.log('Removing dislike');
-        setDislikedJobs(prev => prev.filter(id => id !== String(jobId)));
-        setNotInterestedCount(prev => prev - 1);
-      } else {
-        console.log('Adding dislike');
-        setDislikedJobs(prev => [...prev, String(jobId)]);
-        setNotInterestedCount(prev => prev + 1);
-      }
-
-      // Update filtered jobs based on current tab
-      if (activeFilter === 'all') {
-        if (!isCurrentlyDisliked) {
-          setRegularJobs(prev => prev.filter(job => job.id !== jobId));
-          setCurrentPagePosts(prev => prev.filter(job => job.id !== jobId));
-        }
-      } else if (activeFilter === 'not_interested') {
-        if (isCurrentlyDisliked) {
-          setRegularJobs(prev => prev.filter(job => job.id !== jobId));
-          setCurrentPagePosts(prev => prev.filter(job => job.id !== jobId));
-        } else {
-          const job = jobPostings.find(j => j.id === jobId);
-          if (job) {
-            setRegularJobs(prev => [...prev, job]);
+        const job = jobPostings.find(j => j.id === jobId);
+        if (job) {
+          setRegularJobs(prev => [...prev, job]);
+          if (activeFilter === 'all') {
             setCurrentPagePosts(prev => [...prev, job]);
           }
         }
+      } else {
+        setRegularJobs(prev => prev.filter(job => job.id !== jobId));
+        if (activeFilter === 'all') {
+          setCurrentPagePosts(prev => prev.filter(job => job.id !== jobId));
+        }
       }
 
+      if (isCurrentlyDisliked) {
+        const { error } = await supabase
+          .from('seller_dislikes')
+          .delete()
+          .eq('seller_id', user.id)
+          .eq('project_postings_id', parseInt(jobId, 10));
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from('seller_dislikes')
+          .insert([{
+            seller_id: user.id,
+            project_postings_id: parseInt(jobId, 10)
+          }])
+          .select();
+
+        if (error) {
+          throw error;
+        }
+      }
     } catch (error) {
       console.error('Error handling dislike:', error);
+      // Revert all UI changes on error
+      setDislikedJobs(oldDislikedJobs);
+      setRegularJobs(oldRegularJobs);
+      setCurrentPagePosts(oldCurrentPagePosts);
+      setNotInterestedCount(oldNotInterestedCount);
     }
   };
 
@@ -421,18 +391,50 @@ export default function DashboardClient({
     if (!jobId || !user?.id) return;
     
     try {
-      const { error } = await supabase
-        .from('seller_dislikes')
-        .delete()
-        .eq('seller_id', user.id)
-        .eq('project_posting_id', Number(jobId));
+      if (dislikedJobs.includes(String(jobId))) {
+        const { error } = await supabase
+          .from('seller_dislikes')
+          .delete()
+          .eq('seller_id', user.id)
+          .eq('project_postings_id', parseInt(jobId, 10));
 
-      if (error) {
-        console.error('Error removing dislike:', error);
-        return;
+        if (error) {
+          console.error('Delete error:', error);
+          // Revert UI on error
+          setDislikedJobs(prev => 
+            prev.filter(id => id !== String(jobId))
+          );
+          throw error;
+        }
+      } else {
+        console.log('Inserting dislike with:', {
+          seller_id: user.id,
+          project_postings_id: parseInt(jobId, 10)
+        });
+        
+        const { error } = await supabase
+          .from('seller_dislikes')
+          .insert([{
+            seller_id: user.id,
+            project_postings_id: parseInt(jobId, 10)
+          }])
+          .select();
+
+        if (error) {
+          console.error('Insert error:', error);
+          // Revert UI on error
+          setDislikedJobs(prev => 
+            prev.filter(id => id !== String(jobId))
+          );
+          throw error;
+        }
       }
 
-      setDislikedJobs(prev => prev.filter(id => id !== String(jobId)));
+      setDislikedJobs(prev => 
+        dislikedJobs.includes(String(jobId))
+          ? prev.filter(id => id !== String(jobId))
+          : [...prev, String(jobId)]
+      );
       
       // Move restored job back to main list
       setRegularJobs(prev => {

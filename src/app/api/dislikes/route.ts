@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from('seller_dislikes')
-      .select('project_posting_id')
+      .select('project_postings_id')
       .eq('seller_id', sellerId);
 
     if (error) {
@@ -90,10 +90,10 @@ export async function POST(request: Request) {
     }
 
     const json = await request.json();
-    const { project_posting_id } = json;
+    const { project_postings_id } = json;
 
-    if (!project_posting_id) {
-      return NextResponse.json({ error: 'Missing project_posting_id' }, { 
+    if (!project_postings_id) {
+      return NextResponse.json({ error: 'Missing project_postings_id' }, { 
         status: 400,
         headers: corsHeaders()
       });
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.from('seller_dislikes').insert([
       {
         seller_id: session.user.id,
-        project_posting_id: Number(project_posting_id)
+        project_postings_id: Number(project_postings_id)
       }
     ]).select();
 
@@ -152,7 +152,7 @@ export async function DELETE(request: Request) {
       .from('seller_dislikes')
       .delete()
       .eq('seller_id', session.user.id)
-      .eq('project_posting_id', project_id);
+      .eq('project_postings_id', project_id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { 

@@ -65,7 +65,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
         }
 
         console.log('Fetching favorites with seller_id:', user.id);
-        const response = await fetch(`https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?select=project_posting_id&seller_id=eq.${user.id}`, {
+        const response = await fetch(`https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?select=project_postings_id&seller_id=eq.${user.id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
         if (response.ok) {
           const favorites = JSON.parse(responseText);
           console.log('Parsed favorites:', favorites);
-          const favoriteJobIds = favorites.map((fav: any) => fav.project_posting_id.toString());
+          const favoriteJobIds = favorites.map((fav: any) => fav.project_postings_id.toString());
           console.log('Setting initial liked jobs:', favoriteJobIds);
           setLikedJobs(favoriteJobIds);
 
@@ -125,7 +125,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
         localStorage.setItem(`likedJobs_${user.id}`, JSON.stringify(newLikedJobs));
 
         console.log('Removing from favorites API...');
-        const response = await fetch(`https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?project_posting_id=eq.${jobIdStr}&seller_id=eq.${user.id}`, {
+        const response = await fetch(`https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_favorites?project_postings_id=eq.${jobIdStr}&seller_id=eq.${user.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
             'Prefer': 'return=representation'
           },
           body: JSON.stringify({ 
-            project_posting_id: jobIdStr,
+            project_postings_id: jobIdStr,
             seller_id: user.id,
             created_at: new Date().toISOString()
           })

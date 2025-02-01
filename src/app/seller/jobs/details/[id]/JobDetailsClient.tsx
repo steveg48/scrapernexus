@@ -52,10 +52,14 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
             .eq('project_posting_id', projectId),
           supabase
             .from('seller_favorites')
-            .select()
-            .eq('project_posting_id', projectId)
-            .eq('seller_id', session.user.id)
-            .single()
+            .select('*')
+            .eq('seller_id', user.id)
+            .eq('project_postings_id', projectId),
+          supabase
+            .from('seller_dislikes')
+            .select('*')
+            .eq('seller_id', user.id)
+            .eq('project_postings_id', projectId)
         ]);
 
         if (jobError) throw jobError;
@@ -101,13 +105,13 @@ export default function JobDetailsClient({ projectId, session }: JobDetailsClien
         ? await supabase
             .from('seller_favorites')
             .delete()
-            .eq('project_posting_id', projectId)
+            .eq('project_postings_id', projectId)
             .eq('seller_id', session.user.id)
         : await supabase
             .from('seller_favorites')
             .insert([
               {
-                project_posting_id: projectId,
+                project_postings_id: projectId,
                 seller_id: session.user.id
               }
             ])
