@@ -318,6 +318,32 @@ export default function DashboardClient({
     }
   };
 
+  const handleDislike = async (jobId: string) => {
+    try {
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from('seller_dislikes')
+        .insert([{
+          seller_id: user.id,
+          project_posting_id: jobId
+        }]);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Update state to reflect the change
+      setDislikedJobs([...dislikedJobs, jobId]);
+      setNotInterestedCount(notInterestedCount + 1);
+
+      // Remove the job from the regular jobs list
+      setRegularJobs(regularJobs.filter(job => job.id !== jobId));
+    } catch (error) {
+      console.error('Error disliking job:', error);
+    }
+  };
+
   const handleDislikeClick = async (jobId: string) => {
     console.log('Dislike clicked:', jobId);
     if (!user) {
@@ -331,8 +357,8 @@ export default function DashboardClient({
     try {
       // Make API call
       const endpoint = isCurrentlyDisliked 
-        ? 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/remove_seller_dislike'
-        : 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/add_seller_dislike';
+      ? 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes'
+      : 'https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/seller_dislikes';
 
       console.log('Making API call to:', endpoint);
       const response = await fetch(endpoint, {
