@@ -550,7 +550,7 @@ export default function DashboardClient({
                 {job.skills?.map((skill) => (
                   <span 
                     key={`${job.id}-${skill}`}
-                    className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
+                    className="px-3 py-1.5 bg-[#b5ebfa] text-blue-800 rounded-full text-sm"
                   >
                     {skill}
                   </span>
