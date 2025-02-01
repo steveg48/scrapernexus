@@ -99,9 +99,6 @@ export default function DashboardClient({
   const [regularJobs, setRegularJobs] = useState<JobPosting[]>([]);
   const [currentPagePosts, setCurrentPagePosts] = useState<JobPosting[]>([]);
   const [totalPages, setTotalPages] = useState(Math.ceil(jobPostings.length / 9));
-  const [dislikedCurrentPage, setDislikedCurrentPage] = useState(1);
-  const [dislikedTotalPages, setDislikedTotalPages] = useState(1);
-  const [currentDislikedPosts, setCurrentDislikedPosts] = useState<JobPosting[]>([]);
   const postsPerPage = 5;
   const { user } = useAuth();
   const supabase = createClientComponentClient();
@@ -243,20 +240,7 @@ export default function DashboardClient({
     const startIndex = (currentPage - 1) * postsPerPage;
     const endIndex = startIndex + postsPerPage;
     setCurrentPagePosts(filteredJobs.slice(startIndex, endIndex));
-
-    // Handle disliked jobs pagination
-    const dislikedFilteredJobs = jobPostings.filter(job => dislikedJobs.includes(String(job.id)));
-    const newDislikedTotalPages = Math.ceil(dislikedFilteredJobs.length / postsPerPage);
-    setDislikedTotalPages(newDislikedTotalPages);
-    
-    if (dislikedCurrentPage > newDislikedTotalPages) {
-      setDislikedCurrentPage(Math.max(1, newDislikedTotalPages));
-    }
-    
-    const dislikedStartIndex = (dislikedCurrentPage - 1) * postsPerPage;
-    const dislikedEndIndex = dislikedStartIndex + postsPerPage;
-    setCurrentDislikedPosts(dislikedFilteredJobs.slice(dislikedStartIndex, dislikedEndIndex));
-  }, [jobPostings, dislikedJobs, currentPage, activeFilter, likedJobs, dislikedCurrentPage]);
+  }, [jobPostings, dislikedJobs, currentPage, activeFilter, likedJobs]);
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
@@ -452,7 +436,40 @@ export default function DashboardClient({
   };
 
   const handleFilterClick = (filter: string) => {
-    setActiveFilter(filter === activeFilter ? null : filter);
+    // Reset pagination when changing filters
+    setCurrentPage(1);
+    
+    // Update active filter
+    setActiveFilter(filter === activeFilter ? 'all' : filter);
+    
+    // Update displayed jobs based on filter
+    let filteredJobs;
+    if (filter === 'not_interested') {
+      // Show only disliked jobs
+      filteredJobs = jobPostings.filter(job => dislikedJobs.includes(String(job.id)));
+    } else if (filter === 'us_only') {
+      // Show US only jobs that aren't disliked
+      filteredJobs = jobPostings.filter(job => 
+        !dislikedJobs.includes(String(job.id)) && 
+        job.project_location?.toLowerCase() === 'us only'
+      );
+    } else if (filter === 'saved') {
+      // Show liked jobs
+      filteredJobs = jobPostings.filter(job => likedJobs.includes(Number(job.id)));
+    } else if (filter === 'be_first') {
+      // Show jobs with no applications that aren't disliked
+      filteredJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
+    } else {
+      // Show all jobs that aren't disliked
+      filteredJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
+    }
+
+    // Sort by newest first
+    filteredJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    setRegularJobs(filteredJobs);
+    setCurrentPagePosts(filteredJobs.slice(0, postsPerPage));
+    setTotalPages(Math.ceil(filteredJobs.length / postsPerPage));
   };
 
   const handleJobClick = (jobId: string) => {
@@ -463,14 +480,14 @@ export default function DashboardClient({
     setCurrentPage(pageNumber);
   };
 
-  const handleDislikedPageChange = (pageNumber: number) => {
-    setDislikedCurrentPage(pageNumber);
-  };
-
   const renderJobList = () => {
+    const jobsToShow = activeFilter === 'not_interested' ? 
+      jobPostings.filter(job => dislikedJobs.includes(String(job.id))) : 
+      currentPagePosts;
+    
     return (
       <>
-        {currentPagePosts.map((job) => (
+        {jobsToShow.map((job) => (
           <div 
             key={job.id} 
             className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
@@ -540,6 +557,17 @@ export default function DashboardClient({
             {/* Footer */}
             <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
               <div>Posted {formatDate(job.created_at)}</div>
+              {activeFilter === 'not_interested' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRestoreJob(job.id);
+                  }}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  Restore
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -602,7 +630,9 @@ export default function DashboardClient({
 
             {/* Jobs Section */}
             <div className="bg-white rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">Jobs you might like</h2>
+              <h2 className="text-lg font-semibold mb-4">
+                {activeFilter === 'not_interested' ? 'Jobs You\'re Not Interested In' : 'Jobs You Might Like'}
+              </h2>
               <div className="flex items-center justify-between mb-4">
                 <div></div>
                 <div className="inline-flex rounded-lg border border-gray-200 bg-white">
@@ -687,110 +717,6 @@ export default function DashboardClient({
                 </div>
               )}
             </div>
-
-            {/* Not Interested Section */}
-            {dislikedJobs.length > 0 && activeFilter !== 'saved' && (
-              <div className="mt-8 mb-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Not Interested</h2>
-                <div className="grid grid-cols-1 gap-6 mb-6">
-                  {currentDislikedPosts.map((job) => (
-                    <div 
-                      key={job.id} 
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
-                      onClick={() => handleJobClick(job.id)}
-                    >
-                      <div className="absolute right-6 top-6">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDislikeClick(job.id);
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Restore
-                        </button>
-                      </div>
-
-                      <div className="flex-1">
-                        <div>
-                          <h3 className="text-xl font-semibold text-gray-700 mb-1">{job.title}</h3>
-                          {job.project_location && (
-                            <div className="text-sm text-gray-500 mb-2">
-                              <MapPin className="h-4 w-4 inline-block mr-1" />
-                              {job.project_location}
-                            </div>
-                          )}
-                          <div className="text-sm font-medium text-gray-700 mb-4">
-                            {job.budget_min && job.budget_max ? (
-                              <>
-                                {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
-                              </>
-                            ) : (
-                              formatBudget(job.budget_min || job.budget_max)
-                            )}
-                            <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
-                          </div>
-                        </div>
-
-                        <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
-
-                        {/* Skills */}
-                        <div className="flex flex-wrap items-center gap-2 mt-auto">
-                          {job.skills?.map((skill) => (
-                            <span 
-                              key={`${job.id}-${skill}`}
-                              className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                        <div>Posted {formatDate(job.created_at)}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Not Interested Pagination */}
-                {dislikedTotalPages > 1 && (
-                  <div className="flex justify-center mt-6">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleDislikedPageChange(dislikedCurrentPage - 1)}
-                        disabled={dislikedCurrentPage === 1}
-                        className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      {Array.from({ length: dislikedTotalPages }, (_, i) => i + 1).map((pageNum) => (
-                        <button
-                          key={pageNum}
-                          onClick={() => handleDislikedPageChange(pageNum)}
-                          className={`px-3 py-1 border rounded-md text-sm ${
-                            dislikedCurrentPage === pageNum
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => handleDislikedPageChange(dislikedCurrentPage + 1)}
-                        disabled={dislikedCurrentPage === dislikedTotalPages}
-                        className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Right Column */}
