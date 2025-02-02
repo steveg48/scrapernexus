@@ -216,7 +216,7 @@ export default function SellerNavigation() {
                       className="w-8 h-8 rounded-full"
                     />
                     {user && (
-                      <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-white" />
+                      <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-white" />
                     )}
                   </div>
                   <ChevronDown className={`h-4 w-4 text-gray-500 transform transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />

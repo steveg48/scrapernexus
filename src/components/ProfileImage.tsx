@@ -56,7 +56,7 @@ export default function ProfileImage({
       <ImageComponent />
       {isOnline !== undefined && (
         <div
-          className={`absolute -bottom-0.5 -right-0.5 ${statusDotSizes[size]} rounded-full border-2 border-white shadow-sm ${
+          className={`absolute -top-0.5 -right-0.5 ${statusDotSizes[size]} rounded-full border-2 border-white shadow-sm ${
             isOnline ? 'bg-green-500' : 'bg-gray-400'
           }`}
         />

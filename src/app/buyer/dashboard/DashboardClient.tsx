@@ -110,7 +110,11 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
           )}
 
           <div className="mt-8">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Overview</h2>
+            {currentJobs.length > 0 && (
+              <div className="mt-4">
+                <h2 className="text-xl font-semibold text-gray-900 pl-4">Overview</h2>
+              </div>
+            )}
             <JobsList jobs={currentJobs} loading={loading} />
 
             {/* Pagination */}

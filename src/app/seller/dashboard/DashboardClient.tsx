@@ -524,7 +524,7 @@ export default function DashboardClient({
     return (
       <>
         {jobsToShow.length === 0 ? (
-          <div className="border rounded-lg p-6 text-center text-gray-600 max-w-2xl mx-auto">
+          <div className="border rounded-lg p-6 text-center text-gray-600 max-w-4xl mx-auto">
             No job postings yet. Click &quot;Post a job&quot; to create your first job posting.
           </div>
         ) : (
@@ -676,9 +676,12 @@ export default function DashboardClient({
 
             {/* Jobs Section */}
             <div className="bg-white rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-4">
-                {activeFilter === 'not_interested' ? 'Jobs You\'re Not Interested In' : 'Jobs You Might Like'}
-              </h2>
+              <div className="mt-4">
+                {jobPostings.length > 0 && (
+                  <h2 className="text-lg font-semibold text-gray-900 pl-4">Overview</h2>
+                )}
+              </div>
+
               <div className="flex items-center justify-between mb-4">
                 <div></div>
                 <div className="inline-flex rounded-lg border border-gray-200 bg-white">
