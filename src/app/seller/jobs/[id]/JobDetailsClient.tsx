@@ -204,11 +204,11 @@ export default function JobDetailsClient({ job }: JobDetailsClientProps) {
           {/* Skills */}
           <div>
             <h2 className="text-lg font-medium mb-3">Skills and Expertise</h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {job.skills.map((skill, index) => (
                 <span
                   key={index}
-                  className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                  className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm text-center"
                 >
                   {skill}
                 </span>
