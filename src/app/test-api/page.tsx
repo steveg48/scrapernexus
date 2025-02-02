@@ -45,9 +45,9 @@ export default function TestAPI() {
             setResult(data);
             
             // If successful, let's verify the data was inserted
-            if (data.project_id) {
-                // You can add additional verification here if needed
-                console.log('Project created successfully with ID:', data.project_id);
+            if (data.project_postings_id) {
+                setLoading(false);
+                console.log('Project created successfully with ID:', data.project_postings_id);
             }
 
         } catch (err) {

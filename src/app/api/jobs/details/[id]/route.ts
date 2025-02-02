@@ -44,7 +44,7 @@ export async function GET(
           )
         )
       `)
-      .eq('project_id', projectId)
+      .eq('project_postings_id', projectId)
       .single()
 
     if (jobError) {

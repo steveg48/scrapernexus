@@ -134,35 +134,31 @@ export default function DashboardClient({
   useEffect(() => {
     const fetchJobsWithSkills = async () => {
       try {
-        const response = await fetch('https://exqsnrdlctgxutmwpjua.supabase.co/rest/v1/project_postings_with_skills', {
-          headers: {
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}`,
-          }
-        });
-        
-        if (response.ok) {
-          const jobsWithSkills = await response.json();
-          
-          // Create a map of job IDs to their associated skills
-          const skillsMap = jobsWithSkills.reduce((acc: {[key: string]: string[]}, job: any) => {
-            if (!acc[job.project_postings_id]) {
-              acc[job.project_postings_id] = [];
-            }
-            if (job.skill_name) {
-              acc[job.project_postings_id].push(job.skill_name);
-            }
-            return acc;
-          }, {});
-          
-          // Update the current posts with associated skills
-          const updatedPosts = jobPostings.map(post => ({
-            ...post,
-            associated_skills: skillsMap[post.id] || []
-          }));
-          
-          setRegularJobs(updatedPosts);
-        }
+        const { data: jobs, error } = await supabase
+          .from('project_postings')
+          .select(`
+            *,
+            project_skills (
+              project_postings_id,
+              skill_id,
+              skills (
+                id,
+                name
+              )
+            )
+          `)
+          .eq('buyer_id', user?.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        setRegularJobs(jobs?.map(job => ({
+          ...job,
+          skills: job.project_skills?.map((ps: any) => ({
+            skill_id: ps.skill_id,
+            name: ps.skills?.name || 'Unknown Skill'
+          })) || []
+        })) || []);
       } catch (error) {
         console.error('Error fetching skills:', error);
       }
@@ -292,7 +288,7 @@ export default function DashboardClient({
 
       if (isCurrentlyLiked) {
         // Remove from favorites
-        const response = await fetch(`/api/favorites?project_id=${jobId}`, {
+        const response = await fetch(`/api/favorites?project_postings_id=${jobId}`, {
           method: 'DELETE',
           credentials: 'include'
         });

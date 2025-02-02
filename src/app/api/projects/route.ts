@@ -34,12 +34,6 @@ export async function POST(request: Request) {
         const cookieStore = cookies();
         const supabase = createServerComponentClient({ cookies: () => cookieStore });
         
-        // Get auth token from header
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
-            return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
-        }
-        
         // Get the current session with retry
         const { data: { session }, error: sessionError } = await retryOperation(
             () => supabase.auth.getSession()
@@ -48,12 +42,6 @@ export async function POST(request: Request) {
         if (sessionError || !session) {
             console.error('Session error:', sessionError);
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-        }
-
-        // Verify the token matches
-        const token = authHeader.split(' ')[1];
-        if (token !== session.access_token) {
-            return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
         }
 
         // Check if profile exists, if not create it
@@ -100,7 +88,7 @@ export async function POST(request: Request) {
                     project_scope: projectData.scope?.scope || projectData.project_scope || '',
                     project_type: projectData.project_type,
                     data_fields: projectData.data_fields,
-                    project_id: undefined // Let Supabase generate this
+                    project_postings_id: undefined // Let Supabase generate this
                 })
                 .select('project_postings_id')
                 .single()

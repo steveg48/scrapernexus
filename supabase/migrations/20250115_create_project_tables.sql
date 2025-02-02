@@ -1,6 +1,6 @@
 -- Create project_postings table
 CREATE TABLE IF NOT EXISTS project_postings (
-    project_id BIGSERIAL PRIMARY KEY,
+    project_postings_id BIGSERIAL PRIMARY KEY,
     buyer_id UUID NOT NULL REFERENCES auth.users(id),
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS project_postings (
 
 -- Create project_skills junction table
 CREATE TABLE IF NOT EXISTS project_skills (
-    project_id BIGINT REFERENCES project_postings(project_id) ON DELETE CASCADE,
+    project_id BIGINT REFERENCES project_postings(project_postings_id) ON DELETE CASCADE,
     skill_id BIGINT REFERENCES skills(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (project_id, skill_id)
@@ -27,12 +27,12 @@ CREATE TABLE IF NOT EXISTS project_skills (
 
 -- Create function to add project skills
 CREATE OR REPLACE FUNCTION add_project_skill(
-    p_project_postings_id BIGINT,
+    p_project_id BIGINT,
     p_skill_id BIGINT
 ) RETURNS VOID AS $$
 BEGIN
     INSERT INTO project_skills (project_id, skill_id)
-    VALUES (p_project_postings_id, p_skill_id);
+    VALUES (p_project_id, p_skill_id);
     RETURN;
 EXCEPTION
     WHEN OTHERS THEN

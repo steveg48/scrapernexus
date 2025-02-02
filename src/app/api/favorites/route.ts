@@ -155,10 +155,10 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('project_id');
+    const projectId = searchParams.get('project_postings_id');
 
     if (!projectId) {
-      return NextResponse.json({ error: 'project_id is required' }, { 
+      return NextResponse.json({ error: 'project_postings_id is required' }, { 
         status: 400,
         headers: corsHeaders()
       });
@@ -166,7 +166,7 @@ export async function DELETE(request: Request) {
 
     console.log('DELETE /api/favorites - Removing favorite:', {
       seller_id: session.user.id,
-      project_id: projectId
+      project_postings_id: projectId
     });
 
     const { error } = await supabase
