@@ -52,6 +52,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
       
       try {
         setLoading(true);
+        setError(null); // Clear any previous errors
         const { data, error: jobsError } = await supabase
           .from('project_postings')
           .select(`
@@ -63,7 +64,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
             data_fields,
             frequency,
             project_skills (
-              project_posting_id,
+              project_id,
               skill_id,
               skills (
                 id,
@@ -74,7 +75,11 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
           .eq('buyer_id', user.id)
           .order('created_at', { ascending: false });
 
-        if (jobsError) throw jobsError;
+        if (jobsError) {
+          console.error('Error fetching jobs:', jobsError);
+          setError('Unable to load your jobs. Please try refreshing the page.');
+          return;
+        }
 
         if (data) {
           const formattedJobs = data.map(job => ({
@@ -93,8 +98,8 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
           setJobs(formattedJobs);
         }
       } catch (error) {
-        console.error('Error fetching jobs:', error);
-        setError('Failed to load jobs');
+        console.error('Error in fetchJobs:', error);
+        setError('Something went wrong. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -120,43 +125,52 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         () => {
           // When a change occurs, fetch the latest data
           const fetchLatestJobs = async () => {
-            const { data, error: jobsError } = await supabase
-              .from('project_postings')
-              .select(`
-                project_postings_id,
-                title,
-                description,
-                created_at,
-                status,
-                data_fields,
-                frequency,
-                project_skills (
-                  project_id,
-                  skill_id,
-                  skills (
-                    id,
-                    name
+            try {
+              const { data, error: jobsError } = await supabase
+                .from('project_postings')
+                .select(`
+                  project_postings_id,
+                  title,
+                  description,
+                  created_at,
+                  status,
+                  data_fields,
+                  frequency,
+                  project_skills (
+                    project_id,
+                    skill_id,
+                    skills (
+                      id,
+                      name
+                    )
                   )
-                )
-              `)
-              .eq('buyer_id', user.id)
-              .order('created_at', { ascending: false });
+                `)
+                .eq('buyer_id', user.id)
+                .order('created_at', { ascending: false });
 
-            if (!jobsError && data) {
-              const formattedJobs = data.map(job => ({
-                id: job.project_postings_id,
-                title: job.title || 'Untitled Project',
-                description: job.description || '',
-                created_at: job.created_at,
-                status: job.status || 'open',
-                data_fields: job.data_fields || {},
-                frequency: job.frequency || 'one_time',
-                skills: job.project_skills?.map((ps: any) => ({
-                  skill_id: ps.skill_id,
-                  name: ps.skills?.name || 'Unknown Skill'
-                })) || []
-              }));
-              setJobs(formattedJobs);
+              if (jobsError) {
+                console.error('Error fetching latest jobs:', jobsError);
+                return;
+              }
+
+              if (data) {
+                const formattedJobs = data.map(job => ({
+                  id: job.project_postings_id,
+                  title: job.title || 'Untitled Project',
+                  description: job.description || '',
+                  created_at: job.created_at,
+                  status: job.status || 'open',
+                  data_fields: job.data_fields || {},
+                  frequency: job.frequency || 'one_time',
+                  skills: job.project_skills?.map((ps: any) => ({
+                    skill_id: ps.skill_id,
+                    name: ps.skills?.name || 'Unknown Skill'
+                  })) || []
+                }));
+                setJobs(formattedJobs);
+              }
+            } catch (error) {
+              console.error('Error in realtime update:', error);
             }
           };
 
@@ -185,8 +199,10 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-md mb-4">
-          {error}
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-800">
+            {error}
+          </p>
         </div>
       )}
 
