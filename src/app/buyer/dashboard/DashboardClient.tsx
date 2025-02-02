@@ -126,10 +126,10 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-start mb-12">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">Hi, {initialProfile.display_name.split(' ')[0]}</h1>
-          <p className="text-gray-600">Overview</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-semibold mb-8">Hi, {initialProfile.display_name.split(' ')[0]}</h1>
+          <p className="text-gray-600 mb-12">Overview</p>
         </div>
         <Link href="/buyer/jobs/create" className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
           Post a Job
@@ -142,9 +142,9 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         </div>
       )}
 
-      <div className="space-y-12">
+      <div className="space-y-16">
         {currentPosts.map((job) => (
-          <Link href={`/buyer/jobs/${job.id}`} key={job.id}>
+          <Link href={`/buyer/jobs/${job.id}`} key={job.id} className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
               <div className="flex flex-col">
                 <div className="flex justify-between items-start">
