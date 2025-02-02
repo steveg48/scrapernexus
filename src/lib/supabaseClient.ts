@@ -1,6 +1,4 @@
-import { getBrowserClient } from '@/lib/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 // Create a single instance of the Supabase client
-const supabaseClient = getBrowserClient()
-
-export default supabaseClient
+export const supabase = createClientComponentClient()
