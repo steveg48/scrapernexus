@@ -227,10 +227,10 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
                   <h3 className="text-lg font-medium">{job.title}</h3>
                   <p className="text-sm text-gray-500">Created {formatDate(job.created_at)}</p>
                   <div className="mt-2 grid grid-cols-5 gap-2">
-                    {job.skills?.slice(0, 5).map((skill) => (
+                    {job.skills?.map((skill) => (
                       <span
                         key={skill.skill_id}
-                        className="inline-block px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm"
+                        className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm"
                       >
                         {skill.name}
                       </span>
