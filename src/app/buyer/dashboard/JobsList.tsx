@@ -230,7 +230,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
                     {job.skills?.slice(0, 5).map((skill) => (
                       <span
                         key={skill.skill_id}
-                        className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm text-center"
+                        className="inline-block px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm"
                       >
                         {skill.name}
                       </span>
