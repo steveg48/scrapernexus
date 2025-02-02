@@ -36,9 +36,11 @@ export default async function DashboardPage() {
           data_fields,
           frequency,
           project_skills (
+            project_id,
             skill_id,
             skills (
-              skill_name
+              id,
+              name
             )
           )
         `)
@@ -63,7 +65,7 @@ export default async function DashboardPage() {
               frequency: job.frequency || 'one_time',
               skills: job.project_skills?.map((ps: any) => ({
                 skill_id: ps.skill_id,
-                name: ps.skills?.skill_name || 'Unknown Skill'
+                name: ps.skills?.name || 'Unknown Skill'
               })) || []
             })) || []
           }

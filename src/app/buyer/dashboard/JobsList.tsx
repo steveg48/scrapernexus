@@ -4,6 +4,7 @@ import { File } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/utils/supabaseClient';
 
 interface Job {
   id: number;
@@ -193,6 +194,40 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
     }
   };
 
+  const [jobsList, setJobsList] = useState<Job[]>([]);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const { data: jobs, error } = await supabase
+        .from('project_postings')
+        .select(`
+          *,
+          project_skills (
+            project_id,
+            skill_id,
+            skills (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('buyer_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setJobsList(jobs?.map(job => ({
+        ...job,
+        skills: job.project_skills?.map((ps: any) => ({
+          skill_id: ps.skill_id,
+          name: ps.skills?.name || 'Unknown Skill'
+        })) || []
+      })) || []);
+    };
+
+    fetchJobs();
+  }, [user?.id]);
+
   if (loading) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -201,7 +236,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
     );
   }
 
-  if (!jobs.length) {
+  if (!jobsList.length) {
     return (
       <div className="border rounded-lg p-6 text-center text-gray-600 max-w-4xl mx-auto">
         No job postings yet. Click &quot;Post a job&quot; to create your first job posting.
@@ -211,7 +246,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
 
   return (
     <div className="space-y-4">
-      {jobs.map((job) => (
+      {jobsList.map((job) => (
         <Link
           key={job.id}
           href={`/buyer/jobs/details/${job.id}`}
