@@ -126,8 +126,8 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
+      <div className="flex justify-between items-start mb-12">
+        <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Hi, {initialProfile.display_name.split(' ')[0]}</h1>
           <p className="text-gray-600">Overview</p>
         </div>
@@ -137,12 +137,12 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-4 mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-4 mb-8">
           {error}
         </div>
       )}
 
-      <div className="space-y-8">
+      <div className="space-y-12">
         {currentPosts.map((job) => (
           <Link href={`/buyer/jobs/${job.id}`} key={job.id}>
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
