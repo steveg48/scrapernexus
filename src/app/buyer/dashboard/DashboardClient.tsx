@@ -174,17 +174,10 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-semibold">Your Dashboard</h1>
-        {jobs.length > 0 ? (
+        {jobs.length > 0 && (
           <Link
             href="/buyer/post-job"
             className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
-          >
-            Post a New Job
-          </Link>
-        ) : (
-          <Link
-            href="/buyer/post-job"
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
           >
             Post a New Job
           </Link>
