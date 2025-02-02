@@ -523,94 +523,100 @@ export default function DashboardClient({
     
     return (
       <>
-        {jobsToShow.map((job) => (
-          <div 
-            key={job.id} 
-            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
-            onClick={() => handleJobClick(job.id)}
-          >
-            <div className="absolute right-6 top-6 flex items-center gap-4">
-              {activeFilter !== 'not_interested' && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFavoriteClick(job.id);
-                    }}
-                    className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    <Heart className={`w-5 h-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
-                  </button>
-                  {!likedJobs.includes(Number(job.id)) && (
+        {jobsToShow.length === 0 ? (
+          <div className="border rounded-lg p-6 text-center text-gray-600 max-w-2xl mx-auto">
+            No job postings yet. Click &quot;Post a job&quot; to create your first job posting.
+          </div>
+        ) : (
+          jobsToShow.map((job) => (
+            <div 
+              key={job.id} 
+              className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
+              onClick={() => handleJobClick(job.id)}
+            >
+              <div className="absolute right-6 top-6 flex items-center gap-4">
+                {activeFilter !== 'not_interested' && (
+                  <>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDislikeClick(job.id);
+                        handleFavoriteClick(job.id);
                       }}
-                      className={`p-2 rounded-full transition-colors ${
-                        dislikedJobs.includes(String(job.id)) ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-gray-500'
-                      }`}
+                      className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
                     >
-                      <ThumbsDown className={`h-6 w-6 ${dislikedJobs.includes(String(job.id)) ? 'fill-current' : ''}`} />
+                      <Heart className={`w-5 h-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
                     </button>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="flex-1">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
-                {job.project_location && (
-                  <div className="text-sm text-gray-500 mb-2">
-                    <MapPin className="h-4 w-4 inline-block mr-1" />
-                    {job.project_location}
-                  </div>
+                    {!likedJobs.includes(Number(job.id)) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDislikeClick(job.id);
+                        }}
+                        className={`p-2 rounded-full transition-colors ${
+                          dislikedJobs.includes(String(job.id)) ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-gray-500'
+                        }`}
+                      >
+                        <ThumbsDown className={`h-6 w-6 ${dislikedJobs.includes(String(job.id)) ? 'fill-current' : ''}`} />
+                      </button>
+                    )}
+                  </>
                 )}
-                <div className="text-sm font-medium text-gray-900 mb-4">
-                  {job.budget_min && job.budget_max ? (
-                    <>
-                      {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
-                    </>
-                  ) : (
-                    formatBudget(job.budget_min || job.budget_max)
+              </div>
+
+              <div className="flex-1">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
+                  {job.project_location && (
+                    <div className="text-sm text-gray-500 mb-2">
+                      <MapPin className="h-4 w-4 inline-block mr-1" />
+                      {job.project_location}
+                    </div>
                   )}
-                  <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
+                  <div className="text-sm font-medium text-gray-900 mb-4">
+                    {job.budget_min && job.budget_max ? (
+                      <>
+                        {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
+                      </>
+                    ) : (
+                      formatBudget(job.budget_min || job.budget_max)
+                    )}
+                    <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
+                  </div>
+                </div>
+
+                <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
+
+                {/* Skills */}
+                <div className="flex flex-wrap items-center gap-2 mt-auto">
+                  {job.skills?.map((skill) => (
+                    <span 
+                      key={`${job.id}-${skill}`}
+                      className="px-3 py-1.5 bg-[#b5ebfa] text-blue-800 rounded-full text-sm"
+                    >
+                      {skill}
+                    </span>
+                  ))}
                 </div>
               </div>
 
-              <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
-
-              {/* Skills */}
-              <div className="flex flex-wrap items-center gap-2 mt-auto">
-                {job.skills?.map((skill) => (
-                  <span 
-                    key={`${job.id}-${skill}`}
-                    className="px-3 py-1.5 bg-[#b5ebfa] text-blue-800 rounded-full text-sm"
+              {/* Footer */}
+              <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+                <div>Posted {formatDate(job.created_at)}</div>
+                {activeFilter === 'not_interested' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRestoreJob(job.id);
+                    }}
+                    className="text-blue-600 hover:text-blue-700"
                   >
-                    {skill}
-                  </span>
-                ))}
+                    Restore
+                  </button>
+                )}
               </div>
             </div>
-
-            {/* Footer */}
-            <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-              <div>Posted {formatDate(job.created_at)}</div>
-              {activeFilter === 'not_interested' && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRestoreJob(job.id);
-                  }}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  Restore
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </>
     );
   };

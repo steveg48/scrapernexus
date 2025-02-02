@@ -97,7 +97,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
                   Hi, {initialProfile.display_name.split(' ')[0]}
                 </h1>
               </div>
-              <Link href="/buyer/post-job" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+              <Link href="/buyer/post-job" className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                 Post a Job
               </Link>
             </div>

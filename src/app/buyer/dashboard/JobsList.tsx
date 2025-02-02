@@ -203,8 +203,8 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
 
   if (!jobs.length) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        No job postings yet. Click "Post a job" to create your first job posting.
+      <div className="border rounded-lg p-6 text-center text-gray-600">
+        No job postings yet. Click &quot;Post a job&quot; to create your first job posting.
       </div>
     );
   }

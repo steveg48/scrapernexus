@@ -283,9 +283,9 @@ export default function ProposalsPage() {
             </div>
             <h2 className="text-xl font-medium text-gray-900 mb-2">No proposals yet</h2>
             <p className="text-gray-500 mb-6">Get started by posting a job to receive proposals from talented freelancers</p>
-            <Link 
-              href="/buyer/post-job" 
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#14a800] hover:bg-[#14a800]/90"
+            <Link
+              href="/buyer/post-job"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               Post a Job
             </Link>

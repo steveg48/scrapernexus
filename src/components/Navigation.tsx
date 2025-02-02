@@ -194,12 +194,6 @@ export default function Navigation() {
                               <h3 className="text-sm font-semibold text-gray-900">Find freelancers</h3>
                             </div>
                             <Link
-                              href="/buyer/jobs/post"
-                              className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            >
-                              Post a job
-                            </Link>
-                            <Link
                               href="/buyer/search"
                               className="block px-8 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
