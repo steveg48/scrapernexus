@@ -137,7 +137,7 @@ export default function PostJobSkills() {
         const store = getJobPostingStore();
         await store.initialize();
         await store.saveField('skills', selectedSkills);
-        router.push('/buyer/post-job/budget');
+        router.push('/buyer/post-job/review');
       } catch (error) {
         console.error('Error saving skills:', error);
       }
@@ -181,7 +181,7 @@ export default function PostJobSkills() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-4">
             <div className="flex items-center space-x-2">
-              <span className="text-gray-500 text-sm">2/6</span>
+              <span className="text-gray-500 text-sm">4/5</span>
               <span className="text-gray-900">Job post</span>
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function PostJobSkills() {
         </div>
 
         <div className="flex items-center justify-between">
-          <Link href="/buyer/post-job/title" className="inline-flex items-center text-gray-600 hover:text-gray-900">
+          <Link href="/buyer/post-job/budget" className="inline-flex items-center text-gray-600 hover:text-gray-900">
             <span>← Back</span>
           </Link>
           <div className="w-40">
@@ -268,7 +268,7 @@ export default function PostJobSkills() {
               }`}
               disabled={selectedSkills.length === 0}
             >
-              Next: Budget
+              Next: Review
             </button>
           </div>
         </div>

@@ -1,16 +1,13 @@
 interface JobPostingData {
   title?: string;
   description?: string;
-  skills?: Array<{ skill_id: string; name: string }>;
-  project_scope?: string;
-  frequency?: string;
+  skills?: Array<{ skill_id: number; skill_name: string }>;
   budget?: {
     type: 'hourly' | 'fixed';
     fromRate?: string;
     toRate?: string;
     fixedRate?: string;
   };
-  project_location?: string;
 }
 
 class JobPostingStore {
@@ -35,13 +32,13 @@ class JobPostingStore {
     if (!this.isClient || this.initialized) return;
     
     try {
-      const stored = localStorage.getItem('job_posting_draft');
+      const stored = sessionStorage.getItem('job_posting_draft');
       if (stored) {
         this.data = JSON.parse(stored);
       }
       this.initialized = true;
     } catch (error) {
-      console.error('Error accessing localStorage:', error);
+      console.error('Error accessing sessionStorage:', error);
       this.data = {};
       this.initialized = true;
     }
@@ -51,57 +48,45 @@ class JobPostingStore {
     if (!this.isClient) return;
     
     try {
-      localStorage.setItem('job_posting_draft', JSON.stringify(this.data));
+      sessionStorage.setItem('job_posting_draft', JSON.stringify(this.data));
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
+      console.error('Error saving to sessionStorage:', error);
     }
   }
 
-  public async saveField<T>(key: keyof JobPostingData, value: T): Promise<void> {
-    if (!this.isClient) {
-      console.warn('Attempting to save data in server context');
-      return;
+  public async saveField<T>(key: string, value: T): Promise<void> {
+    if (!this.initialized) {
+      await this.initialize();
     }
-    
-    await this.initialize();
     this.data[key] = value;
     await this.persistToStorage();
   }
 
-  public async getField<T>(key: keyof JobPostingData): Promise<T | undefined> {
-    if (!this.isClient) {
-      console.warn('Attempting to get data in server context');
-      return undefined;
+  public async getField<T>(key: string): Promise<T | undefined> {
+    if (!this.initialized) {
+      await this.initialize();
     }
-    
-    await this.initialize();
     return this.data[key] as T;
   }
 
   public async getAllData(): Promise<JobPostingData> {
-    if (!this.isClient) {
-      console.warn('Attempting to get all data in server context');
-      return {};
+    if (!this.initialized) {
+      await this.initialize();
     }
-    
-    await this.initialize();
-    return { ...this.data };
+    return this.data as JobPostingData;
   }
 
-  public async clearData(): Promise<void> {
-    if (!this.isClient) {
-      console.warn('Attempting to clear data in server context');
-      return;
+  public async clear(): Promise<void> {
+    if (!this.initialized) {
+      await this.initialize();
     }
-    
     this.data = {};
-    try {
-      localStorage.removeItem('job_posting_draft');
-    } catch (error) {
-      console.error('Error clearing localStorage:', error);
+    if (this.isClient) {
+      sessionStorage.removeItem('job_posting_draft');
     }
-    this.initialized = false;
   }
 }
 
-export const getJobPostingStore = () => JobPostingStore.getInstance();
+export function getJobPostingStore(): JobPostingStore {
+  return JobPostingStore.getInstance();
+}

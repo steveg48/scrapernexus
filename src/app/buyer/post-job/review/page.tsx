@@ -2,232 +2,133 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Pencil, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { getJobPostingStore } from '@/lib/jobPostingStore';
-import Modal from '@/components/Modal';
-import { createBrowserClient } from '@/lib/supabase';
+import { ArrowLeft } from 'lucide-react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-interface Skill {
-  skill_id: number;
-  skill_name: string;
-  category_id: number;
-  category_name: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  skills: Skill[];
-}
-
-// Create Supabase client outside component
-const supabase = createBrowserClient();
+const supabase = createClientComponentClient();
 
 export default function ReviewPage() {
   const router = useRouter();
-  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
-  const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [expanded, setExpanded] = useState<string[]>([]);
+  const [jobData, setJobData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const [jobDetails, setJobDetails] = useState({
-    title: 'No title specified',
-    description: 'No description provided',
-    skills: [] as Skill[],
-    scope: '',
-    frequency: '',
-    location: 'Worldwide',
-    budget: '$0'
-  });
-
-  const [tempValues, setTempValues] = useState({
-    title: '',
-    description: '',
-    scope: '',
-    frequency: '',
-    location: '',
-    budget: {
-      type: 'fixed',
-      fixedRate: '0',
-      fromRate: '0',
-      toRate: '0'
-    }
-  });
-
-  const [editingField, setEditingField] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const initializePage = async () => {
+    async function loadJobData() {
       try {
         const store = getJobPostingStore();
         await store.initialize();
-        const storedData = await store.getAllData();
         
-        // Handle title
-        const title = storedData.title?.trim() || 'No title specified';
-        
-        // Handle description
-        const description = storedData.description?.trim() || 'No description provided';
-        
-        // Handle skills
-        const skills = Array.isArray(storedData.skills) ? storedData.skills : [];
-        
-        // Handle scope - check if it's in the old format
-        let scope = '';
-        if (typeof storedData.scope === 'object' && storedData.scope !== null) {
-          scope = storedData.scope.scope || '';
-        } else {
-          scope = storedData.project_scope || '';
-        }
-        
-        // Handle frequency - check if it's in the old format
-        let frequency = '';
-        if (typeof storedData.scope === 'object' && storedData.scope !== null) {
-          frequency = storedData.scope.duration || '';
-        } else {
-          frequency = storedData.frequency || '';
-        }
-        
-        // Handle location
-        const location = storedData.project_location === 'us' ? 'U.S. Only' : 'Worldwide';
-        
-        // Handle budget
-        const budget = formatBudget(storedData.budget);
+        // Load all required fields
+        const [title, description, budget, skills, frequency] = await Promise.all([
+          store.getField<string>('title'),
+          store.getField<string>('description'),
+          store.getField<any>('budget'),
+          store.getField<Array<{ skill_id: number; skill_name: string }>>('skills'),
+          store.getField<string>('frequency')
+        ]);
 
-        setJobDetails({
+        if (!title || !description || !budget || !skills) {
+          router.push('/buyer/post-job/title');
+          return;
+        }
+
+        setJobData({
           title,
           description,
+          budget,
           skills,
-          scope,
           frequency,
-          location,
-          budget
+          status: 'active'
         });
-
-        setTempValues({
-          title: storedData.title || '',
-          description: storedData.description || '',
-          scope,
-          frequency,
-          location: storedData.project_location || 'worldwide',
-          budget: storedData.budget || {
-            type: 'fixed',
-            fixedRate: '0',
-            fromRate: '0',
-            toRate: '0'
-          }
-        });
-
-        setIsLoading(false);
       } catch (error) {
-        console.error('Error initializing page:', error);
+        console.error('Error loading job data:', error);
+        setError('Failed to load job data');
+      } finally {
         setIsLoading(false);
       }
-    };
-
-    initializePage();
-  }, []);
-
-  const fetchSkills = async () => {
-    try {
-      setIsLoading(true);
-      const { data: skillsData, error } = await supabase
-        .from('skills_view')
-        .select('*');
-
-      if (error) throw error;
-
-      if (skillsData) {
-        const categoryList = skillsData.reduce((acc: Category[], skill) => {
-          const existingCategory = acc.find(cat => cat.name === skill.category_name);
-
-          if (existingCategory) {
-            existingCategory.skills.push({
-              skill_id: skill.skill_id,
-              skill_name: skill.skill_name,
-              category_id: skill.category_id,
-              category_name: skill.category_name
-            });
-          } else {
-            acc.push({
-              id: skill.category_id,
-              name: skill.category_name,
-              skills: [{
-                skill_id: skill.skill_id,
-                skill_name: skill.skill_name,
-                category_id: skill.category_id,
-                category_name: skill.category_name
-              }]
-            });
-          }
-
-          return acc;
-        }, []);
-
-        setCategories(categoryList);
-      }
-    } catch (error) {
-      console.error('Error fetching skills:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+    loadJobData();
+  }, [router]);
 
-  const handleSave = async (field: string) => {
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    
     try {
+      setIsSubmitting(true);
+      setError(null);
+
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        setError('You must be logged in to post a job');
+        return;
+      }
+
+      const now = new Date().toISOString();
+      
+      // Format the job data with only required fields
+      const finalJobData = {
+        title: jobData.title,
+        description: jobData.description,
+        buyer_id: user.id,
+        data_fields: {
+          skills: jobData.skills || []
+        },
+        budget_min: jobData.budget?.type === 'fixed' 
+          ? parseFloat(jobData.budget?.fixedRate || '0') 
+          : parseFloat(jobData.budget?.fromRate || '0'),
+        budget_max: jobData.budget?.type === 'fixed'
+          ? parseFloat(jobData.budget?.fixedRate || '0')
+          : parseFloat(jobData.budget?.toRate || '0'),
+        created_at: now,
+        status: 'active',
+        frequency: 'weekly' // Using 'weekly' as the default value since we saw it in the database
+      };
+
+      console.log('Submitting job data:', finalJobData);
+
+      // Insert the job posting
+      const { data: jobResult, error: jobError } = await supabase
+        .from('project_postings')
+        .insert(finalJobData)
+        .select('project_postings_id')
+        .single();
+
+      if (jobError) {
+        console.error('Error inserting job:', jobError);
+        throw jobError;
+      }
+
+      if (!jobResult) {
+        throw new Error('No job data returned after insertion');
+      }
+
+      console.log('Job inserted successfully:', jobResult);
+
+      // Clear the job posting store after successful submission
       const store = getJobPostingStore();
       await store.initialize();
+      await store.clear();
       
-      switch (field) {
-        case 'title':
-          await store.saveField('title', tempValues.title);
-          setJobDetails(prev => ({ ...prev, title: tempValues.title }));
-          break;
-        case 'description':
-          await store.saveField('description', tempValues.description);
-          setJobDetails(prev => ({ ...prev, description: tempValues.description }));
-          break;
-        case 'scope':
-          await store.saveField('project_scope', tempValues.scope);
-          setJobDetails(prev => ({ ...prev, scope: tempValues.scope }));
-          break;
-        case 'frequency':
-          await store.saveField('frequency', tempValues.frequency);
-          setJobDetails(prev => ({ ...prev, frequency: tempValues.frequency }));
-          break;
-        case 'location':
-          await store.saveField('project_location', tempValues.location);
-          setJobDetails(prev => ({ 
-            ...prev, 
-            location: tempValues.location === 'us' ? 'U.S. Only' : 'Worldwide' 
-          }));
-          break;
-        case 'budget':
-          await store.saveField('budget', tempValues.budget);
-          setJobDetails(prev => ({ ...prev, budget: formatBudget(tempValues.budget) }));
-          break;
+      // Show success message and redirect
+      router.push('/buyer/post-job/success');
+    } catch (err: any) {
+      console.error('Error submitting job post:', err);
+      if (err.message.includes('auth')) {
+        setError('Please log in to post a job');
+      } else if (err.message.includes('duplicate')) {
+        setError('A similar job post already exists');
+      } else {
+        setError(err.message || 'Failed to submit job post. Please try again.');
       }
-      setEditingField(null);
-    } catch (error) {
-      console.error('Error saving field:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const formatBudget = (budget: any) => {
-    if (!budget) return '$0';
-    
-    if (budget.type === 'fixed') {
-      const rate = parseFloat(budget.fixedRate || '0');
-      return `$${rate.toLocaleString()}`;
-    } else if (budget.type === 'hourly') {
-      const from = parseFloat(budget.fromRate || '0');
-      const to = parseFloat(budget.toRate || '0');
-      return `$${from.toLocaleString()} - $${to.toLocaleString()}/hr`;
-    }
-    
-    return '$0';
   };
 
   if (isLoading) {
@@ -241,654 +142,190 @@ export default function ReviewPage() {
     );
   }
 
-  const handleStartEdit = (field: string) => {
-    if (field === 'skills') {
-      setIsSkillsModalOpen(true);
-      fetchSkills();
-      return;
-    }
-    
-    if (field === 'budget') {
-      const currentBudget = getJobPostingStore().getField('budget');
-      setTempValues(prev => ({
-        ...prev,
-        budget: currentBudget || { 
-          type: 'fixed', 
-          fixedRate: '0',
-          fromRate: '0',
-          toRate: '0'
-        }
-      }));
-    } else if (field === 'scope' || field === 'frequency') {
-      const currentScope = getJobPostingStore().getField('scope');
-      const currentFrequency = getJobPostingStore().getField('frequency');
-      setTempValues(prev => ({
-        ...prev,
-        scope: currentScope || '',
-        frequency: currentFrequency || ''
-      }));
-    } else {
-      setTempValues(prev => ({
-        ...prev,
-        [field]: jobDetails[field as keyof typeof jobDetails]
-      }));
-    }
-    
-    setEditingField(field);
-  };
-
-  const handleSaveSkills = () => {
-    getJobPostingStore().saveField('skills', jobDetails.skills);
-    setIsSkillsModalOpen(false);
-  };
-
-  const toggleCategory = (categoryName: string) => {
-    setExpanded(prev =>
-      prev.includes(categoryName)
-        ? prev.filter(name => name !== categoryName)
-        : [...prev, categoryName]
-    );
-  };
-
-  const toggleSkill = (skill: Skill) => {
-    setJobDetails(prev => ({
-      ...prev,
-      skills: prev.skills.some(s => s.skill_id === skill.skill_id)
-        ? prev.skills.filter(s => s.skill_id !== skill.skill_id)
-        : [...prev.skills, skill]
-    }));
-  };
-
-  const handleFinalize = () => {
-    router.push('/buyer/post-job/feature');
-  };
-
-  const handleEditSection = (section: string) => {
-    const routes: { [key: string]: string } = {
-      title: '/buyer/post-job/title',
-      description: '/buyer/post-job/description',
-      skills: '/buyer/post-job/skills',
-      scope: '/buyer/post-job/scope',
-      budget: '/buyer/post-job/budget'
-    };
-    
-    if (routes[section]) {
-      router.push(`${routes[section]}?from=review`);
-    }
-  };
-
-  return (
-    <div>
-      <Navigation />
+  if (!jobData) {
+    return (
       <div className="min-h-screen bg-white">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-semibold text-gray-900">Job details</h1>
+        <Navigation />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-4">
+              No job data found
+            </h1>
+            <p className="text-gray-600 mb-8">
+              Please start from the beginning to create a new job post.
+            </p>
             <button
-              onClick={handleFinalize}
-              className="px-6 py-2 bg-custom-green hover:bg-custom-green/90 text-white rounded-lg font-medium"
+              onClick={() => router.push('/buyer/post-job/title')}
+              className="px-6 py-2 text-sm font-medium rounded-md bg-custom-green text-white hover:bg-custom-green/90"
             >
-              Next: Finalize Job Post
+              Start New Job Post
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Job Details Sections */}
-          <div className="space-y-8">
-            {/* Title Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
+  return (
+    <div className="min-h-screen bg-white">
+      <Navigation />
+
+      {/* Progress indicator */}
+      <div className="border-b">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="py-4">
+            <span className="text-gray-500">5/5 • Job post</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-semibold text-gray-900">Review your job post</h1>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className={`px-6 py-2 text-sm font-medium rounded-md ${
+              isSubmitting
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-custom-green text-white hover:bg-custom-green/90'
+            }`}
+          >
+            {isSubmitting ? 'Posting...' : 'Post Job'}
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex justify-between items-start">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Title</h3>
-                {editingField === 'title' ? (
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      value={tempValues.title}
-                      onChange={(e) => setTempValues({ ...tempValues, title: e.target.value })}
-                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                      autoFocus
-                    />
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => setEditingField(null)}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handleSave('title')}
-                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Title</h2>
+                <p className="text-gray-600">{jobData.title}</p>
+              </div>
+              <button 
+                onClick={() => router.push('/buyer/post-job/title')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex justify-between items-start">
+              <div className="flex-grow">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Description</h2>
+                <p className="text-gray-600 whitespace-pre-wrap">{jobData.description}</p>
+              </div>
+              <button 
+                onClick={() => router.push('/buyer/post-job/description')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex justify-between items-start">
+              <div className="flex-grow">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Budget</h2>
+                {jobData.budget.type === 'hourly' ? (
+                  <p className="text-gray-600">
+                    ${jobData.budget.fromRate} - ${jobData.budget.toRate} /hour
+                  </p>
                 ) : (
-                  <p className="text-gray-600">{jobDetails.title}</p>
+                  <p className="text-gray-600">
+                    Fixed price: ${jobData.budget.fixedRate}
+                  </p>
                 )}
               </div>
               <button 
-                onClick={() => handleStartEdit('title')}
+                onClick={() => router.push('/buyer/post-job/budget')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
               </button>
             </div>
+          </div>
 
-            {/* Description Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex justify-between items-start">
               <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Description</h3>
-                {editingField === 'description' ? (
-                  <div className="space-y-4">
-                    <textarea
-                      value={tempValues.description}
-                      onChange={(e) => setTempValues({ ...tempValues, description: e.target.value })}
-                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                      rows={6}
-                      autoFocus
-                    />
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => setEditingField(null)}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handleSave('description')}
-                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-600 whitespace-pre-wrap">{jobDetails.description}</p>
-                )}
-              </div>
-              <button
-                onClick={() => handleStartEdit('description')}
-                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Skills Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div>
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Skills</h3>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Required Skills</h2>
                 <div className="flex flex-wrap gap-2">
-                  {jobDetails.skills.map((skill) => (
+                  {jobData.skills.map((skill: any) => (
                     <span
                       key={skill.skill_id}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-[#a9effc] text-gray-800"
+                      className="px-3 py-1 rounded-full text-sm font-medium bg-custom-green/10 text-custom-green"
                     >
                       {skill.skill_name}
                     </span>
                   ))}
                 </div>
               </div>
-              <button
-                onClick={() => handleStartEdit('skills')}
-                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Scope Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Scope</h3>
-                <p className="text-gray-600">
-                  {jobDetails.scope || 'Not specified'}
-                </p>
-              </div>
               <button 
-                onClick={() => setIsScopeModalOpen(true)}
+                onClick={() => router.push('/buyer/post-job/skills')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
               </button>
             </div>
-
-            {/* Frequency Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Frequency</h3>
-                <p className="text-gray-600">
-                  {jobDetails.frequency || 'Not specified'}
-                </p>
-              </div>
-              <button 
-                onClick={() => setIsScopeModalOpen(true)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Location Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Location preferences</h3>
-                {editingField === 'location' ? (
-                  <div className="space-y-4">
-                    <select
-                      value={tempValues.location}
-                      onChange={(e) => setTempValues({ ...tempValues, location: e.target.value })}
-                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                      autoFocus
-                    >
-                      <option value="worldwide">Worldwide</option>
-                      <option value="us">U.S. Only</option>
-                    </select>
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => setEditingField(null)}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handleSave('location')}
-                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-600">{jobDetails.location}</p>
-                )}
-              </div>
-              <button 
-                onClick={() => handleStartEdit('location')}
-                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Budget Section */}
-            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-              <div className="flex-grow">
-                <h3 className="text-base font-bold text-[#9ea4ba] mb-2">Budget</h3>
-                {editingField === 'budget' ? (
-                  <div className="space-y-4">
-                    <select
-                      value={tempValues.budget?.type || 'fixed'}
-                      onChange={(e) => setTempValues({ 
-                        ...tempValues, 
-                        budget: { 
-                          ...tempValues.budget,
-                          type: e.target.value 
-                        } 
-                      })}
-                      className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                    >
-                      <option value="fixed">Fixed price</option>
-                      <option value="hourly">Hourly rate</option>
-                    </select>
-                    {tempValues.budget?.type === 'fixed' ? (
-                      <input
-                        type="number"
-                        value={tempValues.budget.fixedRate || ''}
-                        onChange={(e) => setTempValues({
-                          ...tempValues,
-                          budget: {
-                            ...tempValues.budget,
-                            fixedRate: e.target.value
-                          }
-                        })}
-                        placeholder="Enter fixed price"
-                        className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                      />
-                    ) : (
-                      <div className="flex gap-4">
-                        <input
-                          type="number"
-                          value={tempValues.budget?.fromRate || ''}
-                          onChange={(e) => setTempValues({
-                            ...tempValues,
-                            budget: {
-                              ...tempValues.budget,
-                              fromRate: e.target.value
-                            }
-                          })}
-                          placeholder="From rate"
-                          className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                        />
-                        <input
-                          type="number"
-                          value={tempValues.budget?.toRate || ''}
-                          onChange={(e) => setTempValues({
-                            ...tempValues,
-                            budget: {
-                              ...tempValues.budget,
-                              toRate: e.target.value
-                            }
-                          })}
-                          placeholder="To rate"
-                          className="w-full p-2 border rounded focus:border-custom-green focus:ring-1 focus:ring-custom-green"
-                        />
-                      </div>
-                    )}
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => setEditingField(null)}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handleSave('budget')}
-                        className="px-3 py-1 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-600">{jobDetails.budget}</p>
-                )}
-              </div>
-              <button 
-                onClick={() => handleStartEdit('budget')}
-                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
           </div>
 
-          {/* Back and Next Buttons */}
-          <div className="mt-8 flex justify-between items-center">
-            <button
-              onClick={() => router.back()}
-              className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-            <button
-              onClick={handleFinalize}
-              className="px-6 py-2 bg-custom-green hover:bg-custom-green/90 text-white rounded-lg font-medium"
-            >
-              Next: Finalize Job Post
-            </button>
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex justify-between items-start">
+              <div className="flex-grow">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Frequency</h2>
+                <p className="text-gray-600">{jobData.frequency}</p>
+              </div>
+              <button 
+                onClick={() => router.push('/buyer/post-job/frequency')}
+                className="p-1.5 text-gray-400 hover:text-gray-600 border border-[#039625] rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+              </button>
+            </div>
           </div>
+        </div>
+
+        <div className="flex justify-between items-center mt-8 pt-6 border-t">
+          <button
+            onClick={() => router.push('/buyer/post-job/skills')}
+            className="inline-flex items-center text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className={`px-6 py-2 text-sm font-medium rounded-md ${
+              isSubmitting
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-custom-green text-white hover:bg-custom-green/90'
+            }`}
+          >
+            {isSubmitting ? 'Posting...' : 'Post Job'}
+          </button>
         </div>
       </div>
-
-      {/* Skills Modal */}
-      <Modal
-        isOpen={isSkillsModalOpen}
-        onClose={() => setIsSkillsModalOpen(false)}
-        title="What are the main skills required for your project?"
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 gap-8">
-            <div>
-              <p className="text-sm text-gray-500 mb-6">
-                For the best results, add 3-5 skills
-              </p>
-
-              <div className="space-y-6">
-                <div className="border rounded-lg p-4">
-                  <h2 className="text-base font-medium text-gray-900 mb-3">
-                    Selected skills ({jobDetails.skills.length}/10)
-                  </h2>
-                  <div className="flex flex-wrap gap-2 min-h-[40px]">
-                    {jobDetails.skills && jobDetails.skills.length > 0 ? (
-                      jobDetails.skills.map((skill) => (
-                        <div 
-                          key={`selected-${skill.skill_id}`}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-                        >
-                          {skill.skill_name}
-                          <button
-                            onClick={() => toggleSkill(skill)}
-                            className="ml-2 text-blue-600 hover:text-blue-800"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-sm">No skills selected yet</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-0 divide-y divide-gray-200">
-                  {isLoading ? (
-                    <div className="text-center py-4">Loading skills...</div>
-                  ) : (
-                    categories.map((category) => (
-                      <div key={category.id}>
-                        <button
-                          type="button"
-                          onClick={() => toggleCategory(category.name)}
-                          className="w-full px-4 py-3 flex justify-between items-center hover:bg-gray-50"
-                        >
-                          <span className="font-medium text-gray-900">{category.name}</span>
-                          {expanded.includes(category.name) ? (
-                            <ChevronUp className="h-5 w-5 text-gray-500" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-500" />
-                          )}
-                        </button>
-                        
-                        {expanded.includes(category.name) && (
-                          <div className="px-4 py-3 bg-white">
-                            <div className="flex flex-wrap gap-2">
-                              {category.skills
-                                .filter(skill => !jobDetails.skills.find(s => s.skill_id === skill.skill_id))
-                                .map((skill) => (
-                                  <button
-                                    key={skill.skill_id}
-                                    type="button"
-                                    onClick={() => toggleSkill(skill)}
-                                    className="inline-flex items-center px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-700 hover:border-gray-400"
-                                  >
-                                    {skill.skill_name}
-                                    <Plus className="ml-1 h-4 w-4" />
-                                  </button>
-                                ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-6 mt-8 border-t">
-            <button
-              onClick={() => setIsSkillsModalOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveSkills}
-              className={`px-6 py-2.5 rounded-lg font-medium ${
-                jobDetails.skills.length > 0
-                  ? 'bg-[#14a800] hover:bg-[#14a800]/90 text-white'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
-              disabled={jobDetails.skills.length === 0}
-            >
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Scope Modal */}
-      {isScopeModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Select Scope and Frequency</h2>
-                <button
-                  onClick={() => setIsScopeModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Scope Options */}
-              <div className="space-y-4 mb-6">
-                <label className="block">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="scope"
-                      value="Large"
-                      checked={tempValues.scope === 'Large'}
-                      onChange={(e) => setTempValues({
-                        ...tempValues,
-                        scope: e.target.value
-                      })}
-                      className="h-4 w-4 text-custom-green"
-                    />
-                    <span className="ml-3 text-base font-medium text-gray-900">Large</span>
-                  </div>
-                  <p className="mt-1 ml-7 text-gray-600">
-                    Longer term or complex initiatives (ex. develop and execute a brand strategy (i.e., graphics, positioning))
-                  </p>
-                </label>
-
-                <label className="block">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="scope"
-                      value="Medium"
-                      checked={tempValues.scope === 'Medium'}
-                      onChange={(e) => setTempValues({
-                        ...tempValues,
-                        scope: e.target.value
-                      })}
-                      className="h-4 w-4 text-custom-green"
-                    />
-                    <span className="ml-3 text-base font-medium text-gray-900">Medium</span>
-                  </div>
-                  <p className="mt-1 ml-7 text-gray-600">
-                    Well-defined projects (ex. design business rebrand package (i.e., logos, icons))
-                  </p>
-                </label>
-
-                <label className="block">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      name="scope"
-                      value="Small"
-                      checked={tempValues.scope === 'Small'}
-                      onChange={(e) => setTempValues({
-                        ...tempValues,
-                        scope: e.target.value
-                      })}
-                      className="h-4 w-4 text-custom-green"
-                    />
-                    <span className="ml-3 text-base font-medium text-gray-900">Small</span>
-                  </div>
-                  <p className="mt-1 ml-7 text-gray-600">
-                    Quick and straightforward tasks (ex. create logo for a new product)
-                  </p>
-                </label>
-              </div>
-
-              {/* Frequency Section */}
-              <div className="mb-6">
-                <h3 className="text-base font-medium text-gray-900 mb-4">How often will you need this work done?</h3>
-                <div className="space-y-4">
-                  <label className="block">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="frequency"
-                        value="one-time"
-                        checked={tempValues.frequency === 'one-time'}
-                        onChange={(e) => setTempValues({
-                          ...tempValues,
-                          frequency: e.target.value
-                        })}
-                        className="h-4 w-4 text-custom-green"
-                      />
-                      <span className="ml-3 text-base text-gray-900">One-time</span>
-                    </div>
-                  </label>
-
-                  <label className="block">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="frequency"
-                        value="weekly"
-                        checked={tempValues.frequency === 'weekly'}
-                        onChange={(e) => setTempValues({
-                          ...tempValues,
-                          frequency: e.target.value
-                        })}
-                        className="h-4 w-4 text-custom-green"
-                      />
-                      <span className="ml-3 text-base text-gray-900">Weekly</span>
-                    </div>
-                  </label>
-
-                  <label className="block">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="frequency"
-                        value="monthly"
-                        checked={tempValues.frequency === 'monthly'}
-                        onChange={(e) => setTempValues({
-                          ...tempValues,
-                          frequency: e.target.value
-                        })}
-                        className="h-4 w-4 text-custom-green"
-                      />
-                      <span className="ml-3 text-base text-gray-900">Monthly</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setIsScopeModalOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    handleSave('scope');
-                    handleSave('frequency');
-                    setIsScopeModalOpen(false);
-                  }}
-                  className="px-4 py-2 text-sm bg-custom-green text-white rounded hover:bg-custom-green/90"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

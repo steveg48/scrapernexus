@@ -53,7 +53,7 @@ export default function PostJobTitle() {
         const store = getJobPostingStore();
         await store.initialize();
         await store.saveField('title', title.trim());
-        router.push('/buyer/post-job/scope');
+        router.push('/buyer/post-job/description');
       } catch (error) {
         console.error('Error saving title:', error);
       }
@@ -80,7 +80,7 @@ export default function PostJobTitle() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-4">
             <div className="flex items-center space-x-2">
-              <span className="text-gray-500 text-sm">1/6</span>
+              <span className="text-gray-500 text-sm">1/5</span>
               <span className="text-gray-900">Job post</span>
             </div>
           </div>

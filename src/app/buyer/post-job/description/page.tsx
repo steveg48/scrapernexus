@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Paperclip } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { getJobPostingStore } from '@/lib/jobPostingStore';
+import { ArrowLeft } from 'lucide-react';
 
 export default function JobDescriptionPage() {
   const router = useRouter();
@@ -32,12 +32,12 @@ export default function JobDescriptionPage() {
 
   const handleNext = async () => {
     const trimmedDescription = description?.trim();
-    if (trimmedDescription) {
+    if (trimmedDescription && trimmedDescription.length >= 50) {
       try {
         const store = getJobPostingStore();
         await store.initialize();
         await store.saveField('description', trimmedDescription);
-        router.push('/buyer/post-job/review');
+        router.push('/buyer/post-job/budget');
       } catch (error) {
         console.error('Error saving description:', error);
       }
@@ -62,106 +62,56 @@ export default function JobDescriptionPage() {
         <div className="max-w-6xl mx-auto px-4">
           {/* Progress indicator */}
           <div className="mb-8 text-gray-500">
-            6/6 • Job post
+            2/5 • Job post
           </div>
 
           <div className="grid grid-cols-2 gap-12 relative">
             {/* Left Column */}
             <div>
-              <h1 className="text-4xl font-semibold text-gray-900 mb-6">
-                Start the conversation.
+              <h1 className="text-2xl font-semibold text-gray-900 mb-4">
+                Describe your project
               </h1>
-
-              <div className="mb-8">
-                <h2 className="text-lg text-gray-900 mb-4">
-                  Talent are looking for:
-                </h2>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-2"></div>
-                    <span className="text-gray-600">Clear expectations about your task or deliverables</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-2"></div>
-                    <span className="text-gray-600">The skills required for your work</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-2"></div>
-                    <span className="text-gray-600">Good communication</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-900 mt-2"></div>
-                    <span className="text-gray-600">Details about how you or your team like to work</span>
-                  </li>
-                </ul>
-              </div>
+              <p className="text-gray-600">
+                This helps us understand your needs and match you with the right talent.
+                Be as detailed as possible about what you're looking to achieve.
+              </p>
             </div>
 
             {/* Right Column */}
             <div>
-              <h2 className="text-xl text-gray-900 mb-4">
-                Describe what you need
-              </h2>
-
               <div className="space-y-6">
                 <div>
                   <textarea
-                    placeholder="Already have a description? Paste it here!"
+                    placeholder="Example: I need a Python script that can scrape product data from multiple e-commerce websites. The script should be able to extract product names, prices, descriptions, and availability status. Data should be saved in a structured format (CSV/JSON)."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full h-64 p-4 border border-gray-200 rounded-lg focus:ring-custom-green focus:border-custom-green resize-none"
                   />
-                  <div className="flex justify-between items-center text-sm mt-2">
-                    {description.length > 0 && description.length < 50 && (
-                      <div className="flex items-start gap-2 bg-[#fff8e5] text-[#6b4e02] p-3 rounded-md w-full">
-                        <span className="text-[#f1a817]">⚠</span>
-                        Your description looks a little short. Add details like your project milestones and a bit about your team.
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right text-sm text-gray-500 mt-2">
-                    {50000 - description.length} characters left
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-gray-900 mb-2">Need help?</h3>
-                  <a
-                    href="#"
-                    className="text-custom-green hover:text-custom-green/90"
-                  >
-                    See examples of effective descriptions
-                  </a>
-                </div>
-
-                <div>
-                  <button
-                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    <Paperclip className="h-4 w-4" />
-                    Attach file
-                  </button>
-                  <div className="text-sm text-gray-500 mt-1">
-                    Max file size: 100MB
-                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Minimum 50 characters ({description.length}/50)
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Navigation buttons row */}
-          <div className="flex justify-between items-center mt-8 max-w-6xl mx-auto px-4">
+          {/* Navigation buttons */}
+          <div className="flex justify-between items-center mt-8">
             <button
-              onClick={() => router.back()}
-              className="flex items-center text-gray-600 hover:text-gray-900 gap-2"
+              onClick={() => router.push('/buyer/post-job/title')}
+              className="inline-flex items-center text-gray-600 hover:text-gray-900"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </button>
             <button
               onClick={handleNext}
-              disabled={!description?.trim()}
-              className="px-6 py-3 bg-custom-green text-white rounded-lg hover:bg-custom-green/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!description?.trim() || description.trim().length < 50}
+              className={`px-6 py-2 text-sm font-medium rounded-md ${
+                description?.trim() && description.trim().length >= 50
+                  ? 'bg-custom-green text-white hover:bg-custom-green/90'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
             >
               Next
             </button>

@@ -14,10 +14,10 @@ export default function SuccessPage() {
       setShowIcon(true);
     }, 300);
 
-    // Redirect after 4 seconds
+    // Redirect after 3 seconds
     const redirectTimer = setTimeout(() => {
-      router.push('/buyer/suggested');
-    }, 4000);
+      router.push('/buyer/dashboard');
+    }, 3000);
 
     return () => {
       clearTimeout(iconTimer);
@@ -29,13 +29,13 @@ export default function SuccessPage() {
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="text-center">
         <div className={`h-16 mb-8 transition-opacity duration-500 ${showIcon ? 'opacity-100' : 'opacity-0'}`}>
-          <CheckCircle className="h-20 w-20 text-custom-green mx-auto" />
+          <CheckCircle className="h-20 w-20 text-green-500 mx-auto" />
         </div>
         <h1 className="text-4xl font-semibold text-gray-900 mb-4 animate-fade-in">
-          Congratulations!
+          Job Posted Successfully!
         </h1>
         <p className="text-xl text-gray-600 animate-fade-in">
-          Your job has successfully been posted
+          Your job has been posted. Redirecting to dashboard...
         </p>
       </div>
     </div>
