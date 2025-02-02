@@ -36,9 +36,11 @@ export default async function DashboardPage() {
           data_fields,
           frequency,
           project_skills (
+            project_id,
             skill_id,
             skills (
-              skill_name
+              id,
+              name
             )
           )
         `)
@@ -46,32 +48,51 @@ export default async function DashboardPage() {
         .order('created_at', { ascending: false }),
     ])
 
-    console.log('Jobs result:', JSON.stringify(jobsResult, null, 2));
+    if (jobsResult.error) {
+      console.error('Error fetching jobs:', jobsResult.error)
+      throw new Error(jobsResult.error.message)
+    }
+
+    if (profileResult.error) {
+      console.error('Error fetching profile:', profileResult.error)
+      // Don't throw here, just use email as display name
+    }
 
     return (
-      <>
-        <DashboardClient
-          initialProfile={profileResult.data || { display_name: session.user.email }}
-          initialJobs={
-            jobsResult.data?.map((job) => ({
-              id: job.project_postings_id,
-              title: job.title || 'Untitled Project',
-              description: job.description || '',
-              created_at: job.created_at,
-              status: job.status || 'open',
-              data_fields: job.data_fields || {},
-              frequency: job.frequency || 'one_time',
-              skills: job.project_skills?.map((ps: any) => ({
-                skill_id: ps.skill_id,
-                name: ps.skills?.skill_name || 'Unknown Skill'
-              })) || []
+      <DashboardClient
+        initialProfile={profileResult.data || { display_name: session.user.email }}
+        initialJobs={
+          jobsResult.data?.map((job) => ({
+            id: job.project_postings_id,
+            title: job.title || 'Untitled Project',
+            description: job.description || '',
+            created_at: job.created_at,
+            status: job.status || 'open',
+            data_fields: job.data_fields || {},
+            frequency: job.frequency || 'one_time',
+            skills: job.project_skills?.map((ps: any) => ({
+              skill_id: ps.skill_id,
+              name: ps.skills?.name || 'Unknown Skill'
             })) || []
-          }
-        />
-      </>
+          })) || []
+        }
+      />
     )
   } catch (error) {
     console.error('Dashboard error:', error)
-    return <div>Error loading dashboard. Please try again.</div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+              Something went wrong
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              We're having trouble loading your dashboard. Please try refreshing the page.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 }

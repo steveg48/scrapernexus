@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import ProfileImage from '@/components/ProfileImage';
-import supabaseClient from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { useOnlineStatus } from '@/contexts/OnlineStatusContext';
 
@@ -35,10 +35,9 @@ export default function Navigation() {
     setIsClient(true);
     // Fetch user type from profiles table
     const fetchUserType = async () => {
-      const client = supabaseClient;
-      const { data: { session } } = await client.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const { data: profile } = await client
+        const { data: profile } = await supabase
           .from('profiles')
           .select('member_type')
           .eq('id', session.user.id)
@@ -106,9 +105,8 @@ export default function Navigation() {
       setShowNotifications(false);
       setShowProfileMenu(false);
 
-      const client = supabaseClient;
-      if (client) {
-        await client.auth.signOut();
+      if (supabase) {
+        await supabase.auth.signOut();
         router.push('/auth');
         router.refresh();
       }

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import supabaseClient from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 
 interface OnlineStatusContextType {
   isOnline: boolean;
@@ -15,7 +15,7 @@ export function OnlineStatusProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const updateLastSeen = async () => {
-      const client = supabaseClient;
+      const client = supabase;
       const { data: { session } } = await client.auth.getSession();
       
       if (session) {

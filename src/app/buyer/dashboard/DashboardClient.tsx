@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getBrowserClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/contexts/AuthContext';
 import JobsList from './JobsList';
 import Link from 'next/link';
 
@@ -13,6 +14,10 @@ interface Job {
   status: string;
   data_fields: Record<string, any>;
   frequency: string;
+  skills?: {
+    skill_id: string;
+    name: string;
+  }[];
 }
 
 interface Profile {
@@ -27,12 +32,12 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ initialProfile, initialJobs }: DashboardClientProps) {
+  const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 5;
-  const supabase = getBrowserClient();
 
   // Calculate pagination values
   const indexOfLastJob = currentPage * jobsPerPage;
@@ -40,8 +45,73 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
   const currentJobs = jobs.slice(indexOfFirstJob, indexOfLastJob);
   const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
+  // Fetch jobs when user changes
+  useEffect(() => {
+    const fetchJobs = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        setError(null); // Clear any previous errors
+        const { data, error: jobsError } = await supabase
+          .from('project_postings')
+          .select(`
+            project_postings_id,
+            title,
+            description,
+            created_at,
+            status,
+            data_fields,
+            frequency,
+            project_skills (
+              project_id,
+              skill_id,
+              skills (
+                id,
+                name
+              )
+            )
+          `)
+          .eq('buyer_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (jobsError) {
+          console.error('Error fetching jobs:', jobsError);
+          setError('Unable to load your jobs. Please try refreshing the page.');
+          return;
+        }
+
+        if (data) {
+          const formattedJobs = data.map(job => ({
+            id: job.project_postings_id,
+            title: job.title || 'Untitled Project',
+            description: job.description || '',
+            created_at: job.created_at,
+            status: job.status || 'open',
+            data_fields: job.data_fields || {},
+            frequency: job.frequency || 'one_time',
+            skills: job.project_skills?.map((ps: any) => ({
+              skill_id: ps.skill_id,
+              name: ps.skills?.name || 'Unknown Skill'
+            })) || []
+          }));
+          setJobs(formattedJobs);
+        }
+      } catch (error) {
+        console.error('Error in fetchJobs:', error);
+        setError('Something went wrong. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, [user]);
+
   // Subscribe to realtime updates
   useEffect(() => {
+    if (!user) return;
+
     const channel = supabase
       .channel('project_postings_changes')
       .on(
@@ -50,29 +120,61 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
           event: '*',
           schema: 'public',
           table: 'project_postings',
+          filter: `buyer_id=eq.${user.id}`
         },
-        async (payload) => {
-          // Refresh the jobs list when changes occur
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: updatedJobs } = await supabase
-              .from('project_postings')
-              .select('*')
-              .eq('buyer_id', user.id)
-              .order('created_at', { ascending: false });
+        () => {
+          // When a change occurs, fetch the latest data
+          const fetchLatestJobs = async () => {
+            try {
+              const { data, error: jobsError } = await supabase
+                .from('project_postings')
+                .select(`
+                  project_postings_id,
+                  title,
+                  description,
+                  created_at,
+                  status,
+                  data_fields,
+                  frequency,
+                  project_skills (
+                    project_id,
+                    skill_id,
+                    skills (
+                      id,
+                      name
+                    )
+                  )
+                `)
+                .eq('buyer_id', user.id)
+                .order('created_at', { ascending: false });
 
-            if (updatedJobs) {
-              setJobs(updatedJobs.map(job => ({
-                id: job.project_postings_id,
-                title: job.title || 'Untitled Project',
-                description: job.description || '',
-                created_at: job.created_at,
-                status: job.status || 'open',
-                data_fields: job.data_fields || {},
-                frequency: job.frequency || 'one_time',
-              })));
+              if (jobsError) {
+                console.error('Error fetching latest jobs:', jobsError);
+                return;
+              }
+
+              if (data) {
+                const formattedJobs = data.map(job => ({
+                  id: job.project_postings_id,
+                  title: job.title || 'Untitled Project',
+                  description: job.description || '',
+                  created_at: job.created_at,
+                  status: job.status || 'open',
+                  data_fields: job.data_fields || {},
+                  frequency: job.frequency || 'one_time',
+                  skills: job.project_skills?.map((ps: any) => ({
+                    skill_id: ps.skill_id,
+                    name: ps.skills?.name || 'Unknown Skill'
+                  })) || []
+                }));
+                setJobs(formattedJobs);
+              }
+            } catch (error) {
+              console.error('Error in realtime update:', error);
             }
-          }
+          };
+
+          fetchLatestJobs();
         }
       )
       .subscribe();
@@ -80,80 +182,56 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
-
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-  };
+  }, [user]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="px-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Hi, {initialProfile.display_name.split(' ')[0]}
-                </h1>
-              </div>
-              <Link href="/buyer/post-job" className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                Post a Job
-              </Link>
-            </div>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-semibold">Your Dashboard</h1>
+        {jobs.length > 0 && (
+          <Link
+            href="/buyer/post-job"
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+          >
+            Post a New Job
+          </Link>
+        )}
+      </div>
 
-          {error && (
-            <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-md">
-              {error}
-            </div>
-          )}
-
-          <div className="mt-8">
-            {currentJobs.length > 0 && (
-              <div className="mt-4">
-                <h2 className="text-xl font-semibold text-gray-900 pl-4">Overview</h2>
-              </div>
-            )}
-            <JobsList jobs={currentJobs} loading={loading} />
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-8 mb-8">
-                <div className="flex justify-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-1 border rounded-md text-sm ${
-                        pageNum === currentPage
-                          ? 'bg-blue-50 border-blue-500 text-blue-600'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+      {error && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-800">
+            {error}
+          </p>
         </div>
-      </main>
+      )}
+
+      <div className="bg-white rounded-lg shadow-sm">
+        <JobsList jobs={currentJobs} loading={loading} />
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-4 space-x-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded-md disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="px-3 py-1">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded-md disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
