@@ -102,7 +102,7 @@ export async function POST(request: Request) {
                     data_fields: projectData.data_fields,
                     project_id: undefined // Let Supabase generate this
                 })
-                .select('project_postings_id')
+                .select('project_id')
                 .single()
         );
 
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        if (!projectPosting || !projectPosting.project_postings_id) {
+        if (!projectPosting || !projectPosting.project_id) {
             console.error('Project posting created but no ID returned');
             return NextResponse.json({ 
                 error: 'Failed to create project',
@@ -123,19 +123,19 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        console.log('Project created with ID:', projectPosting.project_postings_id);
+        console.log('Project created with ID:', projectPosting.project_id);
         console.log('Adding skills:', projectData.skill_ids);
 
         // Then add skills one by one using direct insert to project_skills
         if (projectData.skill_ids && projectData.skill_ids.length > 0) {
             for (const skillId of projectData.skill_ids) {
                 try {
-                    console.log(`Adding skill ${skillId} to project ${projectPosting.project_postings_id}`);
+                    console.log(`Adding skill ${skillId} to project ${projectPosting.project_id}`);
                     const { error: skillError } = await retryOperation(
                         () => supabase
                             .from('project_skills')
                             .insert({
-                                project_postings_id: projectPosting.project_postings_id,
+                                project_id: projectPosting.project_id,
                                 skill_id: skillId
                             })
                     );
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
                         await supabase
                             .from('project_postings')
                             .delete()
-                            .eq('project_postings_id', projectPosting.project_postings_id);
+                            .eq('project_id', projectPosting.project_id);
                         return NextResponse.json({ 
                             error: 'Failed to add project skills',
                             details: skillError.message,
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
                     await supabase
                         .from('project_postings')
                         .delete()
-                        .eq('project_postings_id', projectPosting.project_postings_id);
+                        .eq('project_id', projectPosting.project_id);
                     return NextResponse.json({ 
                         error: 'Failed to add project skills',
                         details: error instanceof Error ? error.message : 'Unknown error',
