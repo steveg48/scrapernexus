@@ -20,7 +20,6 @@ export default function SignUpPage() {
   const [message, setMessage] = useState('')
   const [userType, setUserType] = useState<'buyer' | 'seller'>('buyer')
   const router = useRouter()
-
   const supabase = createClientComponentClient()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +61,7 @@ export default function SignUpPage() {
           emailRedirectTo: `${location.origin}/auth/callback`
         }
       })
-Xy
+
       if (authError) {
         console.error('Signup error:', authError)
         setMessage(authError.message)
