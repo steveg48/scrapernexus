@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getBrowserClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseClient';
 import JobsList from './JobsList';
 import Link from 'next/link';
 
@@ -32,7 +32,6 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 5;
-  const supabase = getBrowserClient();
 
   // Calculate pagination values
   const indexOfLastJob = currentPage * jobsPerPage;
@@ -49,20 +48,36 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         {
           event: '*',
           schema: 'public',
-          table: 'project_postings',
+          table: 'project_postings'
         },
         async (payload) => {
-          // Refresh the jobs list when changes occur
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: updatedJobs } = await supabase
+          // Refresh jobs list when changes occur
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const { data: newJobs, error } = await supabase
               .from('project_postings')
-              .select('*')
-              .eq('buyer_id', user.id)
+              .select(`
+                project_postings_id,
+                title,
+                description,
+                created_at,
+                status,
+                data_fields,
+                frequency,
+                project_skills (
+                  project_posting_id,
+                  skill_id,
+                  skills (
+                    id,
+                    name
+                  )
+                )
+              `)
+              .eq('buyer_id', session.user.id)
               .order('created_at', { ascending: false });
 
-            if (updatedJobs) {
-              setJobs(updatedJobs.map(job => ({
+            if (!error && newJobs) {
+              setJobs(newJobs.map(job => ({
                 id: job.project_postings_id,
                 title: job.title || 'Untitled Project',
                 description: job.description || '',
@@ -70,6 +85,10 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
                 status: job.status || 'open',
                 data_fields: job.data_fields || {},
                 frequency: job.frequency || 'one_time',
+                skills: job.project_skills?.map((ps: any) => ({
+                  skill_id: ps.skill_id,
+                  name: ps.skills?.name || 'Unknown Skill'
+                })) || []
               })));
             }
           }
@@ -80,7 +99,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, []);
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
