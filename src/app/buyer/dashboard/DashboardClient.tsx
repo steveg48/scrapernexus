@@ -176,7 +176,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         <h1 className="text-2xl font-semibold">Your Dashboard</h1>
         <Link
           href="/buyer/post-job"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
         >
           Post a New Job
         </Link>
