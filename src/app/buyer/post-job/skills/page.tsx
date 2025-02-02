@@ -137,7 +137,7 @@ export default function PostJobSkills() {
         const store = getJobPostingStore();
         await store.initialize();
         await store.saveField('skills', selectedSkills);
-        router.push('/buyer/post-job/location');
+        router.push('/buyer/post-job/budget');
       } catch (error) {
         console.error('Error saving skills:', error);
       }
@@ -268,7 +268,7 @@ export default function PostJobSkills() {
               }`}
               disabled={selectedSkills.length === 0}
             >
-              Next: Location
+              Next: Budget
             </button>
           </div>
         </div>

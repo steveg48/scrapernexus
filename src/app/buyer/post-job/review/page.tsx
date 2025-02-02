@@ -309,7 +309,6 @@ export default function ReviewPage() {
       description: '/buyer/post-job/description',
       skills: '/buyer/post-job/skills',
       scope: '/buyer/post-job/scope',
-      location: '/buyer/post-job/location',
       budget: '/buyer/post-job/budget'
     };
     
