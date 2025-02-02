@@ -142,10 +142,10 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-8">
         {currentPosts.map((job) => (
           <Link href={`/buyer/jobs/${job.id}`} key={job.id}>
-            <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+            <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
               <div className="flex flex-col">
                 <div className="flex justify-between items-start">
                   <div>
