@@ -19,7 +19,7 @@ export default function SellerNavigation() {
   const pathname = usePathname();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
   const notificationsRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -63,6 +63,7 @@ export default function SellerNavigation() {
 
   const handleSignOut = async () => {
     try {
+      await signOut();
       setShowNotifications(false);
       setShowProfileMenu(false);
       router.push('/auth');
@@ -73,13 +74,13 @@ export default function SellerNavigation() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        notificationsRef.current && 
-        !notificationsRef.current.contains(event.target as Node) &&
-        profileMenuRef.current && 
-        !profileMenuRef.current.contains(event.target as Node)
-      ) {
+      // Check notifications menu
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
+      }
+      
+      // Check profile menu independently
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setShowProfileMenu(false);
       }
     };
@@ -90,7 +91,7 @@ export default function SellerNavigation() {
 
   return (
     <div className="bg-gray-50">
-      <nav className="bg-white border-b border-gray-200">
+      <nav className="bg-white border-b border-gray-200 relative z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Left side */}
@@ -105,36 +106,44 @@ export default function SellerNavigation() {
 
               {/* Nav Links */}
               <div className="ml-10 flex items-center space-x-8">
-                <Link
-                  href="/seller/jobs"
+                <button
+                  onClick={() => {
+                    router.push('/seller/jobs');
+                  }}
                   className={`text-[15px] text-gray-600 hover:text-[#14a800] font-medium ${pathname.startsWith('/seller/jobs') ? 'text-[#14a800]' : ''}`}
                 >
                   Find work
-                </Link>
+                </button>
 
-                <Link
-                  href="/seller/contracts"
+                <button
+                  onClick={() => {
+                    router.push('/seller/contracts');
+                  }}
                   className={`text-[15px] text-gray-600 hover:text-[#14a800] font-medium ${pathname.startsWith('/seller/contracts') ? 'text-[#14a800]' : ''}`}
                 >
                   Deliver work
-                </Link>
+                </button>
 
-                <Link
-                  href="/seller/finances"
+                <button
+                  onClick={() => {
+                    router.push('/seller/finances');
+                  }}
                   className={`text-[15px] text-gray-600 hover:text-[#14a800] font-medium ${pathname.startsWith('/seller/finances') ? 'text-[#14a800]' : ''}`}
                 >
                   Manage finances
-                </Link>
+                </button>
 
-                <Link
-                  href="/messages"
+                <button
+                  onClick={() => {
+                    router.push('/messages');
+                  }}
                   className="inline-flex items-center text-[15px] text-gray-600 hover:text-[#14a800] font-medium"
                 >
                   Messages
                   <span className="inline-flex items-center justify-center ml-1.5 bg-red-500 text-white text-xs rounded-full h-4 w-4">
                     1
                   </span>
-                </Link>
+                </button>
               </div>
             </div>
 
@@ -195,35 +204,44 @@ export default function SellerNavigation() {
               </div>
 
               {/* Profile */}
-              <div className="relative" ref={profileMenuRef}>
+              <div className="relative z-50" ref={profileMenuRef}>
                 <button
                   onClick={handleProfileMenuClick}
                   className="flex items-center space-x-2"
                 >
-                  <ProfileImage size="sm" isMenuIcon />
+                  <div className="relative">
+                    <img
+                      src="/images/default-avatar.svg"
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full"
+                    />
+                    {user && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+                    )}
+                  </div>
                   <ChevronDown className={`h-4 w-4 text-gray-500 transform transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                     <div className="py-1">
                       <Link
                         href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setShowProfileMenu(false)}
                       >
                         Profile
                       </Link>
                       <Link
                         href="/settings"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setShowProfileMenu(false)}
                       >
                         Settings
                       </Link>
                       <button
                         onClick={handleSignOut}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center pointer-events-auto"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         Sign out

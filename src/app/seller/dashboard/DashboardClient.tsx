@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft, Heart, ThumbsDown, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Bell, Search, ChevronRight, Crown, Award, UserCircle2, ChevronLeft, Heart, ThumbsDown, MapPin, LogOut, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NotificationPopup from '@/components/NotificationPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useOnlineStatus } from '@/contexts/OnlineStatusContext';
+import ProfileImage from '@/components/ProfileImage';
 
 interface Profile {
   id?: string;
@@ -89,6 +91,7 @@ export default function DashboardClient({
   console.log('Sample job skills:', jobPostings[0]?.skills);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [likedJobs, setLikedJobs] = useState<number[]>([]);
   const [dislikedJobs, setDislikedJobs] = useState<string[]>([]);
@@ -100,9 +103,25 @@ export default function DashboardClient({
   const [currentPagePosts, setCurrentPagePosts] = useState<JobPosting[]>([]);
   const [totalPages, setTotalPages] = useState(Math.ceil(jobPostings.length / 9));
   const postsPerPage = 5;
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const supabase = createClientComponentClient();
   const router = useRouter();
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { isOnline } = useOnlineStatus();
+
+  const handleSignOut = async () => {
+    try {
+      setShowProfileMenu(false);
+      const client = supabase;
+      if (client) {
+        await client.auth.signOut();
+        router.push('/auth');
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -241,6 +260,19 @@ export default function DashboardClient({
     const endIndex = startIndex + postsPerPage;
     setCurrentPagePosts(filteredJobs.slice(startIndex, endIndex));
   }, [jobPostings, dislikedJobs, currentPage, activeFilter, likedJobs]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleFavoriteClick = async (jobId: string) => {
     if (!user) {
@@ -480,6 +512,10 @@ export default function DashboardClient({
     setCurrentPage(pageNumber);
   };
 
+  const handleProfileMenuClick = () => {
+    setShowProfileMenu(!showProfileMenu);
+  };
+
   const renderJobList = () => {
     const jobsToShow = activeFilter === 'not_interested' ? 
       jobPostings.filter(job => dislikedJobs.includes(String(job.id))) : 
@@ -675,7 +711,7 @@ export default function DashboardClient({
                       activeFilter === 'not_interested' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-gray-600 hover:text-gray-900'
-                    } ${activeFilter === 'not_interested' ? '' : 'hover:bg-gray-50'} rounded-r-lg`}
+                    } ${activeFilter === 'not_interested' ? '' : 'hover:bg-gray-100'} rounded-r-lg`}
                     onClick={() => handleFilterClick('not_interested')}
                   >
                     Not Interested ({dislikedJobs.length})
@@ -693,7 +729,7 @@ export default function DashboardClient({
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
@@ -704,7 +740,7 @@ export default function DashboardClient({
                         className={`px-3 py-1 border rounded-md text-sm ${
                           currentPage === pageNum
                             ? 'bg-blue-600 text-white border-blue-600'
-                            : 'text-gray-600 hover:bg-gray-50'
+                            : 'text-gray-600 hover:bg-gray-100'
                         }`}
                       >
                         {pageNum}
@@ -713,7 +749,7 @@ export default function DashboardClient({
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
@@ -728,11 +764,13 @@ export default function DashboardClient({
             {/* Profile Section */}
             <div className="bg-white rounded-lg p-6 mb-6">
               <div className="flex items-center space-x-4">
-                <img
-                  src="/images/default-avatar.svg"
-                  alt="Profile"
-                  className="w-12 h-12 rounded-full"
-                />
+                <div className="relative">
+                  <img
+                    src="/images/default-avatar.svg"
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full"
+                  />
+                </div>
                 <div>
                   <h2 className="text-xl font-semibold">{initialProfile.display_name}</h2>
                   <p className="text-gray-600">Seller</p>
