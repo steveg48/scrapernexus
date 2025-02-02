@@ -37,6 +37,15 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 5;
+
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = jobs.slice(indexOfFirstPost, indexOfLastPost);
+  const totalPages = Math.ceil(jobs.length / postsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   // Fetch jobs when user changes
   useEffect(() => {
@@ -119,7 +128,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-semibold">Hi, {initialProfile.display_name}</h1>
+          <h1 className="text-2xl font-semibold">Hi, {initialProfile.display_name.split(' ')[0]}</h1>
           <p className="text-gray-600">Overview</p>
         </div>
         <Link href="/buyer/jobs/create" className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
@@ -134,7 +143,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
       )}
 
       <div className="space-y-4">
-        {jobs.slice(0, 5).map((job) => (
+        {currentPosts.map((job) => (
           <div key={job.id} className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex flex-col">
               <div className="flex justify-between items-start">
@@ -164,25 +173,44 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         ))}
       </div>
 
-      {jobs.length > 5 && (
-        <div className="flex justify-center mt-6">
-          <nav className="inline-flex rounded-md shadow-sm">
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-8">
+          <button
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded ${
+              currentPage === 1
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            Previous
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
             <button
-              className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50"
-              disabled={true}
+              key={number}
+              onClick={() => paginate(number)}
+              className={`px-3 py-1 rounded ${
+                currentPage === number
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             >
-              Previous
+              {number}
             </button>
-            <span className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-300">
-              Page 1 of {Math.ceil(jobs.length / 5)}
-            </span>
-            <button
-              className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50"
-              disabled={jobs.length <= 5}
-            >
-              Next
-            </button>
-          </nav>
+          ))}
+          <button
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded ${
+              currentPage === totalPages
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            Next
+          </button>
         </div>
       )}
     </div>
