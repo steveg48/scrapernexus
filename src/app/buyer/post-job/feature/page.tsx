@@ -112,7 +112,7 @@ export default function FeaturePage() {
       await Promise.all(skillPromises);
 
       await store.clearData();
-      router.push('/buyer/post-job/success');
+      router.push('/buyer/dashboard');
     } catch (error) {
       console.error('Error posting job:', error);
       setError(error instanceof Error ? error.message : 'Failed to post job');
