@@ -131,7 +131,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
                 data_fields,
                 frequency,
                 project_skills (
-                  project_posting_id,
+                  project_id,
                   skill_id,
                   skills (
                     id,

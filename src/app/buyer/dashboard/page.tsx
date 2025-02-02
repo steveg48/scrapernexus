@@ -36,7 +36,7 @@ export default async function DashboardPage() {
           data_fields,
           frequency,
           project_skills (
-            project_posting_id,
+            project_id,
             skill_id,
             skills (
               id,
