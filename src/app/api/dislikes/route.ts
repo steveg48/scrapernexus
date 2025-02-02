@@ -139,10 +139,10 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const project_id = searchParams.get('project_id');
+    const project_postings_id = searchParams.get('project_postings_id');
 
-    if (!project_id) {
-      return NextResponse.json({ error: 'Missing project_id' }, { 
+    if (!project_postings_id) {
+      return NextResponse.json({ error: 'Missing project_postings_id' }, { 
         status: 400,
         headers: corsHeaders()
       });
@@ -152,7 +152,7 @@ export async function DELETE(request: Request) {
       .from('seller_dislikes')
       .delete()
       .eq('seller_id', session.user.id)
-      .eq('project_postings_id', project_id);
+      .eq('project_postings_id', project_postings_id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { 

@@ -139,7 +139,7 @@ export default function DashboardClient({
           .select(`
             *,
             project_skills (
-              project_id,
+              project_postings_id,
               skill_id,
               skills (
                 id,
@@ -288,7 +288,7 @@ export default function DashboardClient({
 
       if (isCurrentlyLiked) {
         // Remove from favorites
-        const response = await fetch(`/api/favorites?project_id=${jobId}`, {
+        const response = await fetch(`/api/favorites?project_postings_id=${jobId}`, {
           method: 'DELETE',
           credentials: 'include'
         });

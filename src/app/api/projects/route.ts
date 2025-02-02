@@ -34,12 +34,6 @@ export async function POST(request: Request) {
         const cookieStore = cookies();
         const supabase = createServerComponentClient({ cookies: () => cookieStore });
         
-        // Get auth token from header
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
-            return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
-        }
-        
         // Get the current session with retry
         const { data: { session }, error: sessionError } = await retryOperation(
             () => supabase.auth.getSession()
@@ -48,12 +42,6 @@ export async function POST(request: Request) {
         if (sessionError || !session) {
             console.error('Session error:', sessionError);
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-        }
-
-        // Verify the token matches
-        const token = authHeader.split(' ')[1];
-        if (token !== session.access_token) {
-            return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 });
         }
 
         // Check if profile exists, if not create it
@@ -100,9 +88,9 @@ export async function POST(request: Request) {
                     project_scope: projectData.scope?.scope || projectData.project_scope || '',
                     project_type: projectData.project_type,
                     data_fields: projectData.data_fields,
-                    project_id: undefined // Let Supabase generate this
+                    project_postings_id: undefined // Let Supabase generate this
                 })
-                .select('project_id')
+                .select('project_postings_id')
                 .single()
         );
 
@@ -115,7 +103,7 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        if (!projectPosting || !projectPosting.project_id) {
+        if (!projectPosting || !projectPosting.project_postings_id) {
             console.error('Project posting created but no ID returned');
             return NextResponse.json({ 
                 error: 'Failed to create project',
@@ -123,19 +111,19 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        console.log('Project created with ID:', projectPosting.project_id);
+        console.log('Project created with ID:', projectPosting.project_postings_id);
         console.log('Adding skills:', projectData.skill_ids);
 
         // Then add skills one by one using direct insert to project_skills
         if (projectData.skill_ids && projectData.skill_ids.length > 0) {
             for (const skillId of projectData.skill_ids) {
                 try {
-                    console.log(`Adding skill ${skillId} to project ${projectPosting.project_id}`);
+                    console.log(`Adding skill ${skillId} to project ${projectPosting.project_postings_id}`);
                     const { error: skillError } = await retryOperation(
                         () => supabase
                             .from('project_skills')
                             .insert({
-                                project_id: projectPosting.project_id,
+                                project_postings_id: projectPosting.project_postings_id,
                                 skill_id: skillId
                             })
                     );
@@ -146,7 +134,7 @@ export async function POST(request: Request) {
                         await supabase
                             .from('project_postings')
                             .delete()
-                            .eq('project_id', projectPosting.project_id);
+                            .eq('project_postings_id', projectPosting.project_postings_id);
                         return NextResponse.json({ 
                             error: 'Failed to add project skills',
                             details: skillError.message,
@@ -161,7 +149,7 @@ export async function POST(request: Request) {
                     await supabase
                         .from('project_postings')
                         .delete()
-                        .eq('project_id', projectPosting.project_id);
+                        .eq('project_postings_id', projectPosting.project_postings_id);
                     return NextResponse.json({ 
                         error: 'Failed to add project skills',
                         details: error instanceof Error ? error.message : 'Unknown error',

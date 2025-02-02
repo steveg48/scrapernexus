@@ -28,7 +28,7 @@ export default async function DashboardPage() {
       supabase
         .from('project_postings')
         .select(`
-          project_id,
+          project_postings_id,
           title,
           description,
           created_at,
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
           data_fields,
           frequency,
           project_skills (
-            project_id,
+            project_postings_id,
             skill_id,
             skills (
               id,
@@ -56,7 +56,7 @@ export default async function DashboardPage() {
           initialProfile={profileResult.data || { display_name: session.user.email }}
           initialJobs={
             jobsResult.data?.map((job) => ({
-              id: job.project_id,
+              id: job.project_postings_id,
               title: job.title || 'Untitled Project',
               description: job.description || '',
               created_at: job.created_at,

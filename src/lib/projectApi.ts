@@ -62,7 +62,7 @@ export async function insertProjectWithSkills(projectData: ProjectPostingData): 
         const { data: project, error: projectError } = await supabase
             .from('project_postings')
             .insert({
-                project_postings_id: baseProject.project_id,
+                project_postings_id: baseProject.project_postings_id,
                 buyer_id: projectData.buyer_id,
                 title: projectData.title,
                 description: projectData.description,
@@ -92,7 +92,7 @@ export async function insertProjectWithSkills(projectData: ProjectPostingData): 
         // Then, insert the project skills
         if (projectData.skill_ids.length > 0) {
             const projectSkills = projectData.skill_ids.map(skill_id => ({
-                project_id: baseProject.project_id,
+                project_postings_id: baseProject.project_postings_id,
                 skill_id
             }));
 
@@ -106,7 +106,7 @@ export async function insertProjectWithSkills(projectData: ProjectPostingData): 
             }
         }
 
-        return baseProject.project_id;
+        return baseProject.project_postings_id;
 
     } catch (error) {
         console.error('Error in insertProjectWithSkills:', error);

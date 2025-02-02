@@ -38,7 +38,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           )
         )
       `)
-      .eq('project_id', projectId)
+      .eq('project_postings_id', projectId)
       .single()
 
     if (jobError) {
@@ -52,7 +52,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     // Transform job data
     const transformedJob = {
-      id: job.project_id.toString(),
+      id: job.project_postings_id.toString(),
       title: job.title || 'Untitled',
       description: job.description || '',
       created_at: job.created_at,

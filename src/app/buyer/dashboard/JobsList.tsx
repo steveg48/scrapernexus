@@ -203,7 +203,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
         .select(`
           *,
           project_skills (
-            project_id,
+            project_postings_id,
             skill_id,
             skills (
               id,

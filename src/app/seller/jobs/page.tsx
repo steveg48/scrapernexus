@@ -35,12 +35,12 @@ export default async function JobsPage() {
       throw skillsResponse.error;
     }
 
-    // Create a map of project_id to skills
+    // Create a map of project_postings_id to skills
     const skillsMap = skillsResponse.data.reduce((acc: { [key: string]: string[] }, skill: any) => {
-      if (!acc[skill.project_id]) {
-        acc[skill.project_id] = [];
+      if (!acc[skill.project_postings_id]) {
+        acc[skill.project_postings_id] = [];
       }
-      acc[skill.project_id].push(skill.skill_name);
+      acc[skill.project_postings_id].push(skill.skill_name);
       return acc;
     }, {});
 
