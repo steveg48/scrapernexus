@@ -144,32 +144,34 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
 
       <div className="space-y-4">
         {currentPosts.map((job) => (
-          <div key={job.id} className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex flex-col">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">Created {formatDate(job.created_at)}</p>
+          <Link href={`/buyer/jobs/${job.id}`} key={job.id}>
+            <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+              <div className="flex flex-col">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
+                    <p className="text-sm text-gray-500 mt-1">Created {formatDate(job.created_at)}</p>
+                  </div>
+                  <span className="text-sm text-gray-500 capitalize">{job.status}</span>
                 </div>
-                <span className="text-sm text-gray-500 capitalize">{job.status}</span>
-              </div>
-              <div className="mt-2">
-                <p className="text-sm text-gray-600 truncate">{job.description}</p>
-              </div>
-              {job.skills && job.skills.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {job.skills.map((skill) => (
-                    <span
-                      key={skill.skill_id}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
-                    >
-                      {skill.name}
-                    </span>
-                  ))}
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600 truncate">{job.description}</p>
                 </div>
-              )}
+                {job.skills && job.skills.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-3">
+                    {job.skills.map((skill) => (
+                      <span
+                        key={skill.skill_id}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
+                      >
+                        {skill.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
