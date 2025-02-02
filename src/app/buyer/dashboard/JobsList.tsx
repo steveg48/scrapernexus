@@ -4,7 +4,7 @@ import { File } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/utils/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 
 interface Job {
   id: number;
