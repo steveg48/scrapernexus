@@ -1,5 +1,3 @@
-'use client';
-
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -16,8 +14,6 @@ export default async function DashboardPage() {
     const {
       data: { session },
     } = await supabase.auth.getSession()
-
-    console.log('Session:', JSON.stringify(session, null, 2));
 
     if (!session) {
       redirect('/auth/login')
@@ -40,7 +36,7 @@ export default async function DashboardPage() {
           data_fields,
           frequency,
           project_skills (
-            project_posting_id,
+            project_postings_id,
             skill_id,
             skills (
               id,
@@ -52,39 +48,27 @@ export default async function DashboardPage() {
         .order('created_at', { ascending: false }),
     ])
 
-    console.log('Profile result:', JSON.stringify(profileResult, null, 2));
     console.log('Jobs result:', JSON.stringify(jobsResult, null, 2));
-
-    if (profileResult.error) {
-      console.error('Profile error:', profileResult.error);
-      throw profileResult.error;
-    }
-
-    if (jobsResult.error) {
-      console.error('Jobs error:', jobsResult.error);
-      throw jobsResult.error;
-    }
-
-    const profile = profileResult.data;
-    const jobs = jobsResult.data || [];
 
     return (
       <>
         <DashboardClient
-          initialProfile={profile || { display_name: session.user.email }}
-          initialJobs={jobs.map((job) => ({
-            id: job.project_postings_id,
-            title: job.title || 'Untitled Project',
-            description: job.description || '',
-            created_at: job.created_at,
-            status: job.status || 'open',
-            data_fields: job.data_fields || {},
-            frequency: job.frequency || 'one_time',
-            skills: job.project_skills?.map((ps: any) => ({
-              skill_id: ps.skill_id,
-              name: ps.skills?.name || 'Unknown Skill'
+          initialProfile={profileResult.data || { display_name: session.user.email }}
+          initialJobs={
+            jobsResult.data?.map((job) => ({
+              id: job.project_postings_id,
+              title: job.title || 'Untitled Project',
+              description: job.description || '',
+              created_at: job.created_at,
+              status: job.status || 'open',
+              data_fields: job.data_fields || {},
+              frequency: job.frequency || 'one_time',
+              skills: job.project_skills?.map((ps: any) => ({
+                skill_id: ps.skill_id,
+                name: ps.skills?.name || 'Unknown Skill'
+              })) || []
             })) || []
-          }))}
+          }
         />
       </>
     )
