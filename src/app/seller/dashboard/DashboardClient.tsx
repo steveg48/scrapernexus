@@ -536,30 +536,17 @@ export default function DashboardClient({
             >
               <div className="absolute right-6 top-6 flex items-center gap-4">
                 {activeFilter !== 'not_interested' && (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFavoriteClick(job.id);
-                      }}
-                      className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      <Heart className={`w-5 h-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
-                    </button>
-                    {!likedJobs.includes(Number(job.id)) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDislikeClick(job.id);
-                        }}
-                        className={`p-2 rounded-full transition-colors ${
-                          dislikedJobs.includes(String(job.id)) ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-gray-500'
-                        }`}
-                      >
-                        <ThumbsDown className={`h-6 w-6 ${dislikedJobs.includes(String(job.id)) ? 'fill-current' : ''}`} />
-                      </button>
-                    )}
-                  </>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDislikeClick(job.id);
+                    }}
+                    className={`p-2 rounded-full transition-colors ${
+                      dislikedJobs.includes(String(job.id)) ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-gray-500'
+                    }`}
+                  >
+                    <ThumbsDown className={`h-6 w-6 ${dislikedJobs.includes(String(job.id)) ? 'fill-current' : ''}`} />
+                  </button>
                 )}
               </div>
 
@@ -587,11 +574,11 @@ export default function DashboardClient({
                 <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
 
                 {/* Skills */}
-                <div className="flex flex-wrap items-center gap-2 mt-auto">
-                  {job.skills?.map((skill) => (
+                <div className="grid grid-cols-5 gap-2 mt-auto">
+                  {job.skills?.slice(0, 5).map((skill) => (
                     <span 
                       key={`${job.id}-${skill}`}
-                      className="px-3 py-1.5 bg-[#b5ebfa] text-blue-800 rounded-full text-sm"
+                      className="px-3 py-1.5 bg-[#b5ebfa] text-blue-800 rounded-full text-sm text-center"
                     >
                       {skill}
                     </span>
