@@ -15,6 +15,7 @@ export default function CreateJobPage() {
     }
     // Save title to localStorage for now
     localStorage.setItem('jobTitle', title)
+    // Use absolute path for navigation
     router.push('/buyer/jobs/create/details')
   }
 
