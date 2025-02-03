@@ -158,14 +158,8 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
                 <div className="px-4 py-5 sm:p-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      job.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : job.status === 'in_progress'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {job.status.replace('_', ' ').charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')}
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Active
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-gray-500">{job.description.length > 100 ? `${job.description.substring(0, 100)}...` : job.description}</p>
