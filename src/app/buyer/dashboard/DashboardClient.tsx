@@ -85,7 +85,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
               title: job.title || 'Untitled Project',
               description: job.description || '',
               created_at: job.created_at,
-              status: job.status || 'open',
+              status: job.status || 'active',
               data_fields: job.data_fields || {},
               frequency: job.frequency || 'one_time',
               skills: job.project_skills?.map((ps: any) => ({
@@ -175,7 +175,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
                         </h3>
                         <div className="ml-2 flex-shrink-0 flex">
                           <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            job.status === 'open'
+                            job.status === 'active'
                               ? 'bg-green-100 text-green-800'
                               : job.status === 'in_progress'
                               ? 'bg-yellow-100 text-yellow-800'
