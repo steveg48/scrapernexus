@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { getJobPostingStore } from '@/lib/jobPostingStore'
 
@@ -12,26 +10,32 @@ export default function TitlePage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function loadTitle() {
+    let mounted = true;
+
+    async function initializeStore() {
       try {
         const store = getJobPostingStore();
         await store.initialize();
         await store.clear(); // Clear any existing data when starting a new job post
-        setTitle('');
+        
+        if (mounted) {
+          setTitle('');
+          setIsLoading(false);
+        }
       } catch (error) {
-        console.error('Error loading title:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error initializing store:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     }
-    loadTitle();
-  }, []);
 
-  const mockUser = {
-    display_name: "John Doe",
-    avatar_url: "/avatar-placeholder.png",
-    hasPendingOffers: true
-  }
+    initializeStore();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const exampleTitles = [
     "Scrape Product Data from E-commerce Websites with Price and Availability Tracking",
