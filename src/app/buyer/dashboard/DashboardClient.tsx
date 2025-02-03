@@ -98,54 +98,52 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
   }, [user]);
 
   return (
-    <div className="py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900">Your Dashboard</h2>
-          <Link
-            href="/buyer/post-job"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Post a Job
-          </Link>
-        </div>
-
-        {loading && (
-          <div className="text-center">
-            <div className="animate-pulse">Loading...</div>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!loading && !error && jobs.length === 0 && (
-          <div className="text-center py-12">
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No jobs posted</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by posting your first job.</p>
-            <div className="mt-6">
-              <Link
-                href="/buyer/post-job"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Post a Job
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {!loading && !error && jobs.length > 0 && (
-          <JobsList jobs={jobs} loading={loading} />
-        )}
+    <div className="py-10 flex flex-col items-center">
+      {/* Header */}
+      <div className="w-[800px] flex justify-between items-center mb-8">
+        <h2 className="text-2xl font-semibold text-gray-900">Dashboard</h2>
+        <Link
+          href="/buyer/post-job"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-custom-green hover:bg-hover-green focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-green"
+        >
+          Post a Job
+        </Link>
       </div>
+
+      {loading && (
+        <div className="text-center">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!loading && !error && jobs.length === 0 && (
+        <div className="text-center py-12">
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No jobs posted</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by posting your first job.</p>
+          <div className="mt-6">
+            <Link
+              href="/buyer/post-job"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-custom-green hover:bg-hover-green focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-green"
+            >
+              Post a Job
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!loading && !error && jobs.length > 0 && (
+        <JobsList jobs={jobs} loading={loading} />
+      )}
     </div>
   );
 }

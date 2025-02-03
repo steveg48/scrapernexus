@@ -58,12 +58,12 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 flex flex-col items-center">
       {currentJobs.map((job) => (
         <Link 
           href={`/buyer/jobs/${job.id}`}
           key={job.id} 
-          className="block bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+          className="block w-[800px] bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all"
         >
           <div className="flex flex-col">
             <div className="flex justify-between items-start">
@@ -97,19 +97,29 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50"
           >
-            Previous
+            PREV
           </button>
-          <span className="px-3 py-1">
-            Page {currentPage} of {totalPages}
-          </span>
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`px-4 py-2 border rounded ${
+                currentPage === i + 1
+                ? 'border-gray-400 bg-gray-100 text-gray-700 font-medium'
+                : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50"
           >
-            Next
+            NEXT
           </button>
         </div>
       )}

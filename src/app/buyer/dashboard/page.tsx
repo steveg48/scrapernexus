@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     ])
 
     return (
-      <>
+      <div style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}>
         <DashboardClient
           initialProfile={profileResult.data || { display_name: session.user.email }}
           initialJobs={
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
             })) || []
           }
         />
-      </>
+      </div>
     )
   } catch (error) {
     console.error('Dashboard error:', error)

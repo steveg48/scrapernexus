@@ -9,9 +9,9 @@ export default function BuyerLayout({
   return (
     <SupabaseProvider>
       <Navigation />
-      <main>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem' }}>
         {children}
-      </main>
+      </div>
     </SupabaseProvider>
   )
 }

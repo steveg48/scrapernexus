@@ -8,7 +8,11 @@ export default function SellerLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <SellerNavigation />
-      <main>{children}</main>
+      <main>
+        <div className="max-w-5xl mx-auto px-4">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
