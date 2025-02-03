@@ -132,7 +132,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
             <h1 className="text-2xl font-semibold mb-4">Hi, {initialProfile.display_name.split(' ')[0]}</h1>
             <p className="text-gray-600">Overview</p>
           </div>
-          <Link href="/buyer/jobs/create" className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+          <Link href="/buyer/post-job" className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
             Post a Job
           </Link>
         </div>
