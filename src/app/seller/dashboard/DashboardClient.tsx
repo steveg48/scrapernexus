@@ -229,13 +229,23 @@ export default function DashboardClient({
   }, [user?.id, jobPostings, postsPerPage]);
 
   useEffect(() => {
-    let filteredJobs = jobPostings.filter(job => !dislikedJobs.includes(String(job.id)));
+    let filteredJobs = [...jobPostings]; // Start with all jobs
     
     // Apply active filter
     if (activeFilter === 'us_only') {
       filteredJobs = filteredJobs.filter(job => job.project_location?.toLowerCase() === 'us only');
+      // Remove disliked jobs for US only filter
+      filteredJobs = filteredJobs.filter(job => !dislikedJobs.includes(String(job.id)));
     } else if (activeFilter === 'saved') {
       filteredJobs = filteredJobs.filter(job => likedJobs.includes(Number(job.id)));
+      // Remove disliked jobs for saved filter
+      filteredJobs = filteredJobs.filter(job => !dislikedJobs.includes(String(job.id)));
+    } else if (activeFilter === 'not_interested') {
+      // Show only disliked jobs
+      filteredJobs = filteredJobs.filter(job => dislikedJobs.includes(String(job.id)));
+    } else {
+      // For other filters (like 'be_first'), remove disliked jobs
+      filteredJobs = filteredJobs.filter(job => !dislikedJobs.includes(String(job.id)));
     }
     
     // Sort by newest first
@@ -255,7 +265,7 @@ export default function DashboardClient({
     const startIndex = (currentPage - 1) * postsPerPage;
     const endIndex = startIndex + postsPerPage;
     setCurrentPagePosts(filteredJobs.slice(startIndex, endIndex));
-  }, [jobPostings, dislikedJobs, currentPage, activeFilter, likedJobs]);
+  }, [activeFilter, jobPostings, dislikedJobs, likedJobs, currentPage, postsPerPage]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -512,168 +522,46 @@ export default function DashboardClient({
     setShowProfileMenu(!showProfileMenu);
   };
 
-  const renderJobList = () => {
-    const jobsToShow = activeFilter === 'not_interested' ? 
-      jobPostings.filter(job => dislikedJobs.includes(String(job.id))) : 
-      currentPagePosts;
-    
-    return (
-      <>
-        {jobsToShow.length === 0 ? (
-          <div className="border rounded-lg p-6 text-center text-gray-600 max-w-4xl mx-auto">
-            No job postings yet. Click &quot;Post a job&quot; to create your first job posting.
-          </div>
-        ) : (
-          jobsToShow.map((job) => (
-            <div 
-              key={job.id} 
-              className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow relative h-[320px] flex flex-col"
-              onClick={() => handleJobClick(job.id)}
-            >
-              <div className="absolute right-6 top-6 flex items-center gap-4">
-                {activeFilter !== 'not_interested' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDislikeClick(job.id);
-                    }}
-                    className={`p-2 rounded-full transition-colors ${
-                      dislikedJobs.includes(String(job.id)) ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-gray-500'
-                    }`}
-                  >
-                    <ThumbsDown className={`h-6 w-6 ${dislikedJobs.includes(String(job.id)) ? 'fill-current' : ''}`} />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex-1">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
-                  {job.project_location && (
-                    <div className="text-sm text-gray-500 mb-2">
-                      <MapPin className="h-4 w-4 inline-block mr-1" />
-                      {job.project_location}
-                    </div>
-                  )}
-                  <div className="text-sm font-medium text-gray-900 mb-4">
-                    {job.budget_min && job.budget_max ? (
-                      <>
-                        {formatBudget(job.budget_min)} - {formatBudget(job.budget_max)}
-                      </>
-                    ) : (
-                      formatBudget(job.budget_min || job.budget_max)
-                    )}
-                    <span className="text-xs text-gray-500 ml-2">{job.frequency}</span>
-                  </div>
-                </div>
-
-                <p className="text-gray-600 mb-8 line-clamp-1 min-h-[24px]">{job.description}</p>
-
-                {/* Skills */}
-                <div className="grid grid-cols-5 gap-2 mt-auto">
-                  {job.skills?.slice(0, 5).map((skill) => (
-                    <span 
-                      key={`${job.id}-${skill}`}
-                      className="px-3 py-1.5 bg-[#b5ebfa] text-blue-800 rounded-full text-sm text-center"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                <div>Posted {formatDate(job.created_at)}</div>
-                {activeFilter === 'not_interested' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRestoreJob(job.id);
-                    }}
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    Restore
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search Bar */}
-        <div className="relative mb-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="relative flex items-center">
-              <Search className="absolute left-3 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search for jobs"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
         <div className="grid grid-cols-12 gap-6">
           {/* Left Column */}
           <div className="col-span-8">
-            {/* Upgrade Profile Card */}
+            {/* Promotional Card */}
             <div 
-              className="rounded-lg p-6 mb-6 text-white"
-              style={{ backgroundColor: carouselItems[currentSlide].bgColor }}
+              className="bg-[#1d4354] rounded-lg p-6 mb-6 text-white relative overflow-hidden"
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">{carouselItems[currentSlide].title}</h2>
-                  <p className="mb-4 whitespace-pre-line">{carouselItems[currentSlide].description}</p>
+                  <h2 className="text-xl font-semibold mb-2">Freelancer Plus with new perks</h2>
+                  <p className="mb-4">100 monthly Connects and full access to\nUma, Upwork's Mindful AI.</p>
                   <button className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-100">
-                    {carouselItems[currentSlide].buttonText}
+                    Learn more
                   </button>
                 </div>
-                <div>
-                  {React.createElement(carouselItems[currentSlide].icon, {
-                    className: "h-24 w-24 text-white/80"
-                  })}
-                </div>
+                <Crown className="h-24 w-24 text-white/80" />
               </div>
               <div className="flex justify-center space-x-2 mt-4">
-                {carouselItems.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentSlide(index)}
-                    className={`w-2 h-2 rounded-full ${
-                      index === currentSlide ? 'bg-white' : 'bg-white/50'
-                    }`}
-                  />
-                ))}
+                <button className="w-2 h-2 rounded-full bg-white" />
+                <button className="w-2 h-2 rounded-full bg-white/50" />
+                <button className="w-2 h-2 rounded-full bg-white/50" />
               </div>
             </div>
 
             {/* Jobs Section */}
             <div className="bg-white rounded-lg p-6">
-              <div className="mt-4">
-                {jobPostings.length > 0 && (
-                  <h2 className="text-lg font-semibold text-gray-900 pl-4">Overview</h2>
-                )}
-              </div>
-
+              <h2 className="text-lg font-medium mb-4">Jobs you might like</h2>
+              
+              {/* Filter Tabs */}
               <div className="flex items-center justify-between mb-4">
-                <div></div>
                 <div className="inline-flex rounded-lg border border-gray-200 bg-white">
                   <button 
                     className={`px-4 py-2 text-sm font-medium ${
                       activeFilter === 'be_first' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-gray-600 hover:text-gray-900'
-                    } ${activeFilter === 'be_first' ? '' : 'hover:bg-gray-50'} first:rounded-l-lg`}
+                    } first:rounded-l-lg`}
                     onClick={() => handleFilterClick('be_first')}
                   >
                     Be the 1st to apply
@@ -683,7 +571,7 @@ export default function DashboardClient({
                       activeFilter === 'us_only' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-gray-600 hover:text-gray-900'
-                    } ${activeFilter === 'us_only' ? '' : 'hover:bg-gray-50'}`}
+                    }`}
                     onClick={() => handleFilterClick('us_only')}
                   >
                     U.S. Only
@@ -693,7 +581,7 @@ export default function DashboardClient({
                       activeFilter === 'saved' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-gray-600 hover:text-gray-900'
-                    } ${activeFilter === 'saved' ? '' : 'hover:bg-gray-50'}`}
+                    }`}
                     onClick={() => handleFilterClick('saved')}
                   >
                     Saved Jobs ({savedJobsCount})
@@ -703,17 +591,92 @@ export default function DashboardClient({
                       activeFilter === 'not_interested' 
                         ? 'bg-blue-600 text-white' 
                         : 'text-gray-600 hover:text-gray-900'
-                    } ${activeFilter === 'not_interested' ? '' : 'hover:bg-gray-100'} rounded-r-lg`}
+                    } rounded-r-lg`}
                     onClick={() => handleFilterClick('not_interested')}
                   >
-                    Not Interested ({dislikedJobs.length})
+                    Not Interested ({notInterestedCount})
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-6 mb-6">
-                {renderJobList()}
+
+              {/* Job Cards */}
+              <div className="space-y-4">
+                {currentPagePosts.map((job) => (
+                  <div 
+                    key={job.id}
+                    className="border border-gray-200 rounded-lg p-6 hover:shadow-sm transition-shadow cursor-pointer"
+                    onClick={() => handleJobClick(job.id)}
+                  >
+                    <div className="flex justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          {job.project_location || 'Worldwide'}
+                          <span className="mx-2">•</span>
+                          Posted by Anonymous • {formatDate(job.created_at)}
+                        </div>
+                        <p className="mt-2 text-gray-600">{job.description}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {job.skills?.map((skill, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <div className="text-sm font-medium text-gray-900">
+                          {job.budget_min && job.budget_max 
+                            ? `$${job.budget_min} - $${job.budget_max}`
+                            : 'Budget not specified'}
+                          <span className="text-xs text-gray-500 block text-right">weekly</span>
+                        </div>
+                        <div className="mt-auto flex space-x-2">
+                          {activeFilter === 'not_interested' ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDislikeClick(job.id); // This will remove it from disliked jobs
+                              }}
+                              className="text-blue-600 hover:text-blue-800 text-sm"
+                            >
+                              Restore
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleFavoriteClick(job.id);
+                                }}
+                                className="text-gray-400 hover:text-red-500"
+                              >
+                                <Heart className={`h-5 w-5 ${likedJobs.includes(Number(job.id)) ? 'fill-red-500 text-red-500' : ''}`} />
+                              </button>
+                              {!likedJobs.includes(Number(job.id)) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDislikeClick(job.id);
+                                  }}
+                                  className="text-gray-400 hover:text-gray-600"
+                                >
+                                  <ThumbsDown className="h-5 w-5" />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              
+
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center mt-6">
@@ -721,7 +684,7 @@ export default function DashboardClient({
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
                     >
                       Previous
                     </button>
@@ -741,7 +704,7 @@ export default function DashboardClient({
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 border rounded-md text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
                     >
                       Next
                     </button>
@@ -756,51 +719,53 @@ export default function DashboardClient({
             {/* Profile Section */}
             <div className="bg-white rounded-lg p-6 mb-6">
               <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <img
-                    src="/images/default-avatar.svg"
-                    alt="Profile"
-                    className="w-12 h-12 rounded-full"
-                  />
-                </div>
+                <ProfileImage size="lg" />
                 <div>
-                  <h2 className="text-xl font-semibold">{initialProfile.display_name}</h2>
-                  <p className="text-gray-600">Seller</p>
+                  <h2 className="text-lg font-semibold">Steve</h2>
+                  <p className="text-sm text-gray-600">Seller</p>
                 </div>
               </div>
             </div>
 
-            {/* Additional Profile Sections */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span>Availability badge</span>
-                  <span className="text-gray-400">Off</span>
+            {/* Settings Menu */}
+            <div className="space-y-2">
+              <div className="bg-white rounded-lg">
+                <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
+                  <span className="text-gray-700">Availability badge</span>
+                  <div className="flex items-center">
+                    <span className="text-gray-400 mr-2">Off</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg">
+                <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
+                  <span className="text-gray-700">Boost your profile</span>
+                  <div className="flex items-center">
+                    <span className="text-gray-400 mr-2">Off</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg">
+                <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
+                  <span className="text-gray-700">Connects: 71</span>
                   <ChevronRight className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span>Boost your profile</span>
-                  <span className="text-gray-400">Off</span>
+
+              <div className="bg-white rounded-lg">
+                <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
+                  <span className="text-gray-700">Preferences</span>
                   <ChevronRight className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span>Connects: 71</span>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span>Preferences</span>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <span>Payments</span>
+
+              <div className="bg-white rounded-lg">
+                <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
+                  <span className="text-gray-700">Payments</span>
                   <ChevronRight className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
