@@ -29,10 +29,15 @@ class JobPostingStore {
   }
 
   public async initialize(): Promise<void> {
-    if (!this.isClient || this.initialized) return;
+    if (this.initialized) return;
+    
+    if (!this.isClient) {
+      this.initialized = true;
+      return;
+    }
     
     try {
-      const stored = sessionStorage.getItem('job_posting_draft');
+      const stored = window?.sessionStorage?.getItem('job_posting_draft');
       if (stored) {
         this.data = JSON.parse(stored);
       }
@@ -48,7 +53,7 @@ class JobPostingStore {
     if (!this.isClient) return;
     
     try {
-      sessionStorage.setItem('job_posting_draft', JSON.stringify(this.data));
+      window?.sessionStorage?.setItem('job_posting_draft', JSON.stringify(this.data));
     } catch (error) {
       console.error('Error saving to sessionStorage:', error);
     }
@@ -82,7 +87,7 @@ class JobPostingStore {
     }
     this.data = {};
     if (this.isClient) {
-      sessionStorage.removeItem('job_posting_draft');
+      window?.sessionStorage?.removeItem('job_posting_draft');
     }
   }
 }
