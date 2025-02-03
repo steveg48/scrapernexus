@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { getBrowserClient } from '@/lib/supabase';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface Job {
   id: number;
@@ -53,12 +53,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
       if (!user) return;
       
       try {
-        const supabase = getBrowserClient();
-        if (!supabase) {
-          console.error('Supabase client not initialized');
-          return;
-        }
-
+        const supabase = createClientComponentClient()
         setLoading(true);
         setError(null);
         const { data, error: jobsError } = await supabase
