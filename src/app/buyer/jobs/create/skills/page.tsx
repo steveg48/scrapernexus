@@ -134,13 +134,13 @@ export default function SkillsPage() {
 
           <div className="flex justify-between pt-4">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push('/buyer/post-job/details')}
               className="text-gray-600 hover:text-gray-900"
             >
               ← Back
             </button>
             <button
-              onClick={() => router.push('/buyer/jobs/create/budget')}
+              onClick={() => router.push('/buyer/post-job/budget')}
               className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
             >
               Continue
