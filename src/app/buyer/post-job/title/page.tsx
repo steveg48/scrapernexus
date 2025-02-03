@@ -16,10 +16,8 @@ export default function TitlePage() {
       try {
         const store = getJobPostingStore();
         await store.initialize();
-        const savedTitle = await store.getField<string>('title');
-        if (savedTitle) {
-          setTitle(savedTitle);
-        }
+        await store.clear(); // Clear any existing data when starting a new job post
+        setTitle('');
       } catch (error) {
         console.error('Error loading title:', error);
       } finally {
@@ -103,58 +101,45 @@ export default function TitlePage() {
               <input
                 type="text"
                 id="title"
+                name="title"
                 value={title}
                 onChange={handleTitleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your job post title"
-                minLength={6}
+                placeholder="e.g. Web Scraping Expert Needed for E-commerce Data Collection"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <div className="mt-2 space-y-2">
-                {title && title.length > 100 && (
-                  <div className="text-red-500 text-sm flex items-center gap-2">
-                    <span>⚠</span>
-                    Must be less than 100 characters
-                  </div>
-                )}
-                {title && title.trim().split(/\s+/).some(word => word.length > 50) && (
-                  <div className="text-red-500 text-sm flex items-center gap-2">
-                    <span>⚠</span>
-                    Please limit the length of the words to less than 50 characters each
-                  </div>
-                )}
-              </div>
-              <p className="mt-2 text-sm text-gray-500">Minimum 6 characters</p>
             </div>
 
-            {/* Example titles */}
             <div>
-              <h2 className="text-base font-medium text-gray-900 mb-3">Example titles</h2>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Example titles</h3>
               <ul className="space-y-3">
                 {exampleTitles.map((example, index) => (
-                  <li key={index} className="text-gray-600 text-sm">
+                  <li
+                    key={index}
+                    onClick={() => setTitle(example)}
+                    className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
+                  >
                     {example}
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Continue button */}
             <div className="pt-4">
               <button
-                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  title.trim().length >= 6
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-                disabled={title.trim().length < 6}
                 onClick={handleNext}
+                disabled={title.trim().length < 6}
+                className={`w-full px-4 py-2 rounded-lg text-white ${
+                  title.trim().length >= 6
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-300 cursor-not-allowed'
+                }`}
               >
-                Continue
+                Next: Description
               </button>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
