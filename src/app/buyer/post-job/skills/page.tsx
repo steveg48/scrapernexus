@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Navigation from '@/components/Navigation'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase';
@@ -166,7 +164,6 @@ export default function PostJobSkills() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <p>Loading skills...</p>
         </div>
@@ -176,7 +173,6 @@ export default function PostJobSkills() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
       <div className="border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-4">

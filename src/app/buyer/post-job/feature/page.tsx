@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText } from 'lucide-react';
-import Navigation from '@/components/Navigation';
 import { getJobPostingStore } from '@/lib/jobPostingStore';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
@@ -136,7 +134,6 @@ export default function FeaturePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
         <div className="flex items-center justify-center h-screen">
           <div className="animate-pulse">Loading...</div>
         </div>
@@ -146,7 +143,6 @@ export default function FeaturePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
       
       {/* Progress bar */}
       <div className="bg-white border-b border-gray-200">

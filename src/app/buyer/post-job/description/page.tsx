@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import { getJobPostingStore } from '@/lib/jobPostingStore';
 import { ArrowLeft } from 'lucide-react';
 
-export default function JobDescriptionPage() {
+export default function DescriptionPage() {
   const router = useRouter();
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +46,6 @@ export default function JobDescriptionPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
         <div className="flex items-center justify-center h-screen">
           <div className="animate-pulse">Loading...</div>
         </div>
@@ -57,7 +55,6 @@ export default function JobDescriptionPage() {
 
   return (
     <div>
-      <Navigation />
       <div className="min-h-screen bg-white py-8">
         <div className="max-w-6xl mx-auto px-4">
           {/* Progress indicator */}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import { getJobPostingStore } from '@/lib/jobPostingStore';
 import { ArrowLeft } from 'lucide-react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -134,7 +133,6 @@ export default function ReviewPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
         <div className="flex items-center justify-center h-screen">
           <div className="animate-pulse">Loading...</div>
         </div>
@@ -145,7 +143,6 @@ export default function ReviewPage() {
   if (!jobData) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-semibold text-gray-900 mb-4">
@@ -168,8 +165,6 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
-
       {/* Progress indicator */}
       <div className="border-b">
         <div className="max-w-6xl mx-auto px-4">

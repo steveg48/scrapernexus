@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import { getJobPostingStore } from '@/lib/jobPostingStore';
 import { ArrowLeft } from 'lucide-react';
 
@@ -76,7 +75,6 @@ export default function BudgetPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
         <div className="flex items-center justify-center h-screen">
           <div className="animate-pulse">Loading...</div>
         </div>
@@ -86,7 +84,6 @@ export default function BudgetPage() {
 
   return (
     <div>
-      <Navigation />
       <div className="min-h-screen bg-white py-8">
         <div className="max-w-6xl mx-auto px-4">
           {/* Progress indicator */}

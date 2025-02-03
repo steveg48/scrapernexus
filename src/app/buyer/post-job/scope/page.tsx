@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Navigation from '@/components/Navigation'
 import { useRouter } from 'next/navigation'
-import { Pencil } from 'lucide-react'
 import { getJobPostingStore } from '@/lib/jobPostingStore'
+import { Pencil } from 'lucide-react'
 import Link from 'next/link'
 
 export default function PostJobScope() {
@@ -54,7 +53,6 @@ export default function PostJobScope() {
   if (isLoading) {
     return (
       <div>
-        <Navigation />
         <div className="min-h-screen flex items-center justify-center">
           <div className="animate-pulse">Loading...</div>
         </div>
@@ -64,8 +62,6 @@ export default function PostJobScope() {
 
   return (
     <div>
-      <Navigation />
-
       {/* Progress indicator */}
       <div className="border-b">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

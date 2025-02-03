@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { getJobPostingStore } from '@/lib/jobPostingStore'
 
-export default function PostJobTitle() {
+export default function TitlePage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -63,7 +62,6 @@ export default function PostJobTitle() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
         <div className="flex items-center justify-center h-screen">
           <div className="animate-pulse">Loading...</div>
         </div>
@@ -73,8 +71,6 @@ export default function PostJobTitle() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
-
       {/* Progress bar */}
       <div className="border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
