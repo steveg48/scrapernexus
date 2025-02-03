@@ -106,21 +106,10 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
     fetchJobs();
   }, [user]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    });
-  };
-
   return (
     <div className="py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-semibold text-gray-900">Your Dashboard</h2>
           <Link
@@ -163,70 +152,49 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         )}
 
         {!loading && !error && jobs.length > 0 && (
-          <>
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <ul className="divide-y divide-gray-200">
-                {currentPosts.map((job) => (
-                  <li key={job.id}>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium text-gray-900 truncate">
-                          {job.title}
-                        </h3>
-                        <div className="ml-2 flex-shrink-0 flex">
-                          <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            job.status === 'active'
-                              ? 'bg-green-100 text-green-800'
-                              : job.status === 'in_progress'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {job.status.replace('_', ' ').charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="flex items-center text-sm text-gray-500">
-                            {job.description.length > 100
-                              ? `${job.description.substring(0, 100)}...`
-                              : job.description}
-                          </p>
-                        </div>
-                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                          <p>
-                            Posted{' '}
-                            {new Date(job.created_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      {job.skills && job.skills.length > 0 && (
-                        <div className="mt-2">
-                          <div className="flex flex-wrap gap-2">
-                            {job.skills.map((skill) => (
-                              <span
-                                key={skill.skill_id}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                              >
-                                {skill.name}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+          <div className="space-y-4">
+            {currentPosts.map((job) => (
+              <div key={job.id} className="bg-white shadow overflow-hidden rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      job.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : job.status === 'in_progress'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {job.status.replace('_', ' ').charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">{job.description.length > 100 ? `${job.description.substring(0, 100)}...` : job.description}</p>
+                  {job.skills && job.skills.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {job.skills.map((skill) => (
+                        <span
+                          key={skill.skill_id}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          {skill.name}
+                        </span>
+                      ))}
                     </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  )}
+                  <div className="mt-4 text-sm text-gray-500">
+                    Posted {new Date(job.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </div>
+                </div>
+              </div>
+            ))}
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center mt-4">
+              <div className="mt-4 flex justify-center">
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                   {Array.from({ length: totalPages }).map((_, index) => (
                     <button
@@ -244,7 +212,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
                 </nav>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
