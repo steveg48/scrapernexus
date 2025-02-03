@@ -7,6 +7,7 @@ export default function SkillsPage() {
   const router = useRouter()
   const [selectedSkills, setSelectedSkills] = useState(['JavaScript', 'Python', 'Ruby'])
   const [searchQuery, setSearchQuery] = useState('')
+  const [expandedCategory, setExpandedCategory] = useState('Programming Languages')
 
   const skillCategories = [
     {
@@ -60,6 +61,10 @@ export default function SkillsPage() {
     })
   }
 
+  const toggleCategory = (title: string) => {
+    setExpandedCategory(expandedCategory === title ? '' : title)
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-6">
@@ -71,11 +76,9 @@ export default function SkillsPage() {
           <h1 className="text-2xl font-semibold mb-2">What are the main skills<br />required for your work?</h1>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm mb-2">
-              Search or add up to 10 skills
-            </label>
+            <h2 className="text-sm mb-2">Search or add up to 10 skills</h2>
             <input
               type="text"
               value={searchQuery}
@@ -83,7 +86,7 @@ export default function SkillsPage() {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg"
               placeholder="Search skills..."
             />
-            <p className="text-sm text-gray-500 mt-1">For the best results, add 3-5 skills</p>
+            <p className="text-xs text-gray-500 mt-1">For the best results, add 3-5 skills</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -91,7 +94,7 @@ export default function SkillsPage() {
               <button
                 key={skill}
                 onClick={() => handleSkillClick(skill)}
-                className="px-3 py-1 bg-gray-200 rounded-full text-sm flex items-center gap-1"
+                className="px-3 py-1 bg-gray-100 rounded-full text-sm flex items-center gap-1 hover:bg-gray-200"
               >
                 {skill}
                 <span className="text-gray-500">×</span>
@@ -99,18 +102,37 @@ export default function SkillsPage() {
             ))}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 mt-4">
             {skillCategories.map(category => (
-              <div key={category.title}>
-                <div className="flex items-center justify-between cursor-pointer">
-                  <h3 className="text-sm font-medium">{category.title}</h3>
-                  <span className="text-gray-400">▼</span>
-                </div>
+              <div key={category.title} className="border-b border-gray-100 last:border-0">
+                <button
+                  onClick={() => toggleCategory(category.title)}
+                  className="w-full py-2 flex items-center justify-between text-sm hover:bg-gray-50"
+                >
+                  <span>{category.title}</span>
+                  <span className="text-gray-400 transform transition-transform duration-200" 
+                    style={{ transform: expandedCategory === category.title ? 'rotate(180deg)' : 'none' }}>
+                    ▼
+                  </span>
+                </button>
+                {expandedCategory === category.title && (
+                  <div className="py-2 grid grid-cols-2 gap-2">
+                    {category.skills.map(skill => (
+                      <button
+                        key={skill}
+                        onClick={() => handleSkillClick(skill)}
+                        className="text-left text-sm py-1 px-2 hover:bg-gray-50 rounded"
+                      >
+                        {skill}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
-          <div className="flex justify-between">
+          <div className="flex justify-between pt-4">
             <button
               onClick={() => router.back()}
               className="text-gray-600 hover:text-gray-900"
