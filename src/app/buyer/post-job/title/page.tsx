@@ -3,17 +3,27 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getJobPostingStore } from '@/lib/jobPostingStore'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function TitlePage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     let mounted = true;
 
-    async function initializeStore() {
+    async function checkAuthAndInitialize() {
       try {
+        // Check auth status
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          router.push('/auth/login')
+          return
+        }
+
+        // Initialize store
         const store = getJobPostingStore();
         await store.initialize();
         await store.clear(); // Clear any existing data when starting a new job post
@@ -23,19 +33,19 @@ export default function TitlePage() {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error initializing store:', error);
+        console.error('Error initializing:', error);
         if (mounted) {
           setIsLoading(false);
         }
       }
     }
 
-    initializeStore();
+    checkAuthAndInitialize();
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [router, supabase.auth]);
 
   const exampleTitles = [
     "Scrape Product Data from E-commerce Websites with Price and Availability Tracking",
