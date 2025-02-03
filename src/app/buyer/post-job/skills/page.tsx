@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase';
 import { getJobPostingStore } from '@/lib/jobPostingStore';
+import Link from 'next/link'; // Import the Link component from next/link
 
 // Debug: Log environment variables
 console.log('SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
