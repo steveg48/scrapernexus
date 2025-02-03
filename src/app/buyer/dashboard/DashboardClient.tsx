@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { getBrowserClient } from '@/lib/supabase';
 
 interface Job {
   id: number;
@@ -53,6 +53,12 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
       if (!user) return;
       
       try {
+        const supabase = getBrowserClient();
+        if (!supabase) {
+          console.error('Supabase client not initialized');
+          return;
+        }
+
         setLoading(true);
         setError(null);
         const { data, error: jobsError } = await supabase
@@ -65,8 +71,6 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
             status,
             data_fields,
             frequency,
-            budget_min,
-            budget_max,
             project_skills (
               skill_id,
               skills (
@@ -77,33 +81,28 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
           .eq('buyer_id', user.id)
           .order('created_at', { ascending: false });
 
-        if (jobsError) {
-          console.error('Error fetching jobs:', jobsError);
-          setError('Unable to load your jobs. Please try refreshing the page.');
-          return;
-        }
+        if (jobsError) throw jobsError;
 
         if (data) {
-          const formattedJobs = data.map(job => ({
-            id: job.project_postings_id,
-            title: job.title || 'Untitled Project',
-            description: job.description || '',
-            created_at: job.created_at,
-            status: job.status || 'active',
-            data_fields: job.data_fields || {},
-            frequency: job.frequency || 'weekly',
-            budget_min: job.budget_min,
-            budget_max: job.budget_max,
-            skills: job.project_skills?.map((ps: any) => ({
-              skill_id: ps.skill_id,
-              name: ps.skills?.skill_name || 'Unknown Skill'
-            })) || []
-          }));
-          setJobs(formattedJobs);
+          setJobs(
+            data.map((job) => ({
+              id: job.project_postings_id,
+              title: job.title || 'Untitled Project',
+              description: job.description || '',
+              created_at: job.created_at,
+              status: job.status || 'open',
+              data_fields: job.data_fields || {},
+              frequency: job.frequency || 'one_time',
+              skills: job.project_skills?.map((ps: any) => ({
+                skill_id: ps.skill_id,
+                name: ps.skills?.skill_name || 'Unknown Skill'
+              })) || []
+            }))
+          );
         }
-      } catch (error) {
-        console.error('Error in fetchJobs:', error);
-        setError('An error occurred while loading your jobs.');
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+        setError('Failed to fetch jobs. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -125,96 +124,132 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold mb-4">Hi, {initialProfile.display_name.split(' ')[0]}</h1>
-            <p className="text-gray-600">Overview</p>
-          </div>
-          <Link href="/buyer/post-job" className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+    <div className="py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900">Your Dashboard</h2>
+          <Link
+            href="/buyer/post-job"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
             Post a Job
           </Link>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-4 mb-4">
-            {error}
+        {loading && (
+          <div className="text-center">
+            <div className="animate-pulse">Loading...</div>
           </div>
         )}
 
-        <div className="space-y-4">
-          {currentPosts.map((job) => (
-            <Link href={`/buyer/jobs/${job.id}`} key={job.id} className="block">
-              <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
-                <div className="flex flex-col">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">Created {formatDate(job.created_at)}</p>
-                    </div>
-                    <span className="text-sm text-gray-500 capitalize">{job.status}</span>
-                  </div>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600 truncate">{job.description}</p>
-                  </div>
-                  {job.skills && job.skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {job.skills.map((skill) => (
-                        <span
-                          key={skill.skill_id}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
-                        >
-                          {skill.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
               </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center space-x-2 mt-8">
-            <button
-              onClick={() => paginate(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`px-3 py-1 rounded ${
-                currentPage === 1
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-500 text-white hover:bg-blue-600'
-              }`}
-            >
-              Previous
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-              <button
-                key={number}
-                onClick={() => paginate(number)}
-                className={`px-3 py-1 rounded ${
-                  currentPage === number
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {number}
-              </button>
-            ))}
-            <button
-              onClick={() => paginate(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded ${
-                currentPage === totalPages
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-500 text-white hover:bg-blue-600'
-              }`}
-            >
-              Next
-            </button>
+            </div>
           </div>
+        )}
+
+        {!loading && !error && jobs.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No jobs posted</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by posting your first job.</p>
+            <div className="mt-6">
+              <Link
+                href="/buyer/post-job"
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Post a Job
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && jobs.length > 0 && (
+          <>
+            <div className="bg-white shadow overflow-hidden sm:rounded-md">
+              <ul className="divide-y divide-gray-200">
+                {currentPosts.map((job) => (
+                  <li key={job.id}>
+                    <div className="px-4 py-4 sm:px-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-medium text-gray-900 truncate">
+                          {job.title}
+                        </h3>
+                        <div className="ml-2 flex-shrink-0 flex">
+                          <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            job.status === 'open'
+                              ? 'bg-green-100 text-green-800'
+                              : job.status === 'in_progress'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {job.status.replace('_', ' ').charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2 sm:flex sm:justify-between">
+                        <div className="sm:flex">
+                          <p className="flex items-center text-sm text-gray-500">
+                            {job.description.length > 100
+                              ? `${job.description.substring(0, 100)}...`
+                              : job.description}
+                          </p>
+                        </div>
+                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                          <p>
+                            Posted{' '}
+                            {new Date(job.created_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {job.skills && job.skills.length > 0 && (
+                        <div className="mt-2">
+                          <div className="flex flex-wrap gap-2">
+                            {job.skills.map((skill) => (
+                              <span
+                                key={skill.skill_id}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                {skill.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-4">
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => paginate(index + 1)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        currentPage === index + 1
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { supabaseServer } from '@/lib/supabase'
 import DashboardClient from './DashboardClient'
 
 export const dynamic = 'force-dynamic'
@@ -9,23 +9,22 @@ export const revalidate = 0
 export default async function DashboardPage() {
   try {
     const cookieStore = cookies()
-    const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
     const {
       data: { session },
-    } = await supabase.auth.getSession()
+    } = await supabaseServer.auth.getSession()
 
     if (!session) {
       redirect('/auth/login')
     }
 
     const [profileResult, jobsResult] = await Promise.all([
-      supabase
+      supabaseServer
         .from('profiles')
         .select('id, display_name, member_type, created_at')
         .eq('id', session.user.id)
         .single(),
-      supabase
+      supabaseServer
         .from('project_postings')
         .select(`
           project_postings_id,
@@ -45,8 +44,6 @@ export default async function DashboardPage() {
         .eq('buyer_id', session.user.id)
         .order('created_at', { ascending: false }),
     ])
-
-    console.log('Jobs result:', JSON.stringify(jobsResult, null, 2));
 
     return (
       <>
