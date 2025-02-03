@@ -24,25 +24,7 @@ let browserInstance: ReturnType<typeof createClientComponentClient> | null = nul
 export const createBrowserClient = () => {
   if (typeof window === 'undefined') return null
   if (!browserInstance) {
-    browserInstance = createClientComponentClient({
-      supabaseUrl,
-      supabaseKey: supabaseAnonKey,
-      options: {
-        auth: {
-          flowType: 'pkce',
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-          storageKey: 'sb:token',
-          debug: false
-        },
-        global: {
-          headers: {
-            'X-Client-Info': '@supabase/auth-helpers-nextjs'
-          },
-        },
-      },
-    })
+    browserInstance = createClientComponentClient()
   }
   return browserInstance
 }

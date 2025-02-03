@@ -3,19 +3,25 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getJobPostingStore } from '@/lib/jobPostingStore'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { getBrowserClient } from '@/lib/supabase'
 
 export default function TitlePage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClientComponentClient()
+  const supabase = getBrowserClient()
 
   useEffect(() => {
     let mounted = true;
 
     async function checkAuthAndInitialize() {
       try {
+        if (!supabase) {
+          console.error('Supabase client not initialized')
+          router.push('/auth/login')
+          return
+        }
+
         // Check auth status
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) {
@@ -45,7 +51,7 @@ export default function TitlePage() {
     return () => {
       mounted = false;
     };
-  }, [router, supabase.auth]);
+  }, [router, supabase]);
 
   const exampleTitles = [
     "Scrape Product Data from E-commerce Websites with Price and Availability Tracking",
