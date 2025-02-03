@@ -121,9 +121,9 @@ export default function SkillsPage() {
                       <button
                         key={skill}
                         onClick={() => handleSkillClick(skill)}
-                        className="text-left text-sm py-1 px-2 hover:bg-gray-50 rounded"
+                        className="text-left text-sm py-1 px-3 hover:bg-gray-100 rounded-full"
                       >
-                        {skill}
+                        + {skill}
                       </button>
                     ))}
                   </div>
