@@ -17,6 +17,9 @@ export async function middleware(request: NextRequest) {
 
   try {
     const supabase = createMiddlewareClient({ req: request, res })
+    await supabase.auth.getSession()
+
+    // Refresh session if exists
     const {
       data: { session },
     } = await supabase.auth.getSession()
@@ -38,11 +41,17 @@ export async function middleware(request: NextRequest) {
       const requestHeaders = new Headers(request.headers)
       requestHeaders.set('x-user-id', session.user.id)
       
-      return NextResponse.next({
+      const response = NextResponse.next({
         request: {
           headers: requestHeaders,
         },
       })
+
+      // Set cookie
+      response.cookies.set('sb-access-token', session.access_token)
+      response.cookies.set('sb-refresh-token', session.refresh_token)
+
+      return response
     }
 
     // Check auth for protected routes
@@ -55,7 +64,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
-    return res
+    // Set cookie for all responses
+    const finalResponse = NextResponse.next()
+    if (session) {
+      finalResponse.cookies.set('sb-access-token', session.access_token)
+      finalResponse.cookies.set('sb-refresh-token', session.refresh_token)
+    }
+
+    return finalResponse
   } catch (e) {
     console.error('Middleware error:', e)
     return res

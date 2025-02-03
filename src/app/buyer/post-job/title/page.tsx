@@ -3,29 +3,25 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getJobPostingStore } from '@/lib/jobPostingStore'
-import { getBrowserClient } from '@/lib/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function TitlePage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = getBrowserClient()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     let mounted = true;
 
     async function checkAuthAndInitialize() {
       try {
-        if (!supabase) {
-          console.error('Supabase client not initialized')
-          router.push('/auth/login')
-          return
-        }
-
         // Check auth status
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) {
-          router.push('/auth/login')
+          const redirectUrl = new URL('/auth/login', window.location.origin)
+          redirectUrl.searchParams.set('returnUrl', '/buyer/post-job')
+          router.push(redirectUrl.toString())
           return
         }
 
@@ -51,7 +47,7 @@ export default function TitlePage() {
     return () => {
       mounted = false;
     };
-  }, [router, supabase]);
+  }, [router, supabase.auth]);
 
   const exampleTitles = [
     "Scrape Product Data from E-commerce Websites with Price and Availability Tracking",

@@ -1,18 +1,22 @@
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function PostJob() {
   const cookieStore = cookies()
+  const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   const {
     data: { session },
-  } = await supabaseServer.auth.getSession()
+  } = await supabase.auth.getSession()
 
   if (!session) {
-    redirect('/auth/login')
+    const redirectUrl = new URL('/auth/login', 'http://localhost:3000')
+    redirectUrl.searchParams.set('returnUrl', '/buyer/post-job')
+    redirect(redirectUrl.toString())
   }
 
   redirect('/buyer/post-job/title')
