@@ -1,6 +1,23 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+
 export default function CreateJobPage() {
+  const router = useRouter()
+  const [title, setTitle] = useState('')
+  const [step, setStep] = useState(1)
+
+  const handleContinue = () => {
+    if (title.length < 6) {
+      alert('Please enter a title with at least 6 characters')
+      return
+    }
+    // Save title to localStorage for now
+    localStorage.setItem('jobTitle', title)
+    router.push('/buyer/jobs/create/details')
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-6">
@@ -20,6 +37,8 @@ export default function CreateJobPage() {
             </label>
             <input
               type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg"
               placeholder="Minimum 6 characters"
             />
@@ -35,7 +54,10 @@ export default function CreateJobPage() {
           </div>
 
           <div className="flex">
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg">
+            <button 
+              onClick={handleContinue}
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+            >
               Continue
             </button>
           </div>

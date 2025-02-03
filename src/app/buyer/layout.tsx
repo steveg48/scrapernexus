@@ -1,4 +1,5 @@
 import SupabaseProvider from '@/components/providers/SupabaseProvider'
+import Navigation from '@/components/Navigation'
 
 export default function BuyerLayout({
   children,
@@ -7,7 +8,10 @@ export default function BuyerLayout({
 }) {
   return (
     <SupabaseProvider>
-      {children}
+      <Navigation />
+      <main>
+        {children}
+      </main>
     </SupabaseProvider>
   )
 }
