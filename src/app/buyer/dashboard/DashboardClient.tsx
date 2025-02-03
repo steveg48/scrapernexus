@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import JobsList from './JobsList';
 
 interface Job {
   id: number;
@@ -37,23 +38,13 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const postsPerPage = 5;
 
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = jobs.slice(indexOfFirstPost, indexOfLastPost);
-  const totalPages = Math.ceil(jobs.length / postsPerPage);
-
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  // Fetch jobs when user changes
   useEffect(() => {
     const fetchJobs = async () => {
       if (!user) return;
       
       try {
-        const supabase = createClientComponentClient()
+        const supabase = createClientComponentClient();
         setLoading(true);
         setError(null);
         const { data, error: jobsError } = await supabase
@@ -152,61 +143,7 @@ export default function DashboardClient({ initialProfile, initialJobs }: Dashboa
         )}
 
         {!loading && !error && jobs.length > 0 && (
-          <div className="space-y-4">
-            {currentPosts.map((job) => (
-              <div key={job.id} className="bg-white shadow overflow-hidden rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">{job.title}</h3>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Active
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-gray-500">{job.description.length > 100 ? `${job.description.substring(0, 100)}...` : job.description}</p>
-                  {job.skills && job.skills.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {job.skills.map((skill) => (
-                        <span
-                          key={skill.skill_id}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          {skill.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-4 text-sm text-gray-500">
-                    Posted {new Date(job.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-4 flex justify-center">
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  {Array.from({ length: totalPages }).map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => paginate(index + 1)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        currentPage === index + 1
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-            )}
-          </div>
+          <JobsList jobs={jobs} loading={loading} />
         )}
       </div>
     </div>

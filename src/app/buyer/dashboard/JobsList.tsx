@@ -60,7 +60,11 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
   return (
     <div className="space-y-4">
       {currentJobs.map((job) => (
-        <div key={job.id} className="bg-white border border-gray-200 rounded-lg p-4">
+        <Link 
+          href={`/buyer/jobs/${job.id}`}
+          key={job.id} 
+          className="block bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+        >
           <div className="flex flex-col">
             <div className="flex justify-between items-start">
               <div>
@@ -85,7 +89,7 @@ export default function JobsList({ jobs, loading = false }: JobsListProps) {
               </div>
             )}
           </div>
-        </div>
+        </Link>
       ))}
 
       {totalPages > 1 && (
